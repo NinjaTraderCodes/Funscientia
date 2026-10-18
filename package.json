@@ -1,0 +1,20 @@
+{
+  "name": "funscientia",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Funscientia — Kingdoms of Discovery: a story-driven 2.5D browser game where kids learn science by exploring the human body.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "phaser": "4.2.1"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4"
+  }
+}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0b1533" />
+    <meta name="description" content="Funscientia — Kingdoms of Discovery: a story-driven science adventure where kids explore the human body." />
+    <title>Funscientia — Kingdoms of Discovery</title>
+    <link rel="preload" href="./assets/intro/poster.jpg" as="image" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="game"></div>
+
+      <video id="intro" playsinline preload="auto" poster="./assets/intro/poster.jpg" hidden>
+        <source src="./assets/intro/intro.mp4" type="video/mp4" />
+      </video>
+
+      <section id="start-screen" class="screen">
+        <div class="start-card">
+          <h1 class="title">Funscientia</h1>
+          <p class="subtitle">Kingdoms of Discovery</p>
+          <button id="start-btn" class="btn-primary" type="button" disabled>Loading…</button>
+          <p class="load-note" id="load-note">Preparing the adventure</p>
+        </div>
+      </section>
+
+      <button id="skip-btn" class="btn-ghost" type="button" hidden>Skip intro ›</button>
+
+      <div id="hud" hidden>
+        <div class="brand">Funscientia</div>
+        <p id="hint" class="hint"></p>
+      </div>
+
+      <div id="rotate-hint" class="rotate-hint">Turn your device sideways for the best view</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

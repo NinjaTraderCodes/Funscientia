@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "characters": {
+    "girl": {
+      "atlas": "characters/girl",
+      "animations": {
+        "walk_back": {
+          "prefix": "walk_",
+          "count": 38,
+          "fps": 30,
+          "bodyPx": 330,
+          "originY": 0.989010989010989
+        },
+        "idle_back": {
+          "frame": "idle",
+          "bodyPx": 560,
+          "originY": 0.9934640522875817
+        }
+      },
+      "start": {
+        "x": 357.5,
+        "y": 442,
+        "bodyHeight": 124
+      },
+      "source": {
+        "walk": "001.MOV frames [38, 75] @30fps from 68.0s",
+        "idle": "001.MOV frame at 76.2s"
+      }
+    },
+    "fox": {
+      "atlas": "characters/fox",
+      "animations": {
+        "walk_back": {
+          "prefix": "walk_",
+          "count": 20,
+          "fps": 30,
+          "bodyPx": 330,
+          "originY": 0.989010989010989
+        },
+        "idle_back": {
+          "frame": "idle",
+          "bodyPx": 560,
+          "originY": 0.9934640522875817
+        }
+      },
+      "start": {
+        "x": 410.5,
+        "y": 443,
+        "bodyHeight": 75
+      },
+      "source": {
+        "walk": "001.MOV frames [46, 65] @30fps from 68.0s",
+        "idle": "001.MOV frame at 76.2s"
+      }
+    },
+    "boy": {
+      "atlas": "characters/boy",
+      "animations": {
+        "walk_back": {
+          "prefix": "walk_",
+          "count": 37,
+          "fps": 30,
+          "bodyPx": 330,
+          "originY": 0.989010989010989
+        },
+        "idle_back": {
+          "frame": "idle",
+          "bodyPx": 560,
+          "originY": 0.9934640522875817
+        }
+      },
+      "start": {
+        "x": 468.0,
+        "y": 448,
+        "bodyHeight": 131
+      },
+      "source": {
+        "walk": "001.MOV frames [47, 83] @30fps from 68.0s",
+        "idle": "001.MOV frame at 76.2s"
+      }
+    }
+  }
+}

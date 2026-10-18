@@ -1,0 +1,158 @@
+:root {
+  --navy: #0b1533;
+  --navy-2: #13235a;
+  --gold: #f3c35a;
+  --gold-2: #ffe29a;
+  --cream: #fff6e3;
+  --ink: #1d1a2e;
+  font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--navy);
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app { position: fixed; inset: 0; background: var(--navy); }
+
+#game, #game canvas { position: absolute; inset: 0; display: block; }
+
+/* The intro video covers the screen exactly like the game camera does
+   (object-fit: cover), so its last frame lines up with the first game frame. */
+#intro {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--navy);
+  transition: opacity 450ms ease;
+  z-index: 5;
+}
+#intro.fade-out { opacity: 0; pointer-events: none; }
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 10;
+  background:
+    radial-gradient(ellipse at center, rgba(11, 21, 51, 0.35), rgba(11, 21, 51, 0.85)),
+    url('/assets/intro/poster.jpg') center / cover no-repeat;
+  transition: opacity 400ms ease;
+}
+.screen.hidden { opacity: 0; pointer-events: none; }
+
+.start-card { text-align: center; padding: 24px; }
+
+.title {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(42px, 9vw, 96px);
+  color: var(--gold);
+  letter-spacing: 0.02em;
+  text-shadow: 0 3px 0 #8a5a12, 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+.subtitle {
+  margin: 6px 0 28px;
+  color: var(--cream);
+  font-size: clamp(16px, 2.6vw, 24px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.btn-primary {
+  min-width: 240px;
+  padding: 16px 34px;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--cream);
+  background: linear-gradient(180deg, #2a4bc4, #1a2f86);
+  border: 3px solid var(--gold);
+  border-radius: 999px;
+  box-shadow: 0 6px 0 #0d1a4d, 0 12px 28px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.12); }
+.btn-primary:active:not(:disabled) { transform: translateY(3px); }
+.btn-primary:disabled { opacity: 0.7; cursor: progress; }
+.btn-primary:focus-visible, .btn-ghost:focus-visible { outline: 3px solid var(--gold-2); outline-offset: 4px; }
+
+.load-note { margin-top: 14px; color: var(--cream); opacity: 0.8; font-size: 14px; min-height: 1.2em; }
+
+.btn-ghost {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 12;
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--cream);
+  background: rgba(11, 21, 51, 0.55);
+  border: 2px solid rgba(243, 195, 90, 0.8);
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+#hud { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.brand {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  font-family: Georgia, serif;
+  font-size: clamp(18px, 2.6vw, 28px);
+  color: var(--gold);
+  text-shadow: 0 2px 0 #8a5a12, 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: min(92vw, 640px);
+  padding: 10px 20px;
+  color: var(--cream);
+  font-size: clamp(14px, 2vw, 18px);
+  text-align: center;
+  background: rgba(11, 21, 51, 0.72);
+  border: 2px solid rgba(243, 195, 90, 0.85);
+  border-radius: 16px;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+.hint.show { opacity: 1; }
+
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (max-width: 700px) {
+  .rotate-hint {
+    display: block;
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--cream);
+    background: rgba(11, 21, 51, 0.75);
+    border-radius: 999px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+}
