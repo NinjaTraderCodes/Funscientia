@@ -2,7 +2,7 @@
   "name": "funscientia",
   "private": true,
   "version": "0.1.0",
-  "description": "Funscientia \u00e2\u20ac\u201d Kingdoms of Discovery: a story-driven 2.5D browser game where kids learn science by exploring the human body.",
+  "description": "Funscientia — Kingdoms of Discovery: a story-driven 2.5D browser game where kids learn science by exploring the human body.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,13 +10,15 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "deploy": "node tools/deploy.mjs",
-    "ink": "node tools/build_ink.mjs"
+    "ink": "node tools/build_ink.mjs",
+    "demo": "node tools/record_demo.mjs http://localhost:4173/ && node tools/encode_demo.mjs"
   },
   "dependencies": {
     "inkjs": "^2.4.0",
     "phaser": "4.2.1"
   },
   "devDependencies": {
+    "playwright-core": "^1.64.1",
     "typescript": "~6.0.3",
     "vite": "^8.3.4"
   }

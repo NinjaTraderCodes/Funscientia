@@ -9,6 +9,8 @@ const NAMES: Record<Hero | 'fox' | 'tooth', string> = {
 };
 
 const CHARS_PER_SEC = 45;
+/** Portrait files known not to exist yet (mood variants still being made). */
+const MISSING = new Set<string>();
 
 /**
  * Bottom-of-screen dialogue panel, styled after Dounia's mockup: portrait in a
@@ -39,6 +41,8 @@ export class DialogueBox implements DialogueView {
         <span class="dlg-more" aria-hidden="true">▼</span>
       </div>`;
     document.getElementById('app')!.appendChild(this.root);
+    // warm the cache so the first line of each speaker shows its face at once
+    for (const w of Object.keys(NAMES)) new Image().src = asset(`portraits/${w}_happy.webp`);
     this.portrait = this.root.querySelector('.dlg-portrait img')!;
     this.name = this.root.querySelector('.dlg-name')!;
     this.text = this.root.querySelector('.dlg-text')!;
@@ -74,12 +78,7 @@ export class DialogueBox implements DialogueView {
     this.root.dataset.speaker = who;
     this.choices.replaceChildren();
     this.name.textContent = NAMES[who];
-    this.portrait.src = asset(`portraits/${who}_${line.mood}.webp`);
-    this.portrait.onerror = () => {
-      // fall back to the neutral portrait while mood variants are still being made
-      this.portrait.onerror = null;
-      this.portrait.src = asset(`portraits/${who}_happy.webp`);
-    };
+    this.setPortrait(who, line.mood);
 
     // typewriter; the first tap completes the line, the second continues
     this.more.hidden = true;
@@ -107,6 +106,25 @@ export class DialogueBox implements DialogueView {
       this.advance = finish;
       requestAnimationFrame(tick);
     });
+  }
+
+  /**
+   * Swap the portrait only once the new image is decoded (no blank circle), and
+   * remember missing mood variants so they fall back to "happy" immediately.
+   */
+  private setPortrait(who: string, mood: string): void {
+    const url = (m: string) => asset(`portraits/${who}_${m}.webp`);
+    const want = MISSING.has(url(mood)) ? url('happy') : url(mood);
+    if (this.portrait.src.endsWith(want)) return;
+    const img = new Image();
+    img.onload = () => {
+      if (this.root.dataset.speaker === who) this.portrait.src = want;
+    };
+    img.onerror = () => {
+      MISSING.add(want);
+      if (mood !== 'happy') this.setPortrait(who, 'happy');
+    };
+    img.src = want;
   }
 
   showChoices(choices: string[]): Promise<number> {

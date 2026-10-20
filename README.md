@@ -26,6 +26,7 @@ npm run preview    # serve the production build
 ```bash
 npm run deploy     # build and publish to GitHub Pages (gh-pages branch)
 npm run ink        # recompile content/dialogue/*.ink after editing dialogue
+npm run demo       # record a gameplay video (needs `npm run build && npm run preview -- --port 4173`)
 ```
 
 Controls: tap/click the ground or use the arrow keys / WASD. **G** toggles debug overlays (walkable area, hotspots).
