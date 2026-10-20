@@ -141,12 +141,32 @@ export class OverlookScene extends Phaser.Scene {
     this.party = new Party(c[GameState.leaderName], [c[GameState.buddyName], c.fox], this.walkable);
   }
 
+  /**
+   * The first frame uses the poses cut from the video so the hand-over is exact.
+   * While the camera still holds, fade those (blurry) poses into the crisp
+   * turnaround back views.
+   */
+  private crossfadeToCleanPoses(): void {
+    for (const c of Object.values(this.characters)) {
+      const s = c.sprite;
+      const ghost = this.add
+        .image(s.x, s.y, s.texture.key, s.frame.name)
+        .setOrigin(s.originX, s.originY)
+        .setScale(s.scaleX, s.scaleY)
+        .setDepth(s.depth + 0.01);
+      c.introPose = false;
+      c.update(0); // show the clean pose underneath right away
+      this.tweens.add({ targets: ghost, alpha: 0, delay: 150, duration: OPENING_HOLD_MS - 150, ease: 'Sine.easeInOut', onComplete: () => ghost.destroy() });
+    }
+  }
+
   private startOpening(): void {
     if (this.phase !== 'waiting') return;
     this.phase = 'opening';
     const from = { ...this.world.endFrameRect };
     const to = this.world.overviewRect;
     const k0 = this.world.endFrameParty.scale;
+    this.crossfadeToCleanPoses();
     this.time.delayedCall(OPENING_HOLD_MS, () => {
       this.tweens.addCounter({
         from: 0,
@@ -168,8 +188,6 @@ export class OverlookScene extends Phaser.Scene {
           this.phase = 'choose';
           // a short exchange first, so choosing the leader is part of the story
           await this.beforeChoice();
-          // the choice card dims the scene: swap to the high-quality standing poses now
-          for (const c of Object.values(this.characters)) c.introPose = false;
           GameState.hero = await chooseHero();
           this.makeParty();
           this.phase = 'play';

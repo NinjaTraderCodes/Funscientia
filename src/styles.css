@@ -249,7 +249,9 @@ html, body {
   box-shadow: 0 8px 0 #8a5a12, 0 14px 30px rgba(0, 0, 0, 0.45);
   transition: transform 140ms ease;
 }
-.hero-option:hover, .hero-option:focus-visible { transform: translateY(-4px) scale(1.03); outline: none; border-color: #fff2bf; }
+.hero-option:hover { transform: translateY(-4px) scale(1.05); border-color: #fff2bf; box-shadow: 0 10px 0 #8a5a12, 0 18px 36px rgba(0, 0, 0, 0.5); }
+.hero-option:focus { outline: none; }
+.hero-option:focus-visible { outline: 3px solid var(--gold-2); outline-offset: 4px; }
 .hero-option img { width: 100%; aspect-ratio: 1; object-fit: cover; object-position: 50% 15%; border-radius: 50%; background: #fff; }
 
 /* ---- Discovery toast ---- */

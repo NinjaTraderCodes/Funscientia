@@ -31,6 +31,6 @@ export function chooseHero(): Promise<Hero> {
       }),
     );
     root.addEventListener('pointerdown', (e) => e.stopPropagation());
-    root.querySelector<HTMLButtonElement>('.hero-option')?.focus();
+    // no auto-focus: nothing looks pre-selected; Tab still reaches both cards
   });
 }

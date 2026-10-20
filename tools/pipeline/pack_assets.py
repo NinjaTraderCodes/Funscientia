@@ -50,7 +50,7 @@ WALK_SOURCES = {
     # art masters (ChatGPT/Codex) win over the old intro extractions when present
     "front": ("art:walk_front|work:chars_front_x4", WALK_FRAME_STEP, WALK_FPS // WALK_FRAME_STEP),
     # ChatGPT/Codex side walk (facing left): 16 frames over one stride, timed by timing.json
-    "side": ("art:walk_side", 1, 16),
+    "side": ("art:walk_side", 1, 16),  # all walk masters now come from Wan 2.2 clips (16 fps)
 }
 VIEW_LIGHT_MATCH = 0.75  # how strongly turnaround views take on the scene's light (0..1)
 VIEW_FACINGS: dict[str, dict[str, str]] = {}
@@ -235,6 +235,10 @@ def main() -> None:
             canvas, feet = canvas_for(SHIP_WALK_BODY_PX, ref, walks)
             # one horizontal anchor for the whole loop: the mean torso centre
             centre = float(np.mean([torso_center_x(w) for w in walks]))
+            # the frame must hold the farthest pixel on EITHER side of that anchor
+            # (a fox's tail sticks out far on one side only)
+            reach = max(max(centre - body_box(w)[0], body_box(w)[2] - centre) for w in walks)
+            canvas = (max(canvas[0], int(2 * reach * SHIP_WALK_BODY_PX / ref) + 16), canvas[1])
             prefix = "walk_" if d == "back" else f"walk_{d}_"
             for k, w in enumerate(walks):
                 frames[f"{prefix}{k:02d}"] = fit_frame(w, SHIP_WALK_BODY_PX, ref, canvas, feet, centre)
