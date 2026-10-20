@@ -1,0 +1,145 @@
+import type { DialogueView, Hero, Line, Speaker } from '../dialogue/DialogueRunner';
+import { asset } from '../assetUrl';
+
+const NAMES: Record<Hero | 'fox' | 'tooth', string> = {
+  walid: 'Walid',
+  nesma: 'Nesma',
+  fox: 'Fennec',
+  tooth: 'Tooth Guardian',
+};
+
+const CHARS_PER_SEC = 45;
+
+/**
+ * Bottom-of-screen dialogue panel, styled after Dounia's mockup: portrait in a
+ * gold ring, a name ribbon, typewriter text, tap/Space/Enter to continue.
+ * `dir="auto"` lets Arabic lines run right-to-left on their own.
+ */
+export class DialogueBox implements DialogueView {
+  private readonly root: HTMLElement;
+  private readonly portrait: HTMLImageElement;
+  private readonly name: HTMLElement;
+  private readonly text: HTMLElement;
+  private readonly choices: HTMLElement;
+  private readonly more: HTMLElement;
+  private advance: (() => void) | null = null;
+
+  constructor(private readonly hero: Hero) {
+    this.root = document.createElement('div');
+    this.root.className = 'dialogue';
+    this.root.hidden = true;
+    this.root.innerHTML = `
+      <div class="dlg-panel" role="dialog" aria-live="polite">
+        <div class="dlg-portrait"><img alt="" /></div>
+        <div class="dlg-body">
+          <div class="dlg-name"></div>
+          <p class="dlg-text" dir="auto"></p>
+          <div class="dlg-choices"></div>
+        </div>
+        <span class="dlg-more" aria-hidden="true">▼</span>
+      </div>`;
+    document.getElementById('app')!.appendChild(this.root);
+    this.portrait = this.root.querySelector('.dlg-portrait img')!;
+    this.name = this.root.querySelector('.dlg-name')!;
+    this.text = this.root.querySelector('.dlg-text')!;
+    this.choices = this.root.querySelector('.dlg-choices')!;
+    this.more = this.root.querySelector('.dlg-more')!;
+    this.root.addEventListener('pointerdown', (e) => {
+      if ((e.target as HTMLElement).closest('button')) return;
+      e.stopPropagation();
+      this.advance?.();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (!this.root.hidden && (e.code === 'Space' || e.code === 'Enter')) {
+        e.preventDefault();
+        this.advance?.();
+      }
+    });
+  }
+
+  get isOpen(): boolean {
+    return !this.root.hidden;
+  }
+
+  private who(speaker: Speaker): Hero | 'fox' | 'tooth' {
+    if (speaker === 'leader') return this.hero;
+    if (speaker === 'buddy') return this.hero === 'walid' ? 'nesma' : 'walid';
+    if (speaker === 'walid' || speaker === 'nesma') return speaker;
+    return speaker;
+  }
+
+  async showLine(line: Line): Promise<void> {
+    const who = this.who(line.speaker);
+    this.root.hidden = false;
+    this.root.dataset.speaker = who;
+    this.choices.replaceChildren();
+    this.name.textContent = NAMES[who];
+    this.portrait.src = asset(`portraits/${who}_${line.mood}.webp`);
+    this.portrait.onerror = () => {
+      // fall back to the neutral portrait while mood variants are still being made
+      this.portrait.onerror = null;
+      this.portrait.src = asset(`portraits/${who}_happy.webp`);
+    };
+
+    // typewriter; the first tap completes the line, the second continues
+    this.more.hidden = true;
+    let shown = 0;
+    let done = false;
+    const full = line.text;
+    await new Promise<void>((resolve) => {
+      const start = performance.now();
+      const tick = () => {
+        if (done) return;
+        shown = Math.min(full.length, Math.floor(((performance.now() - start) / 1000) * CHARS_PER_SEC));
+        this.text.textContent = full.slice(0, shown);
+        if (shown >= full.length) return finish();
+        requestAnimationFrame(tick);
+      };
+      const finish = () => {
+        done = true;
+        this.text.textContent = full;
+        this.more.hidden = false;
+        this.advance = () => {
+          this.advance = null;
+          resolve();
+        };
+      };
+      this.advance = finish;
+      requestAnimationFrame(tick);
+    });
+  }
+
+  showChoices(choices: string[]): Promise<number> {
+    this.more.hidden = true;
+    this.advance = null;
+    return new Promise((resolve) => {
+      this.choices.replaceChildren(
+        ...choices.map((c, i) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'dlg-choice';
+          b.dir = 'auto';
+          b.textContent = c;
+          b.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.choices.replaceChildren();
+            resolve(i);
+          });
+          return b;
+        }),
+      );
+      (this.choices.firstElementChild as HTMLButtonElement | null)?.focus();
+    });
+  }
+
+  /** Remove the box from the page (one-off conversations). */
+  destroy(): void {
+    this.close();
+    this.root.remove();
+  }
+
+  close(): void {
+    this.root.hidden = true;
+    this.advance = null;
+  }
+}

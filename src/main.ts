@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import './styles.css';
 import { IntroPlayer } from './intro/IntroPlayer';
 import { BootScene, GAME_EVENTS } from './scenes/BootScene';
+import { ChapterScene } from './scenes/ChapterScene';
 import { OverlookScene } from './scenes/OverlookScene';
+import { WorldScene } from './scenes/WorldScene';
 
 // Render at device resolution (capped at 2x for performance) and let CSS scale
 // the canvas back down, so the art stays sharp on phones and retina screens.
@@ -17,7 +19,7 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.NONE, width: w, height: h, zoom: 1 / dpr },
   render: { antialias: true, roundPixels: false },
   input: { activePointers: 2 },
-  scene: [BootScene, OverlookScene],
+  scene: [BootScene, OverlookScene, ChapterScene, WorldScene],
 });
 
 let resizeTimer = 0;
@@ -52,15 +54,33 @@ game.events.on(GAME_EVENTS.progress, (p: number) => {
 const hud = document.getElementById('hud') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
 const touch = window.matchMedia('(pointer: coarse)').matches;
-game.events.once(GAME_EVENTS.openingDone, () => {
+const showHint = (text: string) => {
   hud.hidden = false;
-  hint.textContent = touch
-    ? 'Tap the ground to walk — your friends will follow!'
-    : 'Click the ground or use the arrow keys to walk — your friends will follow!';
+  hint.textContent = text;
   requestAnimationFrame(() => hint.classList.add('show'));
+};
+const FOLLOW_HINT = 'Follow the golden star to the Digestive Kingdom!';
+let onOverlook = true;
+game.events.once(GAME_EVENTS.openingDone, () => {
+  showHint(touch
+    ? 'Tap the ground to walk — your friends will follow!'
+    : 'Click the ground or use the arrow keys to walk — your friends will follow!');
 });
 game.events.once(GAME_EVENTS.firstMove, () => {
-  window.setTimeout(() => hint.classList.remove('show'), 2500);
+  // second hint: point the way once they know how to walk
+  window.setTimeout(() => {
+    hint.classList.remove('show');
+    window.setTimeout(() => onOverlook && showHint(FOLLOW_HINT), 600);
+  }, 2500);
+});
+game.events.on(GAME_EVENTS.leaving, () => {
+  onOverlook = false;
+  hint.classList.remove('show');
+  window.setTimeout(() => (hud.hidden = true), 500);
+});
+game.events.on(GAME_EVENTS.resumed, () => {
+  onOverlook = true;
+  showHint(FOLLOW_HINT);
 });
 
 // handy while developing: window.game in the console

@@ -26,6 +26,27 @@ NEAR_THRESHOLD = 0.55  # normalized inverse depth; 1 = closest
 FEATHER_PX = 2
 
 
+def match_exposure_local(src: np.ndarray, ref: np.ndarray, paste: np.ndarray, usable: np.ndarray) -> np.ndarray:
+    """Shift each pasted patch by the median colour difference measured in a thin
+    ring just outside it (where both shots show the same, well-aligned scenery).
+    Local and robust: parallax elsewhere in the frame cannot skew it."""
+    out = src.astype(np.float32)
+    n, labels, stats, _ = cv2.connectedComponentsWithStats(paste.astype(np.uint8), 8)
+    for k in range(1, n):
+        comp = (labels == k).astype(np.uint8)
+        ring = cv2.dilate(comp, np.ones((17, 17), np.uint8)) & (1 - cv2.dilate(comp, np.ones((3, 3), np.uint8)))
+        ring = ring.astype(bool) & usable
+        if ring.sum() < 300:
+            continue
+        diff = np.median(ref[ring].astype(np.float32) - src[ring].astype(np.float32), axis=0)
+        if np.abs(diff).max() > 15:  # large shifts mean misaligned content, not exposure
+            continue
+        sel = comp.astype(bool)
+        out[sel] += diff
+        print(f"  patch {k}: {int(stats[k, 4])} px, colour shift {np.round(diff, 1).tolist()}")
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
 def estimate_depth(model: Path, rgb: np.ndarray) -> np.ndarray:
     session = ort.InferenceSession(str(model), providers=["CPUExecutionProvider"])
     h, w = rgb.shape[:2]
@@ -49,6 +70,7 @@ def main() -> None:
     ap.add_argument("--charmask", type=Path, help="character mask of the plate frame")
     ap.add_argument("--pivot", default="420.5,321.5")
     ap.add_argument("--dolly", type=float, default=1.717)
+    ap.add_argument("--top-leaf-rows", type=int, default=14)
     args = ap.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -65,12 +87,19 @@ def main() -> None:
         if stats[k, cv2.CC_STAT_AREA] > 150:
             keep[labels == k] = 1
     near = keep
+    if args.top_leaf_rows:
+        # tiny overhanging leaf tips at the top edge are too thin for the depth
+        # model; up there everything else is sky, so warm-coloured pixels are leaves
+        band = rgb[: args.top_leaf_rows].astype(int)
+        leafy = (band[:, :, 0] - band[:, :, 2]) > 25
+        near[: args.top_leaf_rows] |= cv2.dilate(leafy.astype(np.uint8), np.ones((5, 5), np.uint8))
 
     alpha = cv2.GaussianBlur(near.astype(np.float32), (0, 0), FEATHER_PX)
     near_rgba = np.dstack([rgb, (np.clip(alpha, 0, 1) * 255).astype(np.uint8)])
     Image.fromarray(near_rgba).save(args.out_dir / "near.png")
 
-    hole = cv2.dilate(near, np.ones((9, 9), np.uint8))
+    # generous margin: soft leaf edges blur several pixels into the sky
+    hole = cv2.dilate(near, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15)))
     far = rgb.copy()
     h, w = hole.shape
 
@@ -94,24 +123,31 @@ def main() -> None:
         valid_w = cv2.warpAffine(valid, m, (w, h), flags=cv2.INTER_NEAREST)
         valid_w = cv2.erode(valid_w, np.ones((5, 5), np.uint8))
         paste = (hole > 0) & (valid_w > 0) & (chars_end == 0)
-        soft = cv2.GaussianBlur(paste.astype(np.float32), (0, 0), 1.5)[..., None]
-        far = (warped * soft + far * (1 - soft)).astype(np.uint8)
-        hole = (hole > 0) & ~(soft[..., 0] > 0.98)
-        hole = hole.astype(np.uint8)
-        print("pixels taken from the last video frame:", int(paste.sum()))
+        # The two shots differ slightly in exposure; fit a per-channel gain/bias on
+        # scenery both frames show, so pasted pixels match and leave no seams.
+        usable = (valid_w > 0) & (hole == 0) & (chars_end == 0)
+        warped = match_exposure_local(warped, far, paste, usable)
 
-    # inpaint whatever is still uncovered, window by window
+    # 1) inpaint the whole hole first, so no near-layer pixels (leaves) remain
     session = ort.InferenceSession(str(args.lama), providers=["CPUExecutionProvider"])
+    todo = hole.copy()
     for cx in range(256, w + 256, 168):
         cx = min(cx, w - 256)
         x0 = cx - 256
-        win_hole = np.zeros_like(hole)
-        win_hole[:, x0:x0 + 512] = hole[:, x0:x0 + 512]
+        win_hole = np.zeros_like(todo)
+        win_hole[:, x0:x0 + 512] = todo[:, x0:x0 + 512]
         if win_hole.any():
             far = lama_fill(session, far, win_hole, cx)
-            hole[:, x0:x0 + 512] = 0
+            todo[:, x0:x0 + 512] = 0
         if cx == w - 256:
             break
+
+    # 2) then lay the real pixels from the last frame on top, feathered into the fill
+    if args.end_frame:
+        inner = cv2.erode(paste.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
+        soft = np.minimum(cv2.GaussianBlur(inner.astype(np.float32), (0, 0), 2.0), paste.astype(np.float32))[..., None]
+        far = (warped * soft + far * (1 - soft)).astype(np.uint8)
+        print("pixels taken from the last video frame:", int(paste.sum()))
     Image.fromarray(far).save(args.out_dir / "far.png")
     print("layers written to", args.out_dir)
 

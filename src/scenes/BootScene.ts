@@ -8,6 +8,8 @@ export const GAME_EVENTS = {
   introDone: 'intro:done',
   openingDone: 'opening:done',
   firstMove: 'party:first-move',
+  leaving: 'overlook:leaving',
+  resumed: 'overlook:resumed',
 } as const;
 
 /** Loads the layout manifests, then every texture they reference. */
@@ -25,7 +27,9 @@ export class BootScene extends Phaser.Scene {
     const world = this.cache.json.get('world') as WorldLayout;
     const manifest = this.cache.json.get('characters') as CharacterManifest;
 
-    this.load.image(world.plate.image, asset(`${world.plate.image}.webp`));
+    for (const layer of Object.values(world.layers)) {
+      this.load.image(layer.image, asset(`${layer.image}.webp`));
+    }
     for (const [name, def] of Object.entries(manifest.characters)) {
       this.load.atlas(name, asset(`${def.atlas}.webp`), asset(`${def.atlas}.json`));
     }

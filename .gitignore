@@ -1,11 +1,20 @@
+# dependencies & build output
 node_modules/
 dist/
+
+# local tools, AI models and working files (regenerable; see README "Asset pipeline")
 .tools/
-*.log
-.DS_Store
-Thumbs.db
+_archive/
 __pycache__/
 *.pyc
+*.log
+.env
+.DS_Store
+Thumbs.db
 
-# Raw source videos stay local (not published)
+# large source media and high-resolution art masters stay local
+# (the shipped, game-ready versions live in public/assets)
 docs/videos/
+docs/references/
+docs/walk-clips/
+art/

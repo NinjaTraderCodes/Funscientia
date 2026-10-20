@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "inkjs": "^2.4.0",
     "phaser": "4.2.1"
   },
   "devDependencies": {

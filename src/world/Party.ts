@@ -18,6 +18,10 @@ export class Party {
   private readonly walkable: Walkable;
   private readonly leaderStartHeight: number;
   private readonly tmp = new Phaser.Math.Vector2();
+  /** When true, followers may leave the walkable area (scripted exits). */
+  unbounded = false;
+  /** Members released from the formation (scripted moves); they still animate. */
+  private readonly released = new Set<Character>();
 
   constructor(leader: Character, followers: Character[], walkable: Walkable) {
     this.leader = leader;
@@ -33,6 +37,12 @@ export class Party {
     return [this.leader, ...this.followers.map((f) => f.who)];
   }
 
+  /** Take a member out of the formation (it keeps any walk you give it), or put it back. */
+  release(who: Character, released = true): void {
+    if (released) this.released.add(who);
+    else this.released.delete(who);
+  }
+
   moveLeaderTo(x: number, y: number): Phaser.Math.Vector2 {
     const p = this.walkable.clamp(x, y);
     this.leader.walkTo(p.x, p.y);
@@ -43,18 +53,19 @@ export class Party {
     if (keys && (keys.x !== 0 || keys.y !== 0)) {
       const len = Math.hypot(keys.x, keys.y);
       this.leader.nudge(keys.x / len, keys.y / len, dt, (v) => this.walkable.clamp(v.x, v.y, v));
-      this.leader.update(dt, true);
+      this.leader.update(dt);
     } else {
       this.leader.update(dt);
     }
 
     const depth = this.leader.bodyHeight / this.leaderStartHeight;
     for (const f of this.followers) {
-      const slot = this.walkable.clamp(
-        this.leader.pos.x + f.offset.x * depth,
-        this.leader.pos.y + f.offset.y * depth,
-        this.tmp,
-      );
+      if (this.released.has(f.who)) {
+        f.who.update(dt);
+        continue;
+      }
+      this.tmp.set(this.leader.pos.x + f.offset.x * depth, this.leader.pos.y + f.offset.y * depth);
+      const slot = this.unbounded ? this.tmp : this.walkable.clamp(this.tmp.x, this.tmp.y, this.tmp);
       const dist = Phaser.Math.Distance.Between(f.who.pos.x, f.who.pos.y, slot.x, slot.y);
       // hysteresis: start walking when clearly out of place, stop when close
       const startAt = 6 * depth;

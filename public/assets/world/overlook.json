@@ -1,12 +1,21 @@
 {
-  "version": 1,
+  "version": 2,
   "units": "pixels of the 848x464 intro frame at 76.2s",
-  "plate": {
-    "image": "world/overlook",
-    "x": 0,
-    "y": -16,
-    "w": 848,
-    "h": 480
+  "layers": {
+    "far": {
+      "image": "world/overlook_far",
+      "x": 0,
+      "y": -16,
+      "w": 848,
+      "h": 480
+    },
+    "near": {
+      "image": "world/overlook_near",
+      "x": 0,
+      "y": 0,
+      "w": 848,
+      "h": 464
+    }
   },
   "videoFrame": {
     "w": 848,

@@ -60,6 +60,21 @@ def split_frame(alpha: np.ndarray) -> dict[str, np.ndarray]:
     return {name: clean_mask(solid & region) for name, region in regions.items()}
 
 
+def split_by_columns(alpha: np.ndarray, order: list[str], windows: list[tuple[int, int]],
+                     min_y: dict[str, int]) -> dict[str, np.ndarray]:
+    """Split left-to-right at the emptiest column inside each window between neighbours."""
+    solid = alpha > 128
+    cols = solid.sum(0)
+    cuts = [0] + [a + int(np.argmin(cols[a:b])) for a, b in windows] + [solid.shape[1]]
+    ys = np.arange(solid.shape[0])[:, None]
+    xs = np.arange(solid.shape[1])[None, :]
+    out = {}
+    for name, x0, x1 in zip(order, cuts[:-1], cuts[1:]):
+        region = (xs >= x0) & (xs < x1) & (ys >= min_y.get(name, 0))
+        out[name] = clean_mask(solid & region)
+    return out
+
+
 def bbox(mask: np.ndarray) -> tuple[int, int, int, int]:
     ys, xs = np.where(mask)
     return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
@@ -88,14 +103,21 @@ def main() -> None:
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--min-period", type=int, default=20)
     ap.add_argument("--max-period", type=int, default=40)
+    ap.add_argument("--order", help="comma-separated names left to right, for clips where characters never touch")
+    ap.add_argument("--windows", help="x0:x1,... column windows between neighbours (with --order)")
+    ap.add_argument("--min-y", help="name=y,... ignore pixels above y for a character")
+    ap.add_argument("--prefix", default="walk_", help="output frame name prefix")
     args = ap.parse_args()
+    order = args.order.split(",") if args.order else None
+    windows = [tuple(int(v) for v in w.split(":")) for w in args.windows.split(",")] if args.windows else []
+    min_y = {k: int(v) for k, v in (kv.split("=") for kv in args.min_y.split(","))} if args.min_y else {}
 
     frames = [args.seg / f"f_{i:03d}.png" for i in range(args.first, args.last + 1)]
     rgba = [np.array(Image.open(f).convert("RGBA")) for f in frames]
-    parts = [split_frame(a[:, :, 3]) for a in rgba]
+    parts = [split_by_columns(a[:, :, 3], order, windows, min_y) if order else split_frame(a[:, :, 3]) for a in rgba]
 
     report = {}
-    for name in CHARACTERS:
+    for name in (order or CHARACTERS):
         boxes = [bbox(p[name]) for p in parts]
         heights = np.array([b[3] - b[1] for b in boxes], float)
         feet_x = np.array([(b[0] + b[2]) / 2 for b in boxes], float)
@@ -135,7 +157,7 @@ def main() -> None:
         for old in dest.glob("*.png"):
             old.unlink()
         for k in range(period):
-            Image.fromarray(normalized[start + k]).save(dest / f"walk_{k:02d}.png")
+            Image.fromarray(normalized[start + k]).save(dest / f"{args.prefix}{k:02d}.png")
         report[name] = {
             "source_frames": [args.first + start, args.first + start + period - 1],
             "period": period,

@@ -3,12 +3,19 @@ import type { CharacterManifest, CharacterName, Rect, WorldLayout } from '../dat
 import { Character } from '../world/Character';
 import { Party } from '../world/Party';
 import { Walkable } from '../world/Walkable';
+import { Waypoint } from '../world/Waypoint';
 import { GAME_EVENTS } from './BootScene';
+import { GameState } from '../state/GameState';
+import { chooseHero } from '../ui/HeroSelect';
+import { DialogueRunner } from '../dialogue/DialogueRunner';
+import { DialogueBox } from '../ui/DialogueBox';
 
-type Phase = 'waiting' | 'opening' | 'play';
+type Phase = 'waiting' | 'opening' | 'choose' | 'play' | 'leaving';
 
 const OPENING_HOLD_MS = 700;
 const OPENING_PULLBACK_MS = 3400;
+/** Where the trail to the Digestive Kingdom starts: the right end of the ledge (world units). */
+const TRAIL_START = { x: 598, y: 428 };
 
 /**
  * The first playable place: the overlook above the Kingdoms where the intro
@@ -26,18 +33,25 @@ export class OverlookScene extends Phaser.Scene {
   private camCenter = new Phaser.Math.Vector2();
   private keys!: Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
   private debug!: Phaser.GameObjects.Graphics;
+  private nearLayer!: Phaser.GameObjects.Image;
   private movedOnce = false;
+  private trail!: Waypoint;
 
   constructor() {
     super('Overlook');
   }
 
-  create(): void {
+  create(data: { skipOpening?: boolean } = {}): void {
+    // scenes are reused when restarted: reset per-run state
+    this.phase = 'waiting';
+    this.movedOnce = false;
     this.world = this.cache.json.get('world') as WorldLayout;
     const manifest = this.cache.json.get('characters') as CharacterManifest;
-    const { plate } = this.world;
+    const { far, near } = this.world.layers;
 
-    this.add.image(plate.x, plate.y, plate.image).setOrigin(0, 0).setDisplaySize(plate.w, plate.h).setDepth(-1e6);
+    this.add.image(far.x, far.y, far.image).setOrigin(0, 0).setDisplaySize(far.w, far.h).setDepth(-2e6);
+    // drawn behind the characters: it is the ground they stand on
+    this.nearLayer = this.add.image(near.x, near.y, near.image).setOrigin(0, 0).setDepth(-1e6);
     this.walkable = new Walkable(this.world.walkable);
 
     const horizon = this.world.horizonY;
@@ -45,10 +59,15 @@ export class OverlookScene extends Phaser.Scene {
       const def = manifest.characters[name];
       // ground-plane perspective: apparent height is proportional to distance below the horizon
       const heightAt = (y: number) => (def.start.bodyHeight * (y - horizon)) / (def.start.y - horizon);
-      return new Character(this, name, def, heightAt);
+      // ground foreshortening grows linearly below the horizon (pinhole camera); ~0.35 on the ledge
+      const foreshorten = (y: number) => (0.35 * (y - horizon)) / (444 - horizon);
+      const rel = def.start.bodyHeight / manifest.characters.boy.start.bodyHeight;
+      return new Character(this, name, def, heightAt, foreshorten, rel);
     };
     this.characters = { boy: make('boy'), girl: make('girl'), fox: make('fox') };
-    this.party = new Party(this.characters.boy, [this.characters.girl, this.characters.fox], this.walkable);
+    this.makeParty();
+    // the opening shot must match the video's last frame: use the poses cut from it
+    if (!data.skipOpening) for (const c of Object.values(this.characters)) c.introPose = true;
 
     // Opening framing = the intro video's last frame.
     const { pivot, scale } = this.world.endFrameParty;
@@ -57,6 +76,9 @@ export class OverlookScene extends Phaser.Scene {
       c.dolly.pivotY = pivot[1];
     }
     this.setView(this.world.endFrameRect, scale);
+
+    const trailHeight = this.characters.boy.bodyHeight * ((TRAIL_START.y - horizon) / (this.characters.boy.pos.y - horizon));
+    this.trail = new Waypoint(this, TRAIL_START.x, TRAIL_START.y, trailHeight, 'To the\nDigestive Kingdom');
 
     this.debug = this.add.graphics().setDepth(1e6).setVisible(false);
     this.walkable.draw(this.debug);
@@ -68,7 +90,19 @@ export class OverlookScene extends Phaser.Scene {
     kb.on('keydown-G', () => this.debug.setVisible(!this.debug.visible));
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onPointer(p));
-    this.scale.on('resize', () => this.applyView(true));
+    const onResize = () => this.applyView(true);
+    this.scale.on('resize', onResize);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', onResize));
+
+    if (data.skipOpening) {
+      this.setView(this.world.overviewRect, 1);
+      this.phase = 'play';
+      this.movedOnce = true;
+      this.trail.show(this);
+      this.cameras.main.fadeIn(600, 11, 21, 51);
+      this.game.events.emit(GAME_EVENTS.resumed);
+      return;
+    }
     this.game.events.once(GAME_EVENTS.introDone, () => this.startOpening());
     this.game.events.emit(GAME_EVENTS.overlookReady);
   }
@@ -81,10 +115,30 @@ export class OverlookScene extends Phaser.Scene {
       const y = (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0);
       if ((x || y) && !this.movedOnce) this.noteFirstMove();
       this.party.update(dt, { x, y });
+      if (this.trail.reached(this.party.leader.pos.x, this.party.leader.pos.y)) this.leave();
+    } else if (this.phase === 'leaving') {
+      this.party.update(dt, null);
     } else {
       for (const c of this.party.members) c.update(dt);
     }
     this.applyView(false, dt);
+  }
+
+  private async beforeChoice(): Promise<void> {
+    try {
+      const runner = await DialogueRunner.load('overlook', 'walid');
+      const box = new DialogueBox('walid');
+      await runner.run('before_choice', box);
+      box.destroy();
+    } catch (e) {
+      console.warn('overlook dialogue unavailable', e);
+    }
+  }
+
+  /** The chosen hero leads; the other kid and the fox follow in the intro's formation. */
+  private makeParty(): void {
+    const c = this.characters;
+    this.party = new Party(c[GameState.leaderName], [c[GameState.buddyName], c.fox], this.walkable);
   }
 
   private startOpening(): void {
@@ -108,11 +162,38 @@ export class OverlookScene extends Phaser.Scene {
           const cy = Phaser.Math.Linear(from.y + from.h / 2, to.y + to.h / 2, t);
           this.setView({ x: cx - w / 2, y: cy - h / 2, w, h }, Phaser.Math.Linear(k0, 1, t));
         },
-        onComplete: () => {
-          this.phase = 'play';
+        onComplete: async () => {
           this.camCenter.set(to.x + to.w / 2, to.y + to.h / 2);
+          // the child picks who leads the way, then plays
+          this.phase = 'choose';
+          // a short exchange first, so choosing the leader is part of the story
+          await this.beforeChoice();
+          // the choice card dims the scene: swap to the high-quality standing poses now
+          for (const c of Object.values(this.characters)) c.introPose = false;
+          GameState.hero = await chooseHero();
+          this.makeParty();
+          this.phase = 'play';
+          this.trail.show(this);
           this.game.events.emit(GAME_EVENTS.openingDone);
         },
+      });
+    });
+  }
+
+  /** The trio sets off along the trail; fade to the next chapter. */
+  private leave(): void {
+    this.phase = 'leaving';
+    this.trail.hide();
+    this.game.events.emit(GAME_EVENTS.leaving);
+    // walk on past the end of the ledge and down the trail, out of view
+    this.party.leader.walkTo(TRAIL_START.x + 70, TRAIL_START.y + 45);
+    this.party.unbounded = true;
+    this.cameras.main.fadeOut(1400, 11, 21, 51);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      this.scene.start('Chapter', {
+        title: 'Chapter 1',
+        subtitle: 'The Road to the Mouth Gate',
+        next: { scene: 'World', data: { place: 'road' } },
       });
     });
   }
@@ -142,6 +223,11 @@ export class OverlookScene extends Phaser.Scene {
     this.view.rect = rect;
     this.view.k = k;
     for (const c of this.party.members) c.dolly.k = k;
+    // the near ground layer sits at the trio's depth, so it gets the same dolly
+    const near = this.world.layers.near;
+    const [px, py] = this.world.endFrameParty.pivot;
+    this.nearLayer.setPosition(px + (near.x - px) * k, py + (near.y - py) * k);
+    this.nearLayer.setDisplaySize(near.w * k, near.h * k);
     this.camCenter.set(rect.x + rect.w / 2, rect.y + rect.h / 2);
     this.applyView(true);
   }
@@ -160,7 +246,10 @@ export class OverlookScene extends Phaser.Scene {
     if (this.phase === 'play') {
       const visW = cam.width / zoom;
       const visH = cam.height / zoom;
-      const tx = Phaser.Math.Clamp(this.party.leader.pos.x, r.x + visW / 2, r.x + r.w - visW / 2);
+      // follow the middle of the group so nobody walks off a narrow screen
+      const members = this.party.members;
+      const groupX = members.reduce((sum, c) => sum + c.pos.x, 0) / members.length;
+      const tx = Phaser.Math.Clamp(groupX, r.x + visW / 2, r.x + r.w - visW / 2);
       const ty = Phaser.Math.Clamp(this.party.leader.pos.y - this.party.leader.bodyHeight, r.y + visH / 2, r.y + r.h - visH / 2);
       const a = snap ? 1 : 1 - Math.exp(-dt * 3);
       this.camCenter.x += (tx - this.camCenter.x) * a;

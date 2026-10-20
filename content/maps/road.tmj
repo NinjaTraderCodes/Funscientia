@@ -1,0 +1,381 @@
+{
+ "type": "map",
+ "version": "1.10",
+ "tiledversion": "1.12.2",
+ "orientation": "orthogonal",
+ "renderorder": "right-down",
+ "width": 96,
+ "height": 64,
+ "tilewidth": 16,
+ "tileheight": 16,
+ "infinite": false,
+ "nextlayerid": 4,
+ "nextobjectid": 8,
+ "properties": [
+  {
+   "name": "horizonY",
+   "type": "float",
+   "value": 186
+  },
+  {
+   "name": "bodyPerPathWidth",
+   "type": "float",
+   "value": 0.45
+  },
+  {
+   "name": "pathWidthAtBottom",
+   "type": "float",
+   "value": 750
+  },
+  {
+   "name": "title",
+   "type": "string",
+   "value": "The Road to the Mouth Gate"
+  },
+  {
+   "name": "dialogue",
+   "type": "string",
+   "value": "road"
+  }
+ ],
+ "tilesets": [],
+ "layers": [
+  {
+   "id": 1,
+   "name": "background",
+   "type": "imagelayer",
+   "image": "../../art/world/road/road_master.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false
+  },
+  {
+   "id": 2,
+   "name": "walkable",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "objects": [
+    {
+     "id": 1,
+     "name": "road",
+     "type": "walkable",
+     "x": 1216.6774193548385,
+     "y": 355.0,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "polygon": [
+      {
+       "x": 0.0,
+       "y": 0.0
+      },
+      {
+       "x": -31.8,
+       "y": 40.0
+      },
+      {
+       "x": -92.2,
+       "y": 80.0
+      },
+      {
+       "x": -178.5,
+       "y": 120.0
+      },
+      {
+       "x": -261.5,
+       "y": 160.0
+      },
+      {
+       "x": -326.3,
+       "y": 200.0
+      },
+      {
+       "x": -295.5,
+       "y": 240.0
+      },
+      {
+       "x": -177.5,
+       "y": 280.0
+      },
+      {
+       "x": -113.8,
+       "y": 320.0
+      },
+      {
+       "x": -50.5,
+       "y": 360.0
+      },
+      {
+       "x": 3.2,
+       "y": 400.0
+      },
+      {
+       "x": -5.0,
+       "y": 440.0
+      },
+      {
+       "x": -4.4,
+       "y": 480.0
+      },
+      {
+       "x": 15.0,
+       "y": 520.0
+      },
+      {
+       "x": 48.5,
+       "y": 560.0
+      },
+      {
+       "x": 59.2,
+       "y": 600.0
+      },
+      {
+       "x": -57.2,
+       "y": 640.0
+      },
+      {
+       "x": -86.7,
+       "y": 663.0
+      },
+      {
+       "x": -545.8,
+       "y": 663.0
+      },
+      {
+       "x": -581.7,
+       "y": 640.0
+      },
+      {
+       "x": -563.3,
+       "y": 600.0
+      },
+      {
+       "x": -659.7,
+       "y": 560.0
+      },
+      {
+       "x": -667.0,
+       "y": 520.0
+      },
+      {
+       "x": -548.4,
+       "y": 480.0
+      },
+      {
+       "x": -563.5,
+       "y": 440.0
+      },
+      {
+       "x": -541.6,
+       "y": 400.0
+      },
+      {
+       "x": -520.6,
+       "y": 360.0
+      },
+      {
+       "x": -522.9,
+       "y": 320.0
+      },
+      {
+       "x": -572.2,
+       "y": 280.0
+      },
+      {
+       "x": -621.8,
+       "y": 240.0
+      },
+      {
+       "x": -591.5,
+       "y": 200.0
+      },
+      {
+       "x": -504.2,
+       "y": 160.0
+      },
+      {
+       "x": -403.4,
+       "y": 120.0
+      },
+      {
+       "x": -250.7,
+       "y": 80.0
+      },
+      {
+       "x": -148.2,
+       "y": 40.0
+      },
+      {
+       "x": -148.5,
+       "y": 0.0
+      }
+     ]
+    }
+   ],
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "color": "#00ffff"
+  },
+  {
+   "id": 3,
+   "name": "spots",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "objects": [
+    {
+     "id": 2,
+     "name": "spawn",
+     "type": "spawn",
+     "x": 860,
+     "y": 975,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 3,
+     "name": "signpost",
+     "type": "hotspot",
+     "x": 1075,
+     "y": 610,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "signpost"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "Signpost"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 70
+      }
+     ]
+    },
+    {
+     "id": 4,
+     "name": "fox_bush",
+     "type": "hotspot",
+     "x": 700,
+     "y": 585,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "fox_sniff"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "Sweet smell"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 70
+      },
+      {
+       "name": "foxTo",
+       "type": "string",
+       "value": "560,520"
+      }
+     ]
+    },
+    {
+     "id": 5,
+     "name": "gate",
+     "type": "hotspot",
+     "x": 1160,
+     "y": 378,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "gate"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "The Mouth Gate"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 45
+      }
+     ]
+    },
+    {
+     "id": 6,
+     "name": "tooth",
+     "type": "npc",
+     "x": 1105,
+     "y": 372,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "who",
+       "type": "string",
+       "value": "tooth"
+      }
+     ]
+    },
+    {
+     "id": 7,
+     "name": "signpost_prop",
+     "type": "prop",
+     "x": 1185,
+     "y": 585,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "prop",
+       "type": "string",
+       "value": "signpost"
+      }
+     ]
+    }
+   ],
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "color": "#ffcc00"
+  }
+ ]
+}

@@ -29,7 +29,8 @@ def lama_fill(session: ort.InferenceSession, img: np.ndarray, mask: np.ndarray, 
     h, w = mask.shape
     pad = max(0, LAMA_SIZE - h)
     img_p = cv2.copyMakeBorder(img, pad, 0, 0, 0, cv2.BORDER_REFLECT)
-    mask_p = cv2.copyMakeBorder(mask, pad, 0, 0, 0, cv2.BORDER_CONSTANT, value=0)
+    # mirror the mask too: mirrored hole pixels must be filled, not used as context
+    mask_p = cv2.copyMakeBorder(mask, pad, 0, 0, 0, cv2.BORDER_REFLECT)
     x0 = int(np.clip(cx - LAMA_SIZE // 2, 0, w - LAMA_SIZE))
     win = img_p[-LAMA_SIZE:, x0:x0 + LAMA_SIZE]
     m = mask_p[-LAMA_SIZE:, x0:x0 + LAMA_SIZE]
