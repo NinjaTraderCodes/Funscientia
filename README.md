@@ -4,6 +4,8 @@ A story-driven science adventure for children (8–12) set in the *Douniaverse*.
 magical kingdom, solve hands-on challenges and learn science through play. Built for the **Thirduni** team project
 (Cohort 1, 2026).
 
+**▶ Play the latest version: https://ninjatradercodes.github.io/Funscientia/** (best in landscape; phone, tablet or PC)
+
 > **Status: early prototype.** Playable today: intro video → overlook → choose a hero → the Road to the Mouth Gate
 > (dialogue, a discovery, a prediction question). The first mini-game (the Mouth) is next.
 
@@ -19,6 +21,11 @@ npm run dev        # http://localhost:5173 (also on your LAN, to test on a phone
 ```bash
 npm run build      # type-check + production build into dist/
 npm run preview    # serve the production build
+```
+
+```bash
+npm run deploy     # build and publish to GitHub Pages (gh-pages branch)
+npm run ink        # recompile content/dialogue/*.ink after editing dialogue
 ```
 
 Controls: tap/click the ground or use the arrow keys / WASD. **G** toggles debug overlays (walkable area, hotspots).
@@ -38,6 +45,12 @@ Controls: tap/click the ground or use the arrow keys / WASD. **G** toggles debug
 
 There is **no server**: the game is a static site (HTML + JS + images). A backend becomes useful later for
 teacher dashboards, class progress or accounts — see *Ideas for a backend*.
+
+## Hosting
+
+The game is a static site hosted free on **GitHub Pages** from the `gh-pages` branch. `npm run deploy` builds and
+publishes it. A GitHub Actions workflow (`.github/workflows/deploy.yml`) does the same automatically on every push
+to `main` once Actions is enabled for the account.
 
 ## Project structure
 
