@@ -38,6 +38,8 @@ export function chooseAvatar(current?: Profile): Promise<Profile | null> {
             </button>`,
           ).join('')}
         </div>
+        <div class="avatar-foot">
+        <p class="avatar-hint" dir="auto">Tap the one you want to be!</p>
         <div class="avatar-bottom">
           <label class="avatar-name">
             <span>Player name</span>
@@ -45,10 +47,12 @@ export function chooseAvatar(current?: Profile): Promise<Profile | null> {
           </label>
           <button type="button" class="avatar-continue" disabled>${edit ? 'SAVE' : 'CONTINUE'}</button>
         </div>
+        </div>
       </div>`;
     document.getElementById('app')!.appendChild(root);
 
     const cards = [...root.querySelectorAll<HTMLButtonElement>('.avatar-card')];
+    const bottom = root.querySelector<HTMLElement>('.avatar-bottom')!;
     const input = root.querySelector('input')!;
     const go = root.querySelector<HTMLButtonElement>('.avatar-continue')!;
     input.value = current?.name ?? '';
@@ -60,6 +64,9 @@ export function chooseAvatar(current?: Profile): Promise<Profile | null> {
         c.setAttribute('aria-checked', String(on));
       }
       go.disabled = !picked;
+      // the name box (and Continue) appear once a character is picked
+      bottom.classList.toggle('shown', !!picked);
+      root.querySelector('.avatar-hint')!.classList.toggle('gone', !!picked);
       // the name box suggests the picked character's own name
       input.placeholder = picked ? `Your name (or ${DEFAULT_NAMES[picked]})` : 'Your name';
     };
@@ -72,8 +79,11 @@ export function chooseAvatar(current?: Profile): Promise<Profile | null> {
     };
     for (const c of cards) {
       c.addEventListener('click', () => {
+        const first = !picked;
         picked = c.dataset.avatar as Avatar;
         show();
+        // ready to type on a computer; on touch screens the keyboard waits for a tap on the box
+        if (first && window.matchMedia('(pointer: fine)').matches) input.focus({ preventScroll: true });
       });
     }
     go.addEventListener('click', () => {

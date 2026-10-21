@@ -340,10 +340,24 @@ html, body {
   transition: opacity 160ms ease, transform 160ms ease;
 }
 .avatar-card.picked .avatar-check { opacity: 1; transform: scale(1); }
+/* the prompt and the name row share one place: the prompt until a character is picked */
+.avatar-foot { display: grid; margin-top: clamp(12px, 3vh, 24px); }
+.avatar-foot > * { grid-area: 1 / 1; }
+.avatar-hint {
+  align-self: center; justify-self: center;
+  margin: 0;
+  font-size: clamp(16px, 3.2vh, 26px); font-weight: 800;
+  color: #8a5a12;
+  transition: opacity 200ms ease;
+}
+.avatar-hint.gone { opacity: 0; }
 .avatar-bottom {
   display: flex; align-items: flex-end; gap: clamp(12px, 3vw, 28px);
-  margin-top: clamp(12px, 3vh, 24px);
+  /* hidden (its space kept, so nothing jumps) until a character is picked */
+  visibility: hidden; opacity: 0; transform: translateY(8px);
+  transition: opacity 260ms ease, transform 260ms ease, visibility 0s 260ms;
 }
+.avatar-bottom.shown { visibility: visible; opacity: 1; transform: none; transition: opacity 260ms ease, transform 260ms ease; }
 .avatar-name { flex: 1; display: grid; gap: 4px; min-width: 0; }
 .avatar-name span { font-weight: 800; font-size: clamp(15px, 2.8vh, 22px); color: var(--ink); }
 .avatar-name input {

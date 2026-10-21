@@ -15,7 +15,10 @@ Writes: public/assets/intro/intro_1080.mp4, intro_720.mp4
 from __future__ import annotations
 
 import subprocess
+import tempfile
 from pathlib import Path
+
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 VIDEOS = ROOT / "docs" / "videos"
@@ -27,7 +30,7 @@ FPS = 24
 
 # (clip, in-point s, duration s) in order; the durations add up to the original's shot lengths
 SHOTS = [
-    ("part-02.mp4", 0.10, 5.60),
+    ("part-02_v1.mp4", 0.00, 5.60),  # this take keeps Walid's backpack on (in part-02 it vanishes)
     ("part-03.mp4", 0.81, 5.15),
     ("part-04.mp4", 0.00, 6.00),
     ("part-05.mp4", 0.00, 6.00),
@@ -40,6 +43,11 @@ SHOTS = [
     ("part-12.mp4", 0.00, 4.00),
 ]
 OPENING = 5.90
+# shots whose picture is not the take the original edit used: they bring their own sound
+# (level-matched and crossfaded in), so footsteps match what you see
+OWN_SOUND = {"part-02_v1.mp4"}
+SR = 48000
+SOUND_FADE = 0.12  # seconds of crossfade where a shot's own sound comes in and out
 # part-09 is 3:2: crop it to 16:9 nearer the top, where the faces are
 CROP_TOP_SHARE = {"part-09.mp4": 0.2}
 
@@ -54,6 +62,32 @@ def fit(label: str, top_share: float = 0.5) -> str:
     """Scale to cover 1920x1080 and crop (top_share of the excess height is cut from the top)."""
     return (f"scale=1920:1080:force_original_aspect_ratio=increase:flags=lanczos,"
             f"crop=1920:1080:(iw-1920)/2:(ih-1080)*{top_share},setsar=1,fps={FPS},format=yuv420p{label}")
+
+
+def pcm(path: Path, start: float = 0.0, dur: float | None = None) -> np.ndarray:
+    cmd = ["ffmpeg", "-v", "error", "-ss", f"{start:.3f}", "-i", str(path)] + (["-t", f"{dur:.3f}"] if dur else [])
+    raw = subprocess.run(cmd + ["-vn", "-ac", "2", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
+    return np.frombuffer(raw, np.float32).reshape(-1, 2).astype(np.float64)
+
+
+def soundtrack() -> np.ndarray:
+    """The original soundtrack, with the OWN_SOUND shots' own sound in their slots."""
+    track = pcm(ORIGINAL)
+    at = OPENING
+    f = int(SOUND_FADE * SR)
+    for name, t_in, dur in SHOTS:
+        if name in OWN_SOUND:
+            a, b = int(at * SR), int((at + dur) * SR)
+            own = pcm(VIDEOS / name, t_in, dur)[: b - a]
+            slot = track[a:a + len(own)]
+            own *= np.sqrt((slot ** 2).mean()) / max(1e-9, np.sqrt((own ** 2).mean()))  # as loud as what it replaces
+            w = np.ones((len(own), 1))
+            ramp = np.linspace(0, 1, f)[:, None]
+            w[:f], w[-f:] = ramp, ramp[::-1]
+            track[a:a + len(own)] = slot * (1 - w) + own * w
+            print(f"  {name}: its own sound at {at:.2f}-{at + dur:.2f}s")
+        at += dur
+    return track.astype(np.float32)
 
 
 def main() -> None:
@@ -88,7 +122,10 @@ def main() -> None:
     n = len(labels)
     # hold the last picture while the soundtrack finishes (the game shows the overlook meanwhile)
     chains.append(f"{''.join(labels)}concat=n={n}:v=1:a=0,tpad=stop_mode=clone:stop_duration={hold:.3f}[v]")
-    inputs += ["-i", str(ORIGINAL)]
+    tmp = tempfile.TemporaryDirectory()
+    sound = Path(tmp.name) / "soundtrack.f32"
+    sound.write_bytes(soundtrack().tobytes())
+    inputs += ["-f", "f32le", "-ar", str(SR), "-ac", "2", "-i", str(sound)]
     audio = len(SHOTS) + 1
 
     OUT.mkdir(parents=True, exist_ok=True)
@@ -104,6 +141,7 @@ def main() -> None:
                     "-c:v", "libx264", "-preset", "slower", "-crf", "25", "-maxrate", "1.4M", "-bufsize", "2.8M",
                     "-profile:v", "high", "-pix_fmt", "yuv420p", "-tune", "animation",
                     "-c:a", "copy", "-movflags", "+faststart", str(small)], check=True)
+    tmp.cleanup()
     for f in (full, small):
         print(f"{f.name}: {duration(f):.2f}s, {f.stat().st_size / 1e6:.1f} MB")
 
