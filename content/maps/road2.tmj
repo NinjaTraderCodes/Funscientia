@@ -1,0 +1,252 @@
+{
+ "type": "map",
+ "version": "1.10",
+ "tiledversion": "1.12.2",
+ "orientation": "orthogonal",
+ "renderorder": "right-down",
+ "width": 96,
+ "height": 64,
+ "tilewidth": 16,
+ "tileheight": 16,
+ "infinite": false,
+ "nextlayerid": 6,
+ "nextobjectid": 20,
+ "tilesets": [],
+ "properties": [
+  {
+   "name": "title",
+   "type": "string",
+   "value": "The Mouth Gate"
+  },
+  {
+   "name": "dialogue",
+   "type": "string",
+   "value": "road2"
+  },
+  {
+   "name": "horizonY",
+   "type": "float",
+   "value": 341.0
+  },
+  {
+   "name": "pathWidthAtBottom",
+   "type": "float",
+   "value": 680.0
+  },
+  {
+   "name": "bodyPerPathWidth",
+   "type": "float",
+   "value": 0.45
+  },
+  {
+   "name": "foreshortenAtBottom",
+   "type": "float",
+   "value": 0.42
+  },
+  {
+   "name": "goal",
+   "type": "string",
+   "value": "gate"
+  }
+ ],
+ "layers": [
+  {
+   "id": 1,
+   "name": "far",
+   "type": "imagelayer",
+   "image": "../../art/world/road2/road2_far.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.0,
+   "parallaxy": 0.82
+  },
+  {
+   "id": 2,
+   "name": "mid",
+   "type": "imagelayer",
+   "image": "../../art/world/road2/road2_mid.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.0,
+   "parallaxy": 1.0
+  },
+  {
+   "id": 3,
+   "name": "near",
+   "type": "imagelayer",
+   "image": "../../art/world/road2/road2_near.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.22,
+   "parallaxy": 1.22,
+   "properties": [
+    {
+     "name": "front",
+     "type": "bool",
+     "value": true
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "walkable",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "color": "#00ffff",
+   "objects": [
+    {
+     "id": 1,
+     "name": "road",
+     "type": "walkable",
+     "x": 460,
+     "y": 1020,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "polygon": [
+      {
+       "x": 0,
+       "y": 0
+      },
+      {
+       "x": 635,
+       "y": 0
+      },
+      {
+       "x": 412,
+       "y": -508
+      },
+      {
+       "x": 252,
+       "y": -508
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "spots",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "color": "#ffcc00",
+   "objects": [
+    {
+     "id": 10,
+     "name": "spawn",
+     "type": "spawn",
+     "x": 780,
+     "y": 975,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 11,
+     "name": "fox_bush",
+     "type": "hotspot",
+     "x": 640,
+     "y": 700,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "fox_sniff"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "Sweet smell"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 70
+      },
+      {
+       "name": "foxTo",
+       "type": "string",
+       "value": "585,690"
+      }
+     ]
+    },
+    {
+     "id": 12,
+     "name": "gate",
+     "type": "hotspot",
+     "x": 790,
+     "y": 522,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "gate"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "The Mouth Gate"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 45
+      }
+     ]
+    },
+    {
+     "id": 13,
+     "name": "tooth",
+     "type": "npc",
+     "x": 706,
+     "y": 512,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "who",
+       "type": "string",
+       "value": "tooth"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

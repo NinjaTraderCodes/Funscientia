@@ -9,8 +9,8 @@
  "tilewidth": 16,
  "tileheight": 16,
  "infinite": false,
- "nextlayerid": 4,
- "nextobjectid": 8,
+ "nextlayerid": 6,
+ "nextobjectid": 14,
  "properties": [
   {
    "name": "horizonY",
@@ -36,24 +36,66 @@
    "name": "dialogue",
    "type": "string",
    "value": "road"
+  },
+  {
+   "name": "goal",
+   "type": "string",
+   "value": "bend"
   }
  ],
  "tilesets": [],
  "layers": [
   {
    "id": 1,
-   "name": "background",
+   "name": "far",
    "type": "imagelayer",
-   "image": "../../art/world/road/road_master.png",
+   "image": "../../art/world/road/road_far.png",
    "x": 0,
    "y": 0,
    "opacity": 1,
    "visible": true,
    "repeatx": false,
-   "repeaty": false
+   "repeaty": false,
+   "parallaxx": 1.0,
+   "parallaxy": 0.82
   },
   {
    "id": 2,
+   "name": "mid",
+   "type": "imagelayer",
+   "image": "../../art/world/road/road_mid.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.0,
+   "parallaxy": 1.0
+  },
+  {
+   "id": 3,
+   "name": "near",
+   "type": "imagelayer",
+   "image": "../../art/world/road/road_near.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.22,
+   "parallaxy": 1.22,
+   "properties": [
+    {
+     "name": "front",
+     "type": "bool",
+     "value": true
+    }
+   ]
+  },
+  {
+   "id": 4,
    "name": "walkable",
    "type": "objectgroup",
    "draworder": "topdown",
@@ -223,13 +265,18 @@
    "color": "#00ffff"
   },
   {
-   "id": 3,
+   "id": 5,
    "name": "spots",
    "type": "objectgroup",
    "draworder": "topdown",
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "color": "#ffcc00",
    "objects": [
     {
-     "id": 2,
+     "id": 10,
      "name": "spawn",
      "type": "spawn",
      "x": 860,
@@ -241,7 +288,7 @@
      "point": true
     },
     {
-     "id": 3,
+     "id": 11,
      "name": "signpost",
      "type": "hotspot",
      "x": 1075,
@@ -270,93 +317,11 @@
      ]
     },
     {
-     "id": 4,
-     "name": "fox_bush",
-     "type": "hotspot",
-     "x": 700,
-     "y": 585,
-     "width": 0,
-     "height": 0,
-     "rotation": 0,
-     "visible": true,
-     "point": true,
-     "properties": [
-      {
-       "name": "knot",
-       "type": "string",
-       "value": "fox_sniff"
-      },
-      {
-       "name": "label",
-       "type": "string",
-       "value": "Sweet smell"
-      },
-      {
-       "name": "radius",
-       "type": "float",
-       "value": 70
-      },
-      {
-       "name": "foxTo",
-       "type": "string",
-       "value": "560,520"
-      }
-     ]
-    },
-    {
-     "id": 5,
-     "name": "gate",
-     "type": "hotspot",
-     "x": 1160,
-     "y": 378,
-     "width": 0,
-     "height": 0,
-     "rotation": 0,
-     "visible": true,
-     "point": true,
-     "properties": [
-      {
-       "name": "knot",
-       "type": "string",
-       "value": "gate"
-      },
-      {
-       "name": "label",
-       "type": "string",
-       "value": "The Mouth Gate"
-      },
-      {
-       "name": "radius",
-       "type": "float",
-       "value": 45
-      }
-     ]
-    },
-    {
-     "id": 6,
-     "name": "tooth",
-     "type": "npc",
-     "x": 1105,
-     "y": 372,
-     "width": 0,
-     "height": 0,
-     "rotation": 0,
-     "visible": true,
-     "point": true,
-     "properties": [
-      {
-       "name": "who",
-       "type": "string",
-       "value": "tooth"
-      }
-     ]
-    },
-    {
-     "id": 7,
+     "id": 12,
      "name": "signpost_prop",
      "type": "prop",
-     "x": 1185,
-     "y": 585,
+     "x": 1190,
+     "y": 592,
      "width": 0,
      "height": 0,
      "rotation": 0,
@@ -367,15 +332,49 @@
        "name": "prop",
        "type": "string",
        "value": "signpost"
+      },
+      {
+       "name": "height",
+       "type": "float",
+       "value": 1.35
+      }
+     ]
+    },
+    {
+     "id": 13,
+     "name": "bend",
+     "type": "hotspot",
+     "x": 1005,
+     "y": 445,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": ""
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "To the Mouth Gate"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 55
+      },
+      {
+       "name": "to",
+       "type": "string",
+       "value": "road2"
       }
      ]
     }
-   ],
-   "opacity": 1,
-   "visible": true,
-   "x": 0,
-   "y": 0,
-   "color": "#ffcc00"
+   ]
   }
  ]
 }

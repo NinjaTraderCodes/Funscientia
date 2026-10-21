@@ -30,16 +30,24 @@ def main() -> None:
     for tmj in sorted(SRC.glob("*.tmj")):
         m = json.loads(tmj.read_text(encoding="utf-8"))
         name = tmj.stem
-        layers = {l["name"]: l for l in m["layers"]}
-        bg = layers["background"]
-        master = (tmj.parent / bg["image"]).resolve()
-        w, h = Image.open(master).size
-        hi = master.with_name(master.stem.replace("_master", "") + "_x4.png")
-        src = Image.open(hi if hi.exists() else master).convert("RGB")
-        ship_h = round(h * SHIP_WIDTH / w)
-        src.resize((SHIP_WIDTH, ship_h), Image.LANCZOS).save(OUT / f"{name}.webp", quality=86, method=6)
-
-        place = {"name": name, "image": f"world/{name}", "width": w, "height": h, **props(m),
+        # every image layer ships as its own webp; Tiled's parallaxx sets how fast it scrolls
+        images = [l for l in m["layers"] if l["type"] == "imagelayer"]
+        layers = []
+        w = h = None
+        for l in images:
+            master = (tmj.parent / l["image"]).resolve()
+            if w is None:
+                w, h = Image.open(master).size
+            hi = master.with_name(master.stem.replace("_master", "") + "_x4.png")
+            src = Image.open(hi if hi.exists() else master)
+            src = src.convert("RGBA" if src.mode in ("RGBA", "LA", "P") else "RGB")
+            ship_h = round(h * SHIP_WIDTH / w)
+            key = f"{name}_{l['name']}" if len(images) > 1 else name
+            par = float(l.get("parallaxx", 1.0))
+            src.resize((SHIP_WIDTH, ship_h), Image.LANCZOS).save(OUT / f"{key}.webp", quality=86, method=6)
+            layers.append({"image": f"world/{key}", "parallax": par,
+                           "front": bool(props(l).get("front", False))})
+        place = {"name": name, "image": layers[0]["image"], "layers": layers, "width": w, "height": h, **props(m),
                  "walkable": [], "spawn": None, "hotspots": [], "npcs": [], "props": []}
         for layer in m["layers"]:
             if layer["type"] != "objectgroup":
@@ -60,7 +68,7 @@ def main() -> None:
                     place["props"].append(entry)
         (OUT / f"{name}.place.json").write_text(json.dumps(place, indent=1), encoding="utf-8")
         print(f"{name}: {len(place['walkable'])}-point walkable, {len(place['hotspots'])} hotspots, "
-              f"background {SHIP_WIDTH}x{ship_h} from {(hi if hi.exists() else master).name}")
+              f"{len(layers)} image layer(s): " + ", ".join(f"{l['image']} x{l['parallax']}" for l in layers))
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Sound } from '../audio/Sound';
 import type { CharacterDef, CharacterName, Facing, StillAnimDef, ViewName } from '../data/types';
 
 /**
@@ -53,6 +54,8 @@ const sideOf = (f: Facing | Dir): -1 | 0 | 1 => (f.endsWith('left') ? -1 : f.end
 export class Character {
   readonly name: CharacterName;
   readonly sprite: Phaser.GameObjects.Sprite;
+  /** Soft contact shadow on the ground, so the character sits in the scene. */
+  readonly shadow: Phaser.GameObjects.Image;
   readonly pos: Phaser.Math.Vector2;
   private readonly def: CharacterDef;
   private readonly heightAt: (y: number) => number;
@@ -107,8 +110,15 @@ export class Character {
         repeat: -1,
       });
     }
+    ensureShadowTexture(scene);
+    this.shadow = scene.add.image(this.pos.x, this.pos.y, 'contact_shadow').setAlpha(0.42);
     this.sprite = scene.add.sprite(this.pos.x, this.pos.y, name, def.animations.idle_back.frame);
     this.layout(0);
+  }
+
+  /** Smoothed on-screen velocity (world units / s). */
+  get velocity(): Readonly<Phaser.Math.Vector2> {
+    return this.vel;
   }
 
   get isMoving(): boolean {
@@ -200,8 +210,14 @@ export class Character {
       this.groundSpeed = Math.hypot(this.vel.x, this.vel.y / r) / h;
       if (this.moving) {
         this.dir = dirOf(this.vel.x, this.vel.y, this.dir);
-        // one procedural step per half stride of ground travelled
+        // one footstep per half stride of ground travelled
+        const before = Math.floor(this.stepPhase);
         this.stepPhase += (this.groundSpeed * dt) / (STRIDE_BODIES[this.name] / 2);
+        if (Math.floor(this.stepPhase) !== before) {
+          const cam = this.sprite.scene.cameras.main;
+          const loud = Phaser.Math.Clamp((h * cam.zoom) / (cam.height * 0.45), 0, 1);
+          Sound.step(this.name === 'fox', loud);
+        }
       }
     }
     this.lastPos.copy(this.pos);
@@ -269,6 +285,12 @@ export class Character {
     this.sprite.setScale(sx * k, sy * k);
     this.sprite.setAngle(tilt);
     this.sprite.setDepth(this.pos.y);
+    // shadow: an ellipse under the feet, longer when seen from the side (the fox's body)
+    const side = this.dir === 'left' || this.dir === 'right';
+    const wide = (this.name === 'fox' ? (side ? 1.15 : 0.55) : side ? 0.48 : 0.42) * h * k;
+    this.shadow.setPosition(pivotX + (this.pos.x - pivotX) * k, pivotY + (this.pos.y - pivotY) * k);
+    this.shadow.setDisplaySize(wide, wide * 0.24).setDepth(this.pos.y - 0.5);
+    this.shadow.setVisible(this.sprite.visible);
   }
 }
 
@@ -287,4 +309,20 @@ function dirOf(dx: number, dy: number, current?: Dir): Dir {
     if (diff < 22.5 + 8) return current;
   }
   return next;
+}
+
+/** A soft radial blob, baked once (drawn shapes would be re-tessellated every frame). */
+function ensureShadowTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists('contact_shadow')) return;
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, 'rgba(40,20,30,0.9)');
+  g.addColorStop(0.55, 'rgba(40,20,30,0.45)');
+  g.addColorStop(1, 'rgba(40,20,30,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  scene.textures.addCanvas('contact_shadow', canvas);
 }

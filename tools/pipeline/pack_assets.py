@@ -82,6 +82,29 @@ def color_match(img: np.ndarray, ref_mean: np.ndarray, ref_std: np.ndarray, src_
     return out
 
 
+def fill_eye_holes(img: np.ndarray) -> np.ndarray:
+    """Background removal often cuts out the bright eye-whites (they look like the
+    light studio background). Restore small, bright holes fully enclosed in the head;
+    larger or darker gaps (between hair strands, arms) stay transparent."""
+    solid = img[..., 3] > 128
+    ys, xs = np.where(solid)
+    if not len(ys):
+        return img
+    top, h = ys.min(), ys.max() - ys.min()
+    area = solid.sum()
+    n, labels, stats, _ = cv2.connectedComponentsWithStats((~solid).astype(np.uint8), 4)
+    edge = set(np.unique(np.concatenate([labels[0], labels[-1], labels[:, 0], labels[:, -1]])))
+    out = img.copy()
+    grey = img[..., :3].astype(np.float32).mean(axis=2)
+    for k in range(1, n):
+        if k in edge or stats[k, cv2.CC_STAT_TOP] > top + 0.4 * h or stats[k, cv2.CC_STAT_AREA] > 0.004 * area:
+            continue
+        hole = labels == k
+        if grey[hole].mean() >= 150:  # eye-whites and highlights, not dark gaps
+            out[..., 3][cv2.dilate(hole.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0] = 255
+    return out
+
+
 def tighten_alpha(img: np.ndarray, lo: int = 50, hi: int = 210, erode: int = 2) -> np.ndarray:
     """Remove the soft background halo that matting leaves around edges."""
     a = img[:, :, 3].astype(np.float32)
@@ -205,7 +228,7 @@ def main() -> None:
                 return []
             kind, root = found
             files = sorted(root.glob("walk_*.png"))[:: (1 if kind == "art" else step)]
-            imgs = [tighten_alpha(np.array(Image.open(f).convert("RGBA"))) for f in files]
+            imgs = [fill_eye_holes(tighten_alpha(np.array(Image.open(f).convert("RGBA")))) for f in files]
             if not imgs:
                 return []
             m, sd = lab_stats(imgs[0])
@@ -256,7 +279,7 @@ def main() -> None:
             path = args.art / "characters" / name / f"{view}.png"
             if not path.exists():
                 continue
-            img = tighten_alpha(np.array(Image.open(path).convert("RGBA")), erode=1)
+            img = fill_eye_holes(tighten_alpha(np.array(Image.open(path).convert("RGBA")), erode=1))
             # studio-lit sheet -> warm overlook light, matched to this character's intro pose
             v_mean, v_std = lab_stats(img)
             img = color_match(img, ref_mean, ref_std, v_mean, v_std, amount=VIEW_LIGHT_MATCH)

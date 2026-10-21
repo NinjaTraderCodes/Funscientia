@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './styles.css';
 import { IntroPlayer } from './intro/IntroPlayer';
+import { Sound } from './audio/Sound';
 import { BootScene, GAME_EVENTS } from './scenes/BootScene';
 import { ChapterScene } from './scenes/ChapterScene';
 import { OverlookScene } from './scenes/OverlookScene';
@@ -81,6 +82,22 @@ game.events.on(GAME_EVENTS.leaving, () => {
 game.events.on(GAME_EVENTS.resumed, () => {
   onOverlook = true;
   showHint(FOLLOW_HINT);
+});
+
+// sound on/off (remembered); the HUD is pointer-transparent except this button
+const muteBtn = document.getElementById('mute-btn') as HTMLButtonElement;
+const introVideo = document.getElementById('intro') as HTMLVideoElement;
+const showMute = () => {
+  muteBtn.textContent = Sound.muted ? '🔇' : '🔊';
+  introVideo.muted = Sound.muted;
+};
+showMute();
+muteBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+muteBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  Sound.unlock();
+  Sound.setMuted(!Sound.muted);
+  showMute();
 });
 
 // handy while developing: window.game in the console

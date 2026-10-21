@@ -1,6 +1,23 @@
 {
  "name": "road",
- "image": "world/road",
+ "image": "world/road_far",
+ "layers": [
+  {
+   "image": "world/road_far",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/road_mid",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/road_near",
+   "parallax": 1.22,
+   "front": true
+  }
+ ],
  "width": 1536,
  "height": 1024,
  "horizonY": 186,
@@ -8,6 +25,7 @@
  "pathWidthAtBottom": 750,
  "title": "The Road to the Mouth Gate",
  "dialogue": "road",
+ "goal": "bend",
  "walkable": [
   [
    1216.7,
@@ -169,37 +187,23 @@
    "radius": 70
   },
   {
-   "name": "fox_bush",
-   "x": 700,
-   "y": 585,
-   "knot": "fox_sniff",
-   "label": "Sweet smell",
-   "radius": 70,
-   "foxTo": "560,520"
-  },
-  {
-   "name": "gate",
-   "x": 1160,
-   "y": 378,
-   "knot": "gate",
-   "label": "The Mouth Gate",
-   "radius": 45
+   "name": "bend",
+   "x": 1005,
+   "y": 445,
+   "knot": "",
+   "label": "To the Mouth Gate",
+   "radius": 55,
+   "to": "road2"
   }
  ],
- "npcs": [
-  {
-   "name": "tooth",
-   "x": 1105,
-   "y": 372,
-   "who": "tooth"
-  }
- ],
+ "npcs": [],
  "props": [
   {
    "name": "signpost_prop",
-   "x": 1185,
-   "y": 585,
-   "prop": "signpost"
+   "x": 1190,
+   "y": 592,
+   "prop": "signpost",
+   "height": 1.35
   }
  ]
 }

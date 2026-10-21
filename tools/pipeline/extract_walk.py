@@ -75,6 +75,21 @@ def split_by_columns(alpha: np.ndarray, order: list[str], windows: list[tuple[in
     return out
 
 
+def eye_holes(mask: np.ndarray) -> np.ndarray:
+    """Small holes fully enclosed in the head (top 40%): cut-out eye-whites and highlights."""
+    ys, xs = np.where(mask)
+    if not len(ys):
+        return np.zeros_like(mask, np.uint8)
+    top, h, area = ys.min(), ys.max() - ys.min(), mask.sum()
+    n, labels, stats, _ = cv2.connectedComponentsWithStats((~mask).astype(np.uint8), 4)
+    edge = set(np.unique(np.concatenate([labels[0], labels[-1], labels[:, 0], labels[:, -1]])))
+    out = np.zeros_like(mask, np.uint8)
+    for k in range(1, n):
+        if k not in edge and stats[k, cv2.CC_STAT_TOP] < top + 0.4 * h and stats[k, cv2.CC_STAT_AREA] < 0.004 * area:
+            out[labels == k] = 1
+    return cv2.dilate(out, np.ones((3, 3), np.uint8))
+
+
 def bbox(mask: np.ndarray) -> tuple[int, int, int, int]:
     ys, xs = np.where(mask)
     return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
@@ -107,6 +122,9 @@ def main() -> None:
     ap.add_argument("--windows", help="x0:x1,... column windows between neighbours (with --order)")
     ap.add_argument("--min-y", help="name=y,... ignore pixels above y for a character")
     ap.add_argument("--prefix", default="walk_", help="output frame name prefix")
+    ap.add_argument("--orig", type=Path, help="folder of the ORIGINAL video frames (same names as --seg): "
+                    "colours come from there, so cut-out eye-whites can be restored")
+    ap.add_argument("--loop", help="name=start,period;... force these loops (reproduce an earlier extraction)")
     args = ap.parse_args()
     order = args.order.split(",") if args.order else None
     windows = [tuple(int(v) for v in w.split(":")) for w in args.windows.split(",")] if args.windows else []
@@ -114,6 +132,15 @@ def main() -> None:
 
     frames = [args.seg / f"f_{i:03d}.png" for i in range(args.first, args.last + 1)]
     rgba = [np.array(Image.open(f).convert("RGBA")) for f in frames]
+    if args.orig:
+        # background removal blanks the colour under what it cut out: take colours from the video frame
+        for a, f in zip(rgba, frames):
+            a[..., :3] = np.array(Image.open(args.orig / f.name).convert("RGB"))
+    forced = {}
+    if args.loop:
+        for item in args.loop.split(";"):
+            name, v = item.split("=")
+            forced[name] = tuple(int(x) for x in v.split(","))
     parts = [split_by_columns(a[:, :, 3], order, windows, min_y) if order else split_frame(a[:, :, 3]) for a in rgba]
 
     report = {}
@@ -137,6 +164,8 @@ def main() -> None:
         for a, p, s, cx, fy in zip(rgba, parts, h_trend / target_h, x_trend, y_trend):
             img = a.copy()
             img[:, :, 3] = np.where(p[name], a[:, :, 3], 0)
+            if args.orig:
+                img[:, :, 3] = np.maximum(img[:, :, 3], eye_holes(p[name]) * 255)
             scale = 1.0 / s
             big = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
             # place trend-feet point at bottom centre of the canvas
@@ -150,7 +179,10 @@ def main() -> None:
             normalized.append(out)
 
         sigs = [cv2.resize(n_[:, :, 3], (32, 64), interpolation=cv2.INTER_AREA).astype(float) / 255 for n_ in normalized]
-        start, period = find_loop(sigs, args.min_period, args.max_period)
+        if name in forced:
+            start, period = forced[name][0] - args.first, forced[name][1]
+        else:
+            start, period = find_loop(sigs, args.min_period, args.max_period)
 
         dest = args.out / name
         dest.mkdir(parents=True, exist_ok=True)

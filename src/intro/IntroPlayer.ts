@@ -1,3 +1,4 @@
+import { Sound } from '../audio/Sound';
 const SEEN_KEY = 'funscientia.introSeen';
 
 function safeGet(key: string): string | null {
@@ -58,6 +59,7 @@ export class IntroPlayer {
   }
 
   private async start(): Promise<void> {
+    Sound.unlock(); // browsers allow audio only after a tap or click
     void enterFullscreen(document.getElementById('app') as HTMLElement);
     this.startScreen.classList.add('hidden');
     this.video.hidden = false;
@@ -97,6 +99,7 @@ export class IntroPlayer {
 
     await this.gameReady;
     this.onHandover();
+    void Sound.music(); // the soundtrack carries on from the video into the game
     this.video.classList.add('fade-out');
     window.setTimeout(() => {
       this.video.pause();

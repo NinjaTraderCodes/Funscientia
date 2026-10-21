@@ -1,0 +1,81 @@
+{
+ "name": "road2",
+ "image": "world/road2_far",
+ "layers": [
+  {
+   "image": "world/road2_far",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/road2_mid",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/road2_near",
+   "parallax": 1.22,
+   "front": true
+  }
+ ],
+ "width": 1536,
+ "height": 1024,
+ "title": "The Mouth Gate",
+ "dialogue": "road2",
+ "horizonY": 341.0,
+ "pathWidthAtBottom": 680.0,
+ "bodyPerPathWidth": 0.45,
+ "foreshortenAtBottom": 0.42,
+ "goal": "gate",
+ "walkable": [
+  [
+   460,
+   1020
+  ],
+  [
+   1095,
+   1020
+  ],
+  [
+   872,
+   512
+  ],
+  [
+   712,
+   512
+  ]
+ ],
+ "spawn": {
+  "name": "spawn",
+  "x": 780,
+  "y": 975
+ },
+ "hotspots": [
+  {
+   "name": "fox_bush",
+   "x": 640,
+   "y": 700,
+   "knot": "fox_sniff",
+   "label": "Sweet smell",
+   "radius": 70,
+   "foxTo": "585,690"
+  },
+  {
+   "name": "gate",
+   "x": 790,
+   "y": 522,
+   "knot": "gate",
+   "label": "The Mouth Gate",
+   "radius": 45
+  }
+ ],
+ "npcs": [
+  {
+   "name": "tooth",
+   "x": 706,
+   "y": 512,
+   "who": "tooth"
+  }
+ ],
+ "props": []
+}
