@@ -3,7 +3,7 @@
 // directly (walid, nesma, fox).
 
 === before_choice ===
-#speaker:walid #mood:surprised
+#speaker:walid #mood:surprised #sfx:wow
 Wow... look at it! The whole Kingdom of the Body!
 #speaker:nesma #mood:thinking
 It's huge. Where do we even start?

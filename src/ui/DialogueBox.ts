@@ -1,5 +1,6 @@
 import type { DialogueView, Hero, Line, Speaker } from '../dialogue/DialogueRunner';
 import { asset } from '../assetUrl';
+import { Sound } from '../audio/Sound';
 
 const NAMES: Record<Hero | 'fox' | 'tooth', string> = {
   walid: 'Walid',
@@ -79,6 +80,7 @@ export class DialogueBox implements DialogueView {
     this.choices.replaceChildren();
     this.name.textContent = NAMES[who];
     this.setPortrait(who, line.mood);
+    if (line.sfx) Sound.sample(line.sfx);
 
     // typewriter; the first tap completes the line, the second continues
     this.more.hidden = true;

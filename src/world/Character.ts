@@ -71,12 +71,10 @@ export class Character {
   private groundSpeed = 0;
   private shown = '';
   /**
-   * Extra view transform used only by the opening shot: the intro's camera
+   * Extra view transform used only by the overlook's opening shot: the camera
    * dollies towards the trio, so they appear `k` times larger about `pivot`.
    */
   readonly dolly = { pivotX: 0, pivotY: 0, k: 1 };
-  /** Stand in the exact pose of the intro video's last frame (opening shot only). */
-  introPose = false;
 
   /**
    * @param heightAt body height (world units) at a ground y
@@ -243,9 +241,8 @@ export class Character {
         (this.groundSpeed * cycleSec) / (STRIDE_BODIES[this.name] * (walkDef!.strides ?? 1)), 0.3, 3);
       flip = cycle === 'side' && sideOf(this.dir) !== SIDE_CYCLE_FACES;
     } else {
-      // facing away: the crisp turnaround back view, except in the opening shot,
-      // where the pose cut from the intro's last frame must match the video exactly
-      const view = this.dir === 'away' && this.introPose ? undefined : this.def.views?.[VIEW_FOR[this.dir]];
+      // standing: the crisp turnaround view for the way it faces
+      const view = this.def.views?.[VIEW_FOR[this.dir]];
       if (view) {
         still = view;
         const want = sideOf(this.dir);

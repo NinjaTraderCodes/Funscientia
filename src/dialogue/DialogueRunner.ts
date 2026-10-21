@@ -9,6 +9,8 @@ export interface Line {
   speaker: Speaker;
   mood: string;
   text: string;
+  /** A sound that goes with the line (#sfx:name -> audio/name.m4a), e.g. the kids' "wow". */
+  sfx?: string;
 }
 
 /** What the dialogue view must provide; the runner stays UI-agnostic. */
@@ -61,6 +63,7 @@ export class DialogueRunner {
         await view.showLine({
           speaker: (tagValue(tags, 'speaker') as Speaker) ?? 'leader',
           mood: tagValue(tags, 'mood') ?? 'happy',
+          sfx: tagValue(tags, 'sfx'),
           text,
         });
       }

@@ -34,22 +34,31 @@ window.addEventListener('resize', () => {
 
 const gameReady = new Promise<void>((resolve) => game.events.once(GAME_EVENTS.overlookReady, () => resolve()));
 
-const intro = new IntroPlayer(gameReady, () => game.events.emit(GAME_EVENTS.introDone));
+const intro = new IntroPlayer(
+  gameReady,
+  (secondsLeft) => game.events.emit(GAME_EVENTS.introCut, secondsLeft),
+  () => game.events.emit(GAME_EVENTS.introDone),
+);
 
-// Allow starting once the video can play and the game assets are in; the
-// world keeps loading in the background while the intro plays anyway.
-const video = document.getElementById('intro') as HTMLVideoElement;
-const videoReady = new Promise<void>((resolve) => {
-  if (video.readyState >= 3) resolve();
-  video.addEventListener('canplay', () => resolve(), { once: true });
-  window.setTimeout(resolve, 4000);
-});
-Promise.all([videoReady, gameReady]).then(() => intro.enableStart());
+// Allow starting once the whole intro is downloaded (so it never pauses to
+// buffer) and the game's first scene is ready; both load at the same time.
+Promise.all([intro.ready, gameReady]).then(() => intro.enableStart());
 
 const note = document.getElementById('load-note') as HTMLElement;
+// one progress figure for both downloads (the intro video is most of the bytes)
+const loading = { game: 0, intro: 0 };
+const showLoading = () => {
+  if (loading.game >= 1 && loading.intro >= 1) return;
+  note.textContent = `Preparing the adventure… ${Math.round((loading.game * 0.2 + loading.intro * 0.8) * 100)}%`;
+};
 game.events.on(GAME_EVENTS.progress, (p: number) => {
-  note.textContent = `Preparing the adventure… ${Math.round(p * 100)}%`;
+  loading.game = p;
+  showLoading();
 });
+intro.onProgress = (p) => {
+  loading.intro = p;
+  showLoading();
+};
 
 // HUD hints
 const hud = document.getElementById('hud') as HTMLElement;

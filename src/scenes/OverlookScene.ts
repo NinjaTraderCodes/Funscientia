@@ -1,3 +1,4 @@
+import { Sound } from '../audio/Sound';
 import Phaser from 'phaser';
 import type { CharacterManifest, CharacterName, Rect, WorldLayout } from '../data/types';
 import { Character } from '../world/Character';
@@ -10,7 +11,7 @@ import { chooseHero } from '../ui/HeroSelect';
 import { DialogueRunner } from '../dialogue/DialogueRunner';
 import { DialogueBox } from '../ui/DialogueBox';
 
-type Phase = 'waiting' | 'opening' | 'choose' | 'play' | 'leaving';
+type Phase = 'waiting' | 'zooming' | 'opening' | 'choose' | 'play' | 'leaving';
 
 const OPENING_HOLD_MS = 700;
 const OPENING_PULLBACK_MS = 3400;
@@ -18,9 +19,10 @@ const OPENING_PULLBACK_MS = 3400;
 const TRAIL_START = { x: 598, y: 428 };
 
 /**
- * The first playable place: the overlook above the Kingdoms where the intro
- * video ends. The scene starts framed exactly like the video's last frame,
- * pulls back to reveal the ledge, then hands control to the player.
+ * The first playable place: the overlook above the Kingdoms. It is the intro's
+ * last shot: when the video cuts here, the camera slowly closes in on the trio
+ * while the intro's music ends, then pulls back to reveal the ledge and hands
+ * control to the player.
  */
 export class OverlookScene extends Phaser.Scene {
   private world!: WorldLayout;
@@ -45,6 +47,7 @@ export class OverlookScene extends Phaser.Scene {
     // scenes are reused when restarted: reset per-run state
     this.phase = 'waiting';
     this.movedOnce = false;
+    Sound.surface = 'gravel'; // a rocky ledge underfoot
     this.world = this.cache.json.get('world') as WorldLayout;
     const manifest = this.cache.json.get('characters') as CharacterManifest;
     const { far, near } = this.world.layers;
@@ -66,16 +69,14 @@ export class OverlookScene extends Phaser.Scene {
     };
     this.characters = { boy: make('boy'), girl: make('girl'), fox: make('fox') };
     this.makeParty();
-    // the opening shot must match the video's last frame: use the poses cut from it
-    if (!data.skipOpening) for (const c of Object.values(this.characters)) c.introPose = true;
 
-    // Opening framing = the intro video's last frame.
-    const { pivot, scale } = this.world.endFrameParty;
+    // the shot opens wide on the whole overlook; the close framing (endFrameRect) is where it closes in to
+    const { pivot } = this.world.endFrameParty;
     for (const c of this.party.members) {
       c.dolly.pivotX = pivot[0];
       c.dolly.pivotY = pivot[1];
     }
-    this.setView(this.world.endFrameRect, scale);
+    this.setView(this.world.overviewRect, 1);
 
     const trailHeight = this.characters.boy.bodyHeight * ((TRAIL_START.y - horizon) / (this.characters.boy.pos.y - horizon));
     this.trail = new Waypoint(this, TRAIL_START.x, TRAIL_START.y, trailHeight, 'To the\nDigestive Kingdom');
@@ -103,7 +104,12 @@ export class OverlookScene extends Phaser.Scene {
       this.game.events.emit(GAME_EVENTS.resumed);
       return;
     }
+    this.game.events.once(GAME_EVENTS.introCut, (secondsLeft: number) => this.closeIn(secondsLeft));
     this.game.events.once(GAME_EVENTS.introDone, () => this.startOpening());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.game.events.off(GAME_EVENTS.introCut);
+      this.game.events.off(GAME_EVENTS.introDone);
+    });
     this.game.events.emit(GAME_EVENTS.overlookReady);
   }
 
@@ -142,58 +148,59 @@ export class OverlookScene extends Phaser.Scene {
   }
 
   /**
-   * The first frame uses the poses cut from the video so the hand-over is exact.
-   * While the camera still holds, fade those (blurry) poses into the crisp
-   * turnaround back views.
+   * The intro's last shot: from the wide view, close in on the trio for the rest
+   * of the intro's music (the trio grows a little faster than the land behind,
+   * as when a camera moves in).
    */
-  private crossfadeToCleanPoses(): void {
-    for (const c of Object.values(this.characters)) {
-      const s = c.sprite;
-      const ghost = this.add
-        .image(s.x, s.y, s.texture.key, s.frame.name)
-        .setOrigin(s.originX, s.originY)
-        .setScale(s.scaleX, s.scaleY)
-        .setDepth(s.depth + 0.01);
-      c.introPose = false;
-      c.update(0); // show the clean pose underneath right away
-      this.tweens.add({ targets: ghost, alpha: 0, delay: 150, duration: OPENING_HOLD_MS - 150, ease: 'Sine.easeInOut', onComplete: () => ghost.destroy() });
-    }
+  private closeIn(seconds: number): void {
+    if (this.phase !== 'waiting') return;
+    this.phase = 'zooming';
+    this.zoomFromTo(this.world.overviewRect, 1, this.world.endFrameRect, this.world.endFrameParty.scale, Math.max(0.5, seconds) * 1000, 'Sine.easeInOut');
   }
 
+  private zoomTween?: Phaser.Tweens.Tween;
+
+  private zoomFromTo(from: Rect, k0: number, to: Rect, k1: number, ms: number, ease: string, done?: () => void): void {
+    this.zoomTween?.stop();
+    this.zoomTween = this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: ms,
+      ease,
+      onUpdate: (tw) => {
+        const t = tw.getValue() ?? 0;
+        // zoom changes multiplicatively, so interpolate the framing size geometrically
+        const w = from.w * Math.pow(to.w / from.w, t);
+        const h = from.h * Math.pow(to.h / from.h, t);
+        const cx = Phaser.Math.Linear(from.x + from.w / 2, to.x + to.w / 2, t);
+        const cy = Phaser.Math.Linear(from.y + from.h / 2, to.y + to.h / 2, t);
+        this.setView({ x: cx - w / 2, y: cy - h / 2, w, h }, Phaser.Math.Linear(k0, k1, t));
+      },
+      onComplete: () => done?.(),
+    });
+  }
+
+  /** The music has ended (or the intro was skipped): pull back to the whole ledge, then play. */
   private startOpening(): void {
-    if (this.phase !== 'waiting') return;
+    if (this.phase !== 'waiting' && this.phase !== 'zooming') return;
+    const closedIn = this.phase === 'zooming';
+    this.zoomTween?.stop();
     this.phase = 'opening';
-    const from = { ...this.world.endFrameRect };
+    const from = { ...this.view.rect };
+    const k0 = this.view.k;
     const to = this.world.overviewRect;
-    const k0 = this.world.endFrameParty.scale;
-    this.crossfadeToCleanPoses();
-    this.time.delayedCall(OPENING_HOLD_MS, () => {
-      this.tweens.addCounter({
-        from: 0,
-        to: 1,
-        duration: OPENING_PULLBACK_MS,
-        ease: 'Sine.easeInOut',
-        onUpdate: (tw) => {
-          const t = tw.getValue() ?? 0;
-          // zoom changes multiplicatively, so interpolate the framing size geometrically
-          const w = from.w * Math.pow(to.w / from.w, t);
-          const h = from.h * Math.pow(to.h / from.h, t);
-          const cx = Phaser.Math.Linear(from.x + from.w / 2, to.x + to.w / 2, t);
-          const cy = Phaser.Math.Linear(from.y + from.h / 2, to.y + to.h / 2, t);
-          this.setView({ x: cx - w / 2, y: cy - h / 2, w, h }, Phaser.Math.Linear(k0, 1, t));
-        },
-        onComplete: async () => {
-          this.camCenter.set(to.x + to.w / 2, to.y + to.h / 2);
-          // the child picks who leads the way, then plays
-          this.phase = 'choose';
-          // a short exchange first, so choosing the leader is part of the story
-          await this.beforeChoice();
-          GameState.hero = await chooseHero();
-          this.makeParty();
-          this.phase = 'play';
-          this.trail.show(this);
-          this.game.events.emit(GAME_EVENTS.openingDone);
-        },
+    this.time.delayedCall(closedIn ? OPENING_HOLD_MS : 0, () => {
+      this.zoomFromTo(from, k0, to, 1, closedIn ? OPENING_PULLBACK_MS : 1, 'Sine.easeInOut', async () => {
+        this.camCenter.set(to.x + to.w / 2, to.y + to.h / 2);
+        // the child picks who leads the way, then plays
+        this.phase = 'choose';
+        // a short exchange first, so choosing the leader is part of the story
+        await this.beforeChoice();
+        GameState.hero = await chooseHero();
+        this.makeParty();
+        this.phase = 'play';
+        this.trail.show(this);
+        this.game.events.emit(GAME_EVENTS.openingDone);
       });
     });
   }

@@ -47,7 +47,7 @@ class SoundSystem {
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
 
-  /** Start (or fade back in) the looping music bed. */
+  /** Start (or fade back in) the looping background sound. */
   async music(volume = 0.32, fadeSec = 2.5): Promise<void> {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
@@ -57,7 +57,8 @@ class SoundSystem {
     if (this.musicStarted) return;
     this.musicStarted = true;
     try {
-      const data = await (await fetch(asset('audio/theme.m4a'))).arrayBuffer();
+      // the overlook's birds and magical shimmer (tools/pipeline/make_ambience.py)
+      const data = await (await fetch(asset('audio/ambience.m4a'))).arrayBuffer();
       const buf = await this.ctx.decodeAudioData(data);
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
@@ -67,6 +68,41 @@ class SoundSystem {
     } catch (e) {
       console.warn('music unavailable', e);
     }
+  }
+
+  private readonly samples = new Map<string, Promise<AudioBuffer | null>>();
+
+  /** Load a recorded sound ahead of time, so it plays exactly on cue. */
+  prepare(name: string): Promise<AudioBuffer | null> {
+    const ctx = this.ctx;
+    if (!ctx) return Promise.resolve(null);
+    let buf = this.samples.get(name);
+    if (!buf) {
+      buf = fetch(asset(`audio/${name}.m4a`))
+        .then((r) => r.arrayBuffer())
+        .then((d) => ctx.decodeAudioData(d))
+        .catch((e) => {
+          console.warn(`sound ${name} unavailable`, e);
+          return null;
+        });
+      this.samples.set(name, buf);
+    }
+    return buf;
+  }
+
+  /** Play a recorded sound once (public/assets/audio/<name>.m4a), e.g. a voice like the kids' "wow". */
+  sample(name: string, volume = 1): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    void this.prepare(name).then((b) => {
+      if (!b) return;
+      const src = ctx.createBufferSource();
+      src.buffer = b;
+      const g = ctx.createGain();
+      g.gain.value = volume;
+      src.connect(g).connect(this.sfxGain);
+      src.start();
+    });
   }
 
   /** Lower the music (e.g. while a video plays or during dialogue). */
@@ -94,12 +130,35 @@ class SoundSystem {
     band.frequency.value = (light ? 1500 : 650) * (0.85 + Math.random() * 0.3);
     band.Q.value = light ? 1.2 : 0.9;
     const g = this.ctx.createGain();
-    const peak = (light ? 0.1 : 0.18) * (0.3 + 0.7 * loudness) * (0.8 + Math.random() * 0.4);
+    // nearer (bigger on screen) is a little louder, but steps stay clearly audible when the trio is small
+    const peak = (light ? 0.07 : 0.13) * (0.75 + 0.25 * loudness) * (0.8 + Math.random() * 0.4);
     const len = light ? 0.05 : 0.09;
     g.gain.setValueAtTime(0, now);
     g.gain.linearRampToValueAtTime(peak, now + 0.006);
     g.gain.exponentialRampToValueAtTime(0.0001, now + len);
     src.connect(band).connect(g).connect(this.sfxGain);
+    src.start(now, Math.random() * 0.8, len + 0.02);
+    if (this.surface === 'gravel') this.crunch(now, light, peak);
+  }
+
+  /** What the ground is made of where the trio walks: gravel adds a crisp crunch to each step. */
+  surface: 'stone' | 'gravel' = 'stone';
+
+  /** The gritty top of a step on gravel: a short, bright burst (it carries over a waterfall's rush). */
+  private crunch(now: number, light: boolean, peak: number): void {
+    const ctx = this.ctx!;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'bandpass';
+    hp.frequency.value = (light ? 3800 : 2600) * (0.85 + Math.random() * 0.3);
+    hp.Q.value = 0.8;
+    const g = ctx.createGain();
+    const len = light ? 0.035 : 0.06;
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(peak * 0.55, now + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + len);
+    src.connect(hp).connect(g).connect(this.sfxGain);
     src.start(now, Math.random() * 0.8, len + 0.02);
   }
 

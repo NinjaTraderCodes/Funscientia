@@ -5,6 +5,8 @@ import { asset } from '../assetUrl';
 export const GAME_EVENTS = {
   progress: 'boot:progress',
   overlookReady: 'overlook:ready',
+  /** The intro video reaches its last shot: the game shows the overlook from here (payload: seconds of soundtrack left). */
+  introCut: 'intro:cut',
   introDone: 'intro:done',
   openingDone: 'opening:done',
   firstMove: 'party:first-move',

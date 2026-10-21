@@ -110,6 +110,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   async create(): Promise<void> {
+    Sound.surface = 'stone'; // the paved road
     this.place = this.cache.json.get(`place:${this.placeName}`) as Place;
     const P = this.place;
     const layers = P.layers ?? [{ image: P.image, parallax: 1, front: false }];

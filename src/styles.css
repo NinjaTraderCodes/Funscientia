@@ -39,6 +39,7 @@ html, body {
   z-index: 5;
 }
 #intro.fade-out { opacity: 0; pointer-events: none; }
+#intro.cut-away { opacity: 0; pointer-events: none; transition: opacity 250ms ease; }
 
 .screen {
   position: absolute;

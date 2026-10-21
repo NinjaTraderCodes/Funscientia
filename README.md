@@ -137,3 +137,8 @@ to **run and modify the game**; regenerating art requires the local toolchain.
 - *(4th member)*
 
 Art: original characters and world by Dounia; game sprites are produced from her designs with AI tools.
+
+Sound: the background birds and waterfall are "Birds and Waterfall" by rmultimediaeu on
+[Pixabay](https://pixabay.com/) (Pixabay Content License), cleaned of its low thumps by
+`tools/pipeline/make_ambience.py`. Footsteps and chimes are synthesised in code; the intro's
+soundtrack and the kids' "wow" come from the intro clips.
