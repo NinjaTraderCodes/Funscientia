@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import './styles.css';
-import { IntroPlayer } from './intro/IntroPlayer';
+import { IntroPlayer, wantsFullHD } from './intro/IntroPlayer';
+import { asset } from './assetUrl';
+import { GameState } from './state/GameState';
 import { Sound } from './audio/Sound';
 import { BootScene, GAME_EVENTS } from './scenes/BootScene';
 import { ChapterScene } from './scenes/ChapterScene';
@@ -40,16 +42,40 @@ const intro = new IntroPlayer(
   () => game.events.emit(GAME_EVENTS.introDone),
 );
 
-// Allow starting once the whole intro is downloaded (so it never pauses to
-// buffer) and the game's first scene is ready; both load at the same time.
-Promise.all([intro.ready, gameReady]).then(() => intro.enableStart());
+// The hero page shows first, with its looping video; the intro starts downloading
+// once that video is playing (so the two do not compete), or after a moment anyway.
+const hero = document.getElementById('hero-video') as HTMLVideoElement;
+hero.src = asset(wantsFullHD() ? 'hero/hero_1080.mp4' : 'hero/hero_720.mp4');
+// its sound (the portal's shimmer) plays if the browser allows it; most only allow sound
+// after the visitor's first tap or key, so it then starts with that (unless sound is off)
+hero.volume = 0.8;
+const heroWithSound = () => {
+  if (!hero.paused && hero.muted === Sound.muted) return; // already playing as wanted
+  hero.muted = Sound.muted; // sound switched off by the visitor: it still plays, silently
+  void hero.play().catch(() => {
+    hero.muted = true;
+    void hero.play().catch(() => undefined); // silent is always allowed; the still frame shows meanwhile
+  });
+};
+heroWithSound();
+const onFirstGesture = () => {
+  window.removeEventListener('pointerdown', onFirstGesture, true);
+  window.removeEventListener('keydown', onFirstGesture, true);
+  if (!hero.ended && hero.currentSrc) heroWithSound();
+};
+window.addEventListener('pointerdown', onFirstGesture, true);
+window.addEventListener('keydown', onFirstGesture, true);
+hero.addEventListener('playing', () => void intro.beginPreload(), { once: true });
+window.setTimeout(() => void intro.beginPreload(), 2500);
 
 const note = document.getElementById('load-note') as HTMLElement;
 // one progress figure for both downloads (the intro video is most of the bytes)
 const loading = { game: 0, intro: 0 };
+const fill = document.getElementById('loading-fill') as HTMLElement;
 const showLoading = () => {
-  if (loading.game >= 1 && loading.intro >= 1) return;
-  note.textContent = `Preparing the adventure… ${Math.round((loading.game * 0.2 + loading.intro * 0.8) * 100)}%`;
+  const pct = Math.round((loading.game * 0.2 + loading.intro * 0.8) * 100);
+  fill.style.width = `${pct}%`;
+  note.textContent = pct < 100 ? `Preparing the adventure… ${pct}%` : 'Here we go!';
 };
 game.events.on(GAME_EVENTS.progress, (p: number) => {
   loading.game = p;
@@ -99,6 +125,7 @@ const introVideo = document.getElementById('intro') as HTMLVideoElement;
 const showMute = () => {
   muteBtn.textContent = Sound.muted ? '🔇' : '🔊';
   introVideo.muted = Sound.muted;
+  hero.muted = Sound.muted;
 };
 showMute();
 muteBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -111,3 +138,21 @@ muteBtn.addEventListener('click', (e) => {
 
 // handy while developing: window.game in the console
 (window as unknown as { game: Phaser.Game }).game = game;
+
+// the profile badge: the player's avatar and name; tapping it opens the editor (when the scene allows)
+const profileBtn = document.getElementById('profile-btn') as HTMLButtonElement;
+const SPRITE_IMG = { walid: 'avatars/boy.webp', nesma: 'avatars/girl.webp', fox: 'avatars/fox.webp' } as const;
+const showProfile = () => {
+  const hero = GameState.hero;
+  profileBtn.hidden = !hero;
+  if (!hero) return;
+  profileBtn.querySelector('img')!.src = asset(SPRITE_IMG[hero]);
+  profileBtn.querySelector('span')!.textContent = GameState.nameOf(hero);
+};
+game.events.on(GAME_EVENTS.profileChanged, showProfile);
+game.events.on(GAME_EVENTS.resumed, showProfile);
+profileBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+profileBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  game.events.emit(GAME_EVENTS.editProfile);
+});

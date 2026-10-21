@@ -9,6 +9,10 @@ export const GAME_EVENTS = {
   introCut: 'intro:cut',
   introDone: 'intro:done',
   openingDone: 'opening:done',
+  /** The profile badge was tapped: the scene opens the avatar editor if it is a good moment. */
+  editProfile: 'profile:edit',
+  /** The avatar or name changed (the badge shows the new one). */
+  profileChanged: 'profile:changed',
   firstMove: 'party:first-move',
   leaving: 'overlook:leaving',
   resumed: 'overlook:resumed',

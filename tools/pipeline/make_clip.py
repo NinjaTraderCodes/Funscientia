@@ -29,6 +29,7 @@ def main() -> None:
     ap.add_argument("--seconds", type=float, default=5.0)
     ap.add_argument("--steps", type=int, default=6)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--negative", help="what to avoid, instead of the walk-cycle default (e.g. for idles, where staying put is wanted)")
     args = ap.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     prompt = " ".join(args.prompt_file.read_text(encoding="utf-8").split())
@@ -36,7 +37,7 @@ def main() -> None:
     t0 = time.time()
     client = Client(SPACE, token=get_token(), verbose=False)
     video, seed = client.predict(
-        handle_file(str(args.image)), prompt, args.steps, NEGATIVE, args.seconds, 1, 1, args.seed, False,
+        handle_file(str(args.image)), prompt, args.steps, args.negative or NEGATIVE, args.seconds, 1, 1, args.seed, False,
         api_name="/generate_video",
     )
     path = video["video"] if isinstance(video, dict) else video

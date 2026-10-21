@@ -130,6 +130,7 @@
           "facing": "away"
         }
       },
+      "idles": {},
       "start": {
         "x": 357.5,
         "y": 442,
@@ -258,6 +259,38 @@
           "bodyPx": 330,
           "originY": 0.989010989010989,
           "facing": "away"
+        }
+      },
+      "idles": {
+        "sit": {
+          "prefix": "idle_sit_",
+          "count": 53,
+          "fps": 16,
+          "bodyPx": 200,
+          "originY": 0.9638009049773756,
+          "segments": {
+            "in": [
+              0,
+              33
+            ],
+            "loop": [
+              33,
+              52
+            ]
+          }
+        },
+        "sniff": {
+          "prefix": "idle_sniff_",
+          "count": 49,
+          "fps": 16,
+          "bodyPx": 200,
+          "originY": 0.9545454545454546,
+          "segments": {
+            "once": [
+              0,
+              40
+            ]
+          }
         }
       },
       "start": {
@@ -423,6 +456,7 @@
           "facing": "away"
         }
       },
+      "idles": {},
       "start": {
         "x": 468.0,
         "y": 448,

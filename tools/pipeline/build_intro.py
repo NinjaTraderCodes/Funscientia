@@ -27,7 +27,7 @@ FPS = 24
 
 # (clip, in-point s, duration s) in order; the durations add up to the original's shot lengths
 SHOTS = [
-    ("part-02.mp4", 0.00, 5.60),
+    ("part-02.mp4", 0.10, 5.60),
     ("part-03.mp4", 0.81, 5.15),
     ("part-04.mp4", 0.00, 6.00),
     ("part-05.mp4", 0.00, 6.00),

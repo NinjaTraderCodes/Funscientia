@@ -21,13 +21,16 @@ interface Follower {
   place: number;
   /** 0 = right beside the leader, 1 = further out, beyond the other friend on the same side. */
   lane: number;
+  /** Seconds of standing about before it does something by itself (the fennec sniffs or sits). */
+  idleIn: number;
 }
 
-/** Followers are passed as [other kid, fennec]: the kid walks on one side, the fennec on the other. */
-const SLOTS: Slot[] = [
-  { spread: 0.55, back: 0.06 },
-  { spread: 0.42, back: 0.04 },
-];
+/** A few seconds, varied, before the fennec does something by itself again. */
+const idleDelay = () => 3.5 + Math.random() * 5;
+
+/** Where each kind of friend walks beside the leader: a kid a little further out than the fennec. */
+const KID_SLOT: Slot = { spread: 0.55, back: 0.06 };
+const FOX_SLOT: Slot = { spread: 0.42, back: 0.04 };
 const STOP_GAP = 0.025;
 const LEAD_TIME = 0.18; // s: aim where the leader is about to be, so they keep pace instead of trailing
 const SWAP_MARGIN = 0.25; // body heights: sides are only swapped when clearly crossed (no shuffling)
@@ -68,7 +71,7 @@ export class Party {
   constructor(leader: Character, followers: Character[], walkable: Walkable) {
     this.leader = leader;
     this.walkable = walkable;
-    this.followers = followers.map((who, i) => ({ who, slot: SLOTS[i] ?? SLOTS[0], side: i === 0 ? -1 : 1, settling: false, place: 0, lane: 0 }));
+    this.followers = followers.map((who, i) => ({ who, slot: who.name === 'fox' ? FOX_SLOT : KID_SLOT, side: i === 0 ? -1 : 1, settling: false, place: 0, lane: 0, idleIn: idleDelay() }));
     this.assignSides(true);
   }
 
@@ -97,7 +100,7 @@ export class Party {
 
     const v = this.leader.velocity;
     const speed = v.length();
-    const moving = speed > this.leader.bodyHeight * 0.05;
+    const moving = speed > this.leader.kidHeight * 0.05;
     if (moving) {
       this.engaged = true;
       this.heading.set(v.x / speed, v.y / speed);
@@ -105,14 +108,21 @@ export class Party {
     }
 
     for (const f of this.followers) {
-      if (this.released.has(f.who) || !this.engaged) {
+      if (this.released.has(f.who)) {
+        f.who.update(dt);
+        continue;
+      }
+      // standing about (also before the leader's first step), the fennec may sniff or sit
+      if (moving) f.idleIn = idleDelay();
+      else this.maybeIdle(f, dt);
+      if (!this.engaged) {
         f.who.update(dt);
         continue;
       }
       if (moving) this.walkAlong(f);
       else this.standBy(f);
       // standing in place, a friend looks the same way as the group, not wherever its last step pointed
-      if (!f.who.isMoving) this.faceHeading(f.who);
+      if (!f.who.isMoving && !f.who.idling) this.faceHeading(f.who);
       f.who.update(dt);
     }
   }
@@ -255,6 +265,22 @@ export class Party {
     return out;
   }
 
+  /**
+   * While the group stands about, a friend with idle animations (the fennec) now and
+   * then does something by itself: sniffs the ground, or sits down until they move on.
+   */
+  private maybeIdle(f: Follower, dt: number): void {
+    const who = f.who;
+    const kinds = who.idleKinds;
+    if (!kinds.length || who.isMoving || who.idling || who.velocity.length() > who.bodyHeight * 0.05) return;
+    f.idleIn -= dt;
+    if (f.idleIn > 0) return;
+    f.idleIn = idleDelay();
+    // sniffing is the usual thing; sitting down now and then
+    const kind = kinds.includes('sit') && Math.random() < 0.35 ? 'sit' : kinds.includes('sniff') ? 'sniff' : kinds[0];
+    who.playIdle(kind);
+  }
+
   private faceHeading(who: Character): void {
     who.faceTowards(who.pos.x + this.heading.x, who.pos.y + this.heading.y);
   }
@@ -272,7 +298,7 @@ export class Party {
     const active = this.followers.filter((f) => !this.released.has(f.who));
     const r = this.right(new Phaser.Math.Vector2());
     const L = this.leader.pos;
-    const h = Math.max(1, this.leader.bodyHeight);
+    const h = Math.max(1, this.leader.kidHeight);
     const lateral = (f: Follower) => ((f.who.pos.x - L.x) * r.x + ((f.who.pos.y - L.y) * r.y) / DEPTH_SPREAD) / h;
     if (active.length === 1) {
       const f = active[0];
@@ -313,7 +339,7 @@ export class Party {
     // reaching that side means cutting across the leader's path: count it as a long way round
     const r = this.right(new Phaser.Math.Vector2());
     const L = this.leader.pos;
-    const h = Math.max(1, this.leader.bodyHeight);
+    const h = Math.max(1, this.leader.kidHeight);
     const lateral = ((f.who.pos.x - L.x) * r.x + ((f.who.pos.y - L.y) * r.y) / DEPTH_SPREAD) / h;
     const crossing = lateral * side < -0.1 ? CROSS_COST * h : 0;
     return Math.hypot(p.x - f.who.pos.x, (p.y - f.who.pos.y) / DEPTH_SPREAD) + crossing;
@@ -327,7 +353,7 @@ export class Party {
    */
   private placeFor(f: Follower, moving: boolean, out: Phaser.Math.Vector2): Phaser.Math.Vector2 {
     if (this.unbounded) return this.slotPosition(f, moving, out);
-    const h = this.leader.bodyHeight;
+    const h = this.leader.kidHeight;
     const other = this.followers.find((o) => o !== f && !this.released.has(o.who));
     const otherSide = other && other.side === -f.side; // the other friend is over there already
     const options = [
@@ -363,7 +389,7 @@ export class Party {
     extraBack = 0,
   ): Phaser.Math.Vector2 {
     const L = this.leader.pos;
-    const h = this.leader.bodyHeight;
+    const h = this.leader.kidHeight;
     const v = this.leader.velocity;
     const r = this.right(new Phaser.Math.Vector2());
     out.set(L.x, L.y);

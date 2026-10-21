@@ -40,6 +40,9 @@ PLATE_TOP_PAD = 16  # world units mirrored above the frame so the end-frame rect
 SHIP_PLATE_WIDTH = 2560
 SHIP_WALK_BODY_PX = 330  # character body height inside walk frames (texture px)
 SHIP_IDLE_BODY_PX = 560  # idle frames are also shown big in the opening shot
+# idle animations (sniffing, sitting): many frames, and the fennec is small on screen, so a
+# smaller frame is still sharper than it is ever shown - and keeps the atlas within 4096px
+SHIP_IDLE_ANIM_BODY_PX = 200
 WALK_FPS = 30
 WALK_FRAME_STEP = 2  # keep every 2nd source frame: 15 fps loops, half the texture memory
 # walk direction -> folder of extracted, x4-upscaled loops (one sub-folder per character)
@@ -135,6 +138,20 @@ def fit_frame(img: np.ndarray, body_px: int, ref_body: int, canvas: tuple[int, i
     cx = center_x * s if center_x is not None else (x0 + x1) / 2
     ox = int(round(canvas[0] / 2 - cx))
     oy = feet_y - y1
+    sx0, sy0 = max(0, -ox), max(0, -oy)
+    sx1, sy1 = min(big.shape[1], canvas[0] - ox), min(big.shape[0], canvas[1] - oy)
+    out[sy0 + oy:sy1 + oy, sx0 + ox:sx1 + ox] = big[sy0:sy1, sx0:sx1]
+    return out
+
+
+def fit_fixed(img: np.ndarray, scale: float, anchor: tuple[float, float], canvas: tuple[int, int], feet_y: int) -> np.ndarray:
+    """Scale by `scale` and put the source `anchor` (where the paws stand) at the canvas's
+    bottom centre - the same for every frame, so an idle can crouch or sit without the
+    body being re-centred or re-sized frame by frame."""
+    big = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    out = np.zeros((canvas[1], canvas[0], 4), np.uint8)
+    ox = int(round(canvas[0] / 2 - anchor[0] * scale))
+    oy = int(round(feet_y - anchor[1] * scale))
     sx0, sy0 = max(0, -ox), max(0, -oy)
     sx1, sy1 = min(big.shape[1], canvas[0] - ox), min(big.shape[0], canvas[1] - oy)
     out[sy0 + oy:sy1 + oy, sx0 + ox:sx1 + ox] = big[sy0:sy1, sx0:sx1]
@@ -272,6 +289,34 @@ def main() -> None:
                 walk_anims[f"walk_{d}"]["strides"] = durations.get("strides", 1)
         frames["idle"] = fit_frame(idle, SHIP_IDLE_BODY_PX, idle_ref, idle_canvas, idle_feet)
 
+        # idle animations (art/characters/<name>/idle_<kind>/, from tools/pipeline/extract_idle.py):
+        # one scale for the whole animation, set by its standing first frame, paws pinned in place
+        idles = {}
+        for folder in sorted((args.art / "characters" / name).glob("idle_*")):
+            timing_file = folder / "timing.json"
+            files = sorted(folder.glob("idle_*.png"))
+            if not timing_file.exists() or not files:
+                continue
+            timing = json.loads(timing_file.read_text())
+            kind = folder.name[len("idle_"):]
+            imgs = [fill_eye_holes(tighten_alpha(np.array(Image.open(f).convert("RGBA")))) for f in files]
+            m, sd = lab_stats(imgs[0])
+            imgs = [color_match(i, ref_mean, ref_std, m, sd) for i in imgs]
+            scale = SHIP_IDLE_ANIM_BODY_PX / timing["standBody"]
+            ax, ay = timing["anchor"]
+            boxes = [body_box(i) for i in imgs]
+            reach = max(max(ax - b[0], b[2] - ax) for b in boxes)
+            up = ay - min(b[1] for b in boxes)
+            down = max(0, max(b[3] for b in boxes) - ay)
+            canvas = (int(2 * reach * scale) + 16, int((up + down) * scale) + 16)
+            feet = int(up * scale) + 8
+            prefix = f"idle_{kind}_"
+            for k, img in enumerate(imgs):
+                frames[f"{prefix}{k:02d}"] = fit_fixed(img, scale, (ax, ay), canvas, feet)
+            idles[kind] = {"prefix": prefix, "count": len(imgs), "fps": timing["fps"], "bodyPx": SHIP_IDLE_ANIM_BODY_PX,
+                           "originY": feet / canvas[1], "segments": timing["segments"]}
+            print(f"  idle {kind}: {len(imgs)} frames, segments {timing['segments']}")
+
         # standing poses for every direction, from the Gemini turnaround sheet
         views = {}
         facings = VIEW_FACINGS.get(name, {})
@@ -289,6 +334,7 @@ def main() -> None:
             views[view] = {"frame": f"view_{view}", "bodyPx": SHIP_WALK_BODY_PX,
                            "originY": feet / canvas[1], "facing": facing}
         atlas, data = pack_atlas(frames, f"{name}.webp")
+        print(f"  atlas {atlas.shape[1]}x{atlas.shape[0]}")
         Image.fromarray(atlas).save(chars_out / f"{name}.webp", quality=88, method=6)
         (chars_out / f"{name}.json").write_text(json.dumps(data))
 
@@ -300,6 +346,7 @@ def main() -> None:
                               "originY": idle_feet / idle_canvas[1]},
             },
             "views": views,
+            "idles": idles,
             # where the character stands at the start, in world units
             "start": {"x": bx + bw / 2, "y": by + bh, "bodyHeight": bh},
             "source": {"walk_back": "001.MOV from 68.0s @30fps", "walk_front": "001.MOV 0.0-5.5s @30fps",

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Sound } from '../audio/Sound';
-import type { CharacterDef, CharacterName, Facing, StillAnimDef, ViewName } from '../data/types';
+import type { CharacterDef, CharacterName, Facing, IdleAnimDef, StillAnimDef, ViewName } from '../data/types';
 
 /**
  * Walking speed ON THE GROUND, in kid body heights per second. Screen speed is
@@ -70,6 +70,8 @@ export class Character {
   private stepPhase = Math.random();
   private groundSpeed = 0;
   private shown = '';
+  /** An idle animation in progress (a side view): its frames, which part is playing, and the frame clock. */
+  private idle: { def: IdleAnimDef; phase: 'once' | 'in' | 'loop' | 'out'; f: number; side: -1 | 1 } | null = null;
   /**
    * Extra view transform used only by the overlook's opening shot: the camera
    * dollies towards the trio, so they appear `k` times larger about `pivot`.
@@ -123,6 +125,46 @@ export class Character {
     return this.target !== null;
   }
 
+  /** Busy with an idle animation (sniffing, sitting...). */
+  get idling(): boolean {
+    return this.idle !== null;
+  }
+
+  /** Idle animations this character has (e.g. 'sniff', 'sit'). */
+  get idleKinds(): string[] {
+    return Object.keys(this.def.idles ?? {});
+  }
+
+  /**
+   * Start an idle animation; only while standing still. Idles are side views, so the
+   * character turns to its nearer side (a random one when it faces away or towards us).
+   */
+  playIdle(kind: string): boolean {
+    const def = this.def.idles?.[kind];
+    if (!def || this.target || this.moving || this.idle) return false;
+    const first = def.segments.once ?? def.segments.in;
+    if (!first) return false;
+    const side = sideOf(this.dir) || (Math.random() < 0.5 ? -1 : 1);
+    this.dir = side < 0 ? 'left' : 'right';
+    this.idle = { def, phase: def.segments.once ? 'once' : 'in', f: first[0], side };
+    return true;
+  }
+
+  /**
+   * Asked to move during an idle: a short one simply ends; sitting, it gets up first
+   * (the sitting-down part played backwards). True while it is still getting up.
+   */
+  private finishIdleToMove(): boolean {
+    const idle = this.idle;
+    if (!idle) return false;
+    if (idle.phase === 'once') {
+      this.endIdle();
+      return false;
+    }
+    if (idle.phase !== 'out') idle.phase = 'out';
+    return true;
+  }
+
   /** Current body height in world units (shrinks with distance). */
   get bodyHeight(): number {
     return this.heightAt(this.pos.y);
@@ -151,8 +193,8 @@ export class Character {
     this.dir = dirOf(x - this.pos.x, y - this.pos.y);
   }
 
-  /** Kid body height here: the unit the party's shared speed is measured in. */
-  private get kidHeight(): number {
+  /** Kid body height here: the unit the party's speed and spacing are measured in (also when the fennec leads). */
+  get kidHeight(): number {
     return this.bodyHeight / this.relHeight;
   }
 
@@ -168,6 +210,7 @@ export class Character {
 
   /** Move along a unit direction, used for keyboard control. */
   nudge(dx: number, dy: number, dt: number, clamp: (v: Phaser.Math.Vector2) => Phaser.Math.Vector2): void {
+    if (this.finishIdleToMove()) return; // getting up first
     this.target = null;
     this.speedFactor = 1;
     const step = this.screenStep(dx, dy, dt, 1);
@@ -176,7 +219,9 @@ export class Character {
   }
 
   update(dt: number): void {
-    if (this.target) {
+    // asked to walk while sitting: get up before taking a step
+    const gettingUp = this.target !== null && this.finishIdleToMove();
+    if (this.target && !gettingUp) {
       const dx = this.target.x - this.pos.x;
       const dy = this.target.y - this.pos.y;
       const dist = Math.hypot(dx, dy);
@@ -219,6 +264,8 @@ export class Character {
       }
     }
     this.lastPos.copy(this.pos);
+
+    if (this.idle && this.drawIdle(dt, h)) return;
 
     const anims = this.def.animations;
     const cycle = this.moving ? cycleFor(this.dir) : null;
@@ -288,6 +335,64 @@ export class Character {
     this.shadow.setPosition(pivotX + (this.pos.x - pivotX) * k, pivotY + (this.pos.y - pivotY) * k);
     this.shadow.setDisplaySize(wide, wide * 0.24).setDepth(this.pos.y - 0.5);
     this.shadow.setVisible(this.sprite.visible);
+  }
+
+  /** Back to the normal pose: the idle's last frame fades out over it, so nothing jumps. */
+  private endIdle(): void {
+    this.idle = null;
+    const s = this.sprite;
+    const ghost = s.scene.add
+      .image(s.x, s.y, s.texture.key, s.frame.name)
+      .setOrigin(s.originX, s.originY)
+      .setScale(s.scaleX, s.scaleY)
+      .setFlipX(s.flipX)
+      .setDepth(s.depth + 0.01);
+    s.scene.tweens.add({ targets: ghost, alpha: 0, duration: 260, ease: 'Sine.easeOut', onComplete: () => ghost.destroy() });
+  }
+
+  /**
+   * Advance and draw the idle animation. Returns false once it has finished (the
+   * normal standing pose is drawn instead).
+   */
+  private drawIdle(dt: number, h: number): boolean {
+    const idle = this.idle!;
+    const { segments, fps } = idle.def;
+    if (idle.phase === 'out') {
+      idle.f -= dt * fps * 2; // getting up goes quicker than sitting down
+      if (idle.f < (segments.in?.[0] ?? 0)) {
+        this.endIdle();
+        return false;
+      }
+    } else {
+      idle.f += dt * fps;
+      if (idle.phase === 'once' && idle.f > segments.once![1]) {
+        this.endIdle();
+        return false;
+      }
+      if (idle.phase === 'in' && idle.f > segments.in![1]) {
+        idle.phase = segments.loop ? 'loop' : 'out';
+        if (segments.loop) idle.f = segments.loop[0];
+      }
+      if (idle.phase === 'loop' && idle.f > segments.loop![1]) idle.f = segments.loop![0];
+    }
+    const frame = `${idle.def.prefix}${String(Math.round(idle.f)).padStart(2, '0')}`;
+    if (this.shown !== frame) {
+      this.sprite.stop();
+      this.sprite.setFrame(frame);
+      this.sprite.setOrigin(0.5, idle.def.originY);
+      this.shown = frame;
+    }
+    // the clips face left, like the side walk
+    this.sprite.setFlipX(idle.side !== SIDE_CYCLE_FACES);
+    const scale = h / idle.def.bodyPx;
+    const { pivotX, pivotY, k } = this.dolly;
+    this.sprite.setPosition(pivotX + (this.pos.x - pivotX) * k, pivotY + (this.pos.y - pivotY) * k);
+    this.sprite.setScale(scale * k).setAngle(0).setDepth(this.pos.y);
+    const wide = (this.name === 'fox' ? 1.15 : 0.48) * h * k;
+    this.shadow.setPosition(pivotX + (this.pos.x - pivotX) * k, pivotY + (this.pos.y - pivotY) * k);
+    this.shadow.setDisplaySize(wide, wide * 0.24).setDepth(this.pos.y - 0.5);
+    this.shadow.setVisible(this.sprite.visible);
+    return true;
   }
 }
 

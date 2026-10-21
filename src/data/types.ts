@@ -31,12 +31,28 @@ export interface ViewDef extends StillAnimDef {
   facing: Facing;
 }
 
+/** Something a character does while standing about (the fennec sniffing, sitting down...). */
+export interface IdleAnimDef {
+  prefix: string;
+  count: number;
+  fps: number;
+  bodyPx: number;
+  originY: number;
+  /**
+   * Frame ranges [first, last]: `once` plays once then back to standing; `in` leads into
+   * `loop`, which repeats until the character moves - then `in` plays backwards (getting up).
+   */
+  segments: { once?: [number, number]; in?: [number, number]; loop?: [number, number] };
+}
+
 export interface CharacterDef {
   atlas: string;
   /** walk_back / walk_front: real walk cycles; other directions use `views` + a procedural step. */
   animations: { walk_back: LoopAnimDef; walk_front?: LoopAnimDef; walk_side?: LoopAnimDef; idle_back: StillAnimDef };
   /** Standing pose per direction (turnaround sheet). Missing views fall back to the back view. */
   views?: Partial<Record<ViewName, ViewDef>>;
+  /** Idle animations by kind (side view, drawn facing left like the side walk). */
+  idles?: Record<string, IdleAnimDef>;
   /** Feet position and body height in world units at the start of the scene. */
   start: { x: number; y: number; bodyHeight: number };
 }

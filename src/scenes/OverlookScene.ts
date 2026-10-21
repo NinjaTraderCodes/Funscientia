@@ -7,7 +7,7 @@ import { Walkable } from '../world/Walkable';
 import { Waypoint } from '../world/Waypoint';
 import { GAME_EVENTS } from './BootScene';
 import { GameState } from '../state/GameState';
-import { chooseHero } from '../ui/HeroSelect';
+import { chooseAvatar } from '../ui/AvatarSelect';
 import { DialogueRunner } from '../dialogue/DialogueRunner';
 import { DialogueBox } from '../ui/DialogueBox';
 
@@ -105,10 +105,12 @@ export class OverlookScene extends Phaser.Scene {
       return;
     }
     this.game.events.once(GAME_EVENTS.introCut, (secondsLeft: number) => this.closeIn(secondsLeft));
+    this.game.events.on(GAME_EVENTS.editProfile, this.onEditProfile, this);
     this.game.events.once(GAME_EVENTS.introDone, () => this.startOpening());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off(GAME_EVENTS.introCut);
       this.game.events.off(GAME_EVENTS.introDone);
+      this.game.events.off(GAME_EVENTS.editProfile, this.onEditProfile, this);
     });
     this.game.events.emit(GAME_EVENTS.overlookReady);
   }
@@ -130,6 +132,22 @@ export class OverlookScene extends Phaser.Scene {
     this.applyView(false, dt);
   }
 
+  /** The profile badge: change name or avatar on the ledge; a new avatar takes the lead on the spot. */
+  private async onEditProfile(): Promise<void> {
+    if (this.phase !== 'play') return;
+    this.phase = 'choose'; // nobody walks while the editor is open
+    for (const m of this.party.members) m.stop();
+    const before = GameState.hero;
+    const pick = await chooseAvatar({ avatar: GameState.hero ?? 'walid', name: GameState.playerName });
+    if (pick) {
+      GameState.hero = pick.avatar;
+      GameState.playerName = pick.name;
+      if (pick.avatar !== before) this.makeParty();
+      this.game.events.emit(GAME_EVENTS.profileChanged);
+    }
+    this.phase = 'play';
+  }
+
   private async beforeChoice(): Promise<void> {
     try {
       const runner = await DialogueRunner.load('overlook', 'walid');
@@ -141,10 +159,10 @@ export class OverlookScene extends Phaser.Scene {
     }
   }
 
-  /** The chosen hero leads; the other kid and the fox follow in the intro's formation. */
+  /** The chosen avatar leads; the others follow. */
   private makeParty(): void {
     const c = this.characters;
-    this.party = new Party(c[GameState.leaderName], [c[GameState.buddyName], c.fox], this.walkable);
+    this.party = new Party(c[GameState.leaderName], GameState.followerNames.map((n) => c[n]), this.walkable);
   }
 
   /**
@@ -196,8 +214,11 @@ export class OverlookScene extends Phaser.Scene {
         this.phase = 'choose';
         // a short exchange first, so choosing the leader is part of the story
         await this.beforeChoice();
-        GameState.hero = await chooseHero();
+        const pick = (await chooseAvatar())!;
+        GameState.hero = pick.avatar;
+        GameState.playerName = pick.name;
         this.makeParty();
+        this.game.events.emit(GAME_EVENTS.profileChanged);
         this.phase = 'play';
         this.trail.show(this);
         this.game.events.emit(GAME_EVENTS.openingDone);

@@ -1,13 +1,14 @@
 import type { DialogueView, Hero, Line, Speaker } from '../dialogue/DialogueRunner';
 import { asset } from '../assetUrl';
 import { Sound } from '../audio/Sound';
+import { GameState, type Avatar } from '../state/GameState';
 
-const NAMES: Record<Hero | 'fox' | 'tooth', string> = {
-  walid: 'Walid',
-  nesma: 'Nesma',
-  fox: 'Fennec',
-  tooth: 'Tooth Guardian',
-};
+/** Name tags: the trio's come from the player's profile (their typed name replaces their avatar's). */
+const nameOf = (who: Hero | 'fox' | 'tooth') => (who === 'tooth' ? 'Tooth Guardian' : GameState.nameOf(who));
+const SPEAKERS = ['walid', 'nesma', 'fox', 'tooth'] as const;
+/** Names inside a line: [walid], [nesma], [fox] and [player] (whoever the child plays). */
+const fillNames = (text: string) =>
+  text.replace(/\[(walid|nesma|fox|player)\]/g, (_, w: string) => GameState.nameOf(w === 'player' ? (GameState.hero ?? 'walid') : (w as Avatar)));
 
 const CHARS_PER_SEC = 45;
 /** Portrait files known not to exist yet (mood variants still being made). */
@@ -43,7 +44,7 @@ export class DialogueBox implements DialogueView {
       </div>`;
     document.getElementById('app')!.appendChild(this.root);
     // warm the cache so the first line of each speaker shows its face at once
-    for (const w of Object.keys(NAMES)) new Image().src = asset(`portraits/${w}_happy.webp`);
+    for (const w of SPEAKERS) new Image().src = asset(`portraits/${w}_happy.webp`);
     this.portrait = this.root.querySelector('.dlg-portrait img')!;
     this.name = this.root.querySelector('.dlg-name')!;
     this.text = this.root.querySelector('.dlg-text')!;
@@ -78,7 +79,7 @@ export class DialogueBox implements DialogueView {
     this.root.hidden = false;
     this.root.dataset.speaker = who;
     this.choices.replaceChildren();
-    this.name.textContent = NAMES[who];
+    this.name.textContent = nameOf(who);
     this.setPortrait(who, line.mood);
     if (line.sfx) Sound.sample(line.sfx);
 
@@ -86,7 +87,7 @@ export class DialogueBox implements DialogueView {
     this.more.hidden = true;
     let shown = 0;
     let done = false;
-    const full = line.text;
+    const full = fillNames(line.text);
     await new Promise<void>((resolve) => {
       const start = performance.now();
       const tick = () => {

@@ -1,3 +1,5 @@
+import { GAME_EVENTS } from './BootScene';
+import { chooseAvatar } from '../ui/AvatarSelect';
 import Phaser from 'phaser';
 import type { CharacterManifest, CharacterName } from '../data/types';
 import { DialogueRunner } from '../dialogue/DialogueRunner';
@@ -147,7 +149,9 @@ export class WorldScene extends Phaser.Scene {
       const p = this.walkable.clamp(base + slots[n] * h, P.spawn.y - (n === 'fox' ? 0.02 * h : 0));
       this.chars[n].teleport(p.x, p.y);
     }
-    this.party = new Party(leader, [this.chars[GameState.buddyName], this.chars.fox], this.walkable);
+    this.party = new Party(leader, GameState.followerNames.map((n) => this.chars[n]), this.walkable);
+    this.game.events.on(GAME_EVENTS.editProfile, this.onEditProfile, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.game.events.off(GAME_EVENTS.editProfile, this.onEditProfile, this));
 
     for (const n of P.npcs) {
       const img = this.add.image(n.x, n.y, `npc_${n.who}`).setOrigin(0.5, 1).setDepth(n.y);
@@ -191,9 +195,9 @@ export class WorldScene extends Phaser.Scene {
     } else this.cameras.main.fadeIn(700, 11, 21, 51);
     const hold = this.cutIn ? 900 : 1200;
 
-    this.box = new DialogueBox(GameState.hero ?? 'walid');
+    this.box = new DialogueBox(GameState.storyLeader);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.box.destroy());
-    this.dialogue = await DialogueRunner.load(P.dialogue, GameState.hero ?? 'walid');
+    this.dialogue = await DialogueRunner.load(P.dialogue, GameState.storyLeader);
     this.time.delayedCall(hold, async () => {
       await this.talk(P.arrivalKnot ?? 'arrival');
       this.tweens.add({ targets: this.establish, t: 0, duration: this.cutIn ? 1900 : 2600, ease: 'Sine.easeInOut' });
@@ -230,20 +234,42 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /** The profile badge: change name or avatar while walking about; a new avatar takes the lead on the spot. */
+  private async onEditProfile(): Promise<void> {
+    if (this.phase !== 'play') return;
+    this.phase = 'talk'; // nobody walks while the editor is open
+    for (const m of this.party.members) m.stop();
+    const before = GameState.hero;
+    const pick = await chooseAvatar({ avatar: GameState.hero ?? 'walid', name: GameState.playerName });
+    if (pick) {
+      GameState.hero = pick.avatar;
+      GameState.playerName = pick.name;
+      if (pick.avatar !== before) {
+        this.party = new Party(this.chars[GameState.leaderName], GameState.followerNames.map((n) => this.chars[n]), this.walkable);
+        this.box.destroy();
+        this.box = new DialogueBox(GameState.storyLeader);
+      }
+      this.game.events.emit(GAME_EVENTS.profileChanged);
+    }
+    if (this.phase === 'talk') this.phase = 'play';
+  }
+
   private async trigger(s: Hotspot): Promise<void> {
     if (s.def.to) return this.cutTo(s.def.to);
     Sound.chime();
     this.party.leader.stop();
     const fox = this.chars.fox;
-    if (s.def.foxTo) {
-      const [fx, fy] = s.def.foxTo.split(',').map(Number);
+    // the fennec runs ahead to what it smells (unless the child is the fennec)
+    const foxRuns = !!s.def.foxTo && this.party.leader !== fox;
+    if (foxRuns) {
+      const [fx, fy] = s.def.foxTo!.split(',').map(Number);
       this.party.release(fox);
       fox.walkTo(fx, fy, 1.3);
     }
     const close = s.def.knot === 'gate';
     if (close) await this.zoomTo(1.3, s.def.x, s.def.y - kidAtGate(this.place, s.def.y));
     const result = await this.talk(s.def.knot);
-    if (s.def.foxTo) this.party.release(fox, false);
+    if (foxRuns) this.party.release(fox, false);
     if (close && !result.actions.includes('enter_mouth')) void this.zoomTo(1, s.def.x, s.def.y);
     s.done = true;
     if (s.def.knot !== 'gate') s.marker.hide();
@@ -346,7 +372,7 @@ export class WorldScene extends Phaser.Scene {
     const L = this.party.leader;
     // keep the trio at a steady size on screen: zoom in as they walk away from the
     // camera, ease back out when they come back (partly - the world must still show)
-    const want = Phaser.Math.Clamp(Math.pow(this.spawnH / Math.max(1, L.bodyHeight), 0.7), 1, 2.1);
+    const want = Phaser.Math.Clamp(Math.pow(this.spawnH / Math.max(1, L.kidHeight), 0.7), 1, 2.1);
     this.intentK += (want - this.intentK) * (snap ? 1 : 1 - Math.exp(-dt * 1.4));
     const cover = Math.max(cam.width / P.width, cam.height / P.height);
     const walking = cover * BASE_ZOOM * this.intentK * this.focus.k * this.push.k;
@@ -361,7 +387,7 @@ export class WorldScene extends Phaser.Scene {
     // look ahead in the walking direction (about 0.7 s of travel)
     const v = L.velocity;
     const gx = m.reduce((s, c) => s + c.pos.x, 0) / m.length + Phaser.Math.Clamp(v.x * 0.7, -visW * 0.15, visW * 0.15);
-    const gy = L.pos.y - L.bodyHeight * 0.8 + Phaser.Math.Clamp(v.y * 0.7, -visH * 0.15, visH * 0.15);
+    const gy = L.pos.y - L.kidHeight * 0.8 + Phaser.Math.Clamp(v.y * 0.7, -visH * 0.15, visH * 0.15);
     let tx = Phaser.Math.Linear(gx, this.focus.x, f);
     let ty = Phaser.Math.Linear(gy, this.focus.y, f);
     if (e > 0) {
