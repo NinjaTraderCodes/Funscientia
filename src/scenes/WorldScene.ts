@@ -1,3 +1,4 @@
+import { DISCOVERIES } from '../state/discoveries';
 import { GAME_EVENTS } from './BootScene';
 import { chooseAvatar } from '../ui/AvatarSelect';
 import Phaser from 'phaser';
@@ -48,9 +49,6 @@ interface Hotspot {
 
 type Phase = 'intro' | 'play' | 'talk' | 'cutting' | 'leaving';
 
-const DISCOVERIES: Record<string, string> = {
-  saliva_smell: 'When you smell food, your mouth makes saliva to get ready for eating.',
-};
 
 /**
  * A walkable place in the world, fully described by data: a Tiled map
@@ -339,8 +337,7 @@ export class WorldScene extends Phaser.Scene {
       this.scene.start('Chapter', {
         title: 'Chapter 1',
         subtitle: 'Mouth Mission',
-        note: 'The Mouth mini-game is being built — come back soon!',
-        back: { scene: 'World', label: '‹ Back to the road', data: { place: this.placeName } },
+        next: { scene: 'Mouth' },
       }),
     );
   }

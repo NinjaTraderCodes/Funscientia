@@ -1,0 +1,8 @@
+Use the attached food characters as the exact style reference: the same glossy, soft 3D cartoon look, the same kind of cute face (big shiny dark eyes with white highlights, pink blush on the cheeks, a happy open smile).
+
+Create ONE new character in that style: a "bolus" - a soft, round ball of chewed food, ready to be swallowed. It is made of mashed bread (cream-beige), with tiny bits of orange carrot and green broccoli mixed in, moist and shiny with saliva: a light wet glossy sheen and two or three small clear droplets on it. Its face is happy and content, a little proud, eyes slightly squinting with joy.
+
+- The whole character visible, centred, filling about 80% of the image.
+- No shadow under it, no ground, no text, no other objects.
+- Transparent background (a PNG with an alpha channel): everything around the character fully transparent.
+- Square image, 1024 x 1024 pixels.

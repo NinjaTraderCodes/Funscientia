@@ -84,6 +84,10 @@ export const GameState = {
   get discoveries(): readonly string[] {
     return data.discoveries;
   },
+  /** The child's answer to a prediction question ('' if not asked yet). */
+  prediction(question: string): string {
+    return data.predictions[question] ?? '';
+  },
   predict(question: string, answer: string): void {
     data.predictions[question] = answer;
     persist();

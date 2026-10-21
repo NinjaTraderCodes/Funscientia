@@ -44,6 +44,15 @@ export class DialogueRunner {
     return new DialogueRunner(story);
   }
 
+  /** Set a story variable the ink declares (setting an undeclared one is skipped). */
+  setVariable(name: string, value: string | number | boolean): void {
+    try {
+      this.story.variablesState[name] = value;
+    } catch {
+      /* not declared in this story */
+    }
+  }
+
   variable(name: string): unknown {
     return this.story.variablesState[name];
   }
@@ -56,9 +65,9 @@ export class DialogueRunner {
         const text = this.story.Continue()?.trim() ?? '';
         const tags = this.story.currentTags ?? [];
         const action = tagValue(tags, 'action');
-        const discovery = tagValue(tags, 'discovery');
+        // a line may award several discoveries at once (#discovery:a #discovery:b)
         if (action) result.actions.push(action);
-        if (discovery) result.discoveries.push(discovery);
+        for (const t of tags) if (t.startsWith('discovery:')) result.discoveries.push(t.slice('discovery:'.length).trim());
         if (!text) continue;
         await view.showLine({
           speaker: (tagValue(tags, 'speaker') as Speaker) ?? 'leader',

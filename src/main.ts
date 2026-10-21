@@ -8,6 +8,7 @@ import { BootScene, GAME_EVENTS } from './scenes/BootScene';
 import { ChapterScene } from './scenes/ChapterScene';
 import { OverlookScene } from './scenes/OverlookScene';
 import { WorldScene } from './scenes/WorldScene';
+import { MouthScene } from './scenes/MouthScene';
 
 // Render at device resolution (capped at 2x for performance) and let CSS scale
 // the canvas back down, so the art stays sharp on phones and retina screens.
@@ -22,7 +23,7 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.NONE, width: w, height: h, zoom: 1 / dpr },
   render: { antialias: true, roundPixels: false },
   input: { activePointers: 2 },
-  scene: [BootScene, OverlookScene, ChapterScene, WorldScene],
+  scene: [BootScene, OverlookScene, ChapterScene, WorldScene, MouthScene],
 });
 
 let resizeTimer = 0;

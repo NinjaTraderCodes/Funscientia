@@ -13,7 +13,7 @@ class SoundSystem {
   private master!: GainNode;
   private musicGain!: GainNode;
   private sfxGain!: GainNode;
-  private noise!: AudioBuffer;
+  private noise1s!: AudioBuffer;
   private musicStarted = false;
   private lastStep = 0;
   muted = (() => {
@@ -42,8 +42,8 @@ class SoundSystem {
     this.sfxGain.gain.value = 0.9;
     this.sfxGain.connect(this.master);
     // one second of white noise, reused by every footstep
-    this.noise = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
-    const d = this.noise.getChannelData(0);
+    this.noise1s = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
+    const d = this.noise1s.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
 
@@ -124,7 +124,7 @@ class SoundSystem {
     if (now - this.lastStep < 0.045) return; // the trio's steps must not pile up into a rumble
     this.lastStep = now;
     const src = this.ctx.createBufferSource();
-    src.buffer = this.noise;
+    src.buffer = this.noise1s;
     const band = this.ctx.createBiquadFilter();
     band.type = 'bandpass';
     band.frequency.value = (light ? 1500 : 650) * (0.85 + Math.random() * 0.3);
@@ -148,7 +148,7 @@ class SoundSystem {
   private crunch(now: number, light: boolean, peak: number): void {
     const ctx = this.ctx!;
     const src = ctx.createBufferSource();
-    src.buffer = this.noise;
+    src.buffer = this.noise1s;
     const hp = ctx.createBiquadFilter();
     hp.type = 'bandpass';
     hp.frequency.value = (light ? 3800 : 2600) * (0.85 + Math.random() * 0.3);
@@ -178,6 +178,41 @@ class SoundSystem {
       o.start(now + dt);
       o.stop(now + dt + 0.65);
     }
+  }
+
+  /** A pitched blip that slides from one note to another (pops, whooshes, gloops...). */
+  tone(from: number, to: number, seconds: number, volume = 0.08, type: OscillatorType = 'sine', delay = 0): void {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime + delay;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(from, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(20, to), t + seconds);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(volume, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+    o.connect(g).connect(this.sfxGain);
+    o.start(t);
+    o.stop(t + seconds + 0.05);
+  }
+
+  /** A burst of filtered noise (crunches, crumbles, sprays). */
+  noise(seconds: number, freq: number, q = 1, volume = 0.15, delay = 0): void {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime + delay;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noise1s;
+    const band = this.ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = freq;
+    band.Q.value = q;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(volume, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+    src.connect(band).connect(g).connect(this.sfxGain);
+    src.start(t, Math.random() * 0.5, seconds + 0.05);
   }
 
   setMuted(m: boolean): void {

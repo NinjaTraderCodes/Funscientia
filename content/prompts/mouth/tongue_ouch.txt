@@ -1,0 +1,8 @@
+Use the attached pink tongue character as the exact reference: the same shape, the same pink colour and glossy shine, the same little arms, the same 3D cartoon style.
+
+Draw the SAME tongue character in a funny "OUCH!" moment, as if it has just been bitten by accident: eyes squeezed shut, two big cartoon tears flying from its eyes, mouth in a wobbly "ow!" shape, one little arm rubbing its head, and two or three small yellow cartoon stars of pain around it. Funny and child-friendly, not scary, no blood, no injuries.
+
+- The whole character visible, centred, filling about 80% of the image, same pose direction as the reference.
+- No shadow, no ground, no text, no other objects.
+- Transparent background (a PNG with an alpha channel): everything around the character fully transparent.
+- Square image, 1024 x 1024 pixels.
