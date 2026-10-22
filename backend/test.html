@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Funscientia saves - test page</title>
+  <!-- the official Supabase client (version 2), from a CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font: 15px/1.45 system-ui, sans-serif; max-width: 880px; margin: 24px auto; padding: 0 16px; color: #1c2340; background: #f7f5ef; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    fieldset { border: 1px solid #c9c2ad; border-radius: 10px; margin: 14px 0; padding: 12px 14px; background: #fff; }
+    legend { font-weight: 700; padding: 0 6px; }
+    label { display: block; margin: 6px 0 2px; font-size: 13px; color: #5b6075; }
+    input, textarea { width: 100%; box-sizing: border-box; font: 13px/1.4 ui-monospace, Consolas, monospace; padding: 7px 9px; border: 1px solid #c9c2ad; border-radius: 6px; }
+    textarea { height: 150px; }
+    button { font: 600 14px system-ui, sans-serif; padding: 8px 14px; margin: 8px 6px 0 0; border: 0; border-radius: 8px; background: #1f3a8a; color: #fff; cursor: pointer; }
+    button.alt { background: #7a5a12; }
+    pre { background: #10162e; color: #e6e9f5; padding: 10px 12px; border-radius: 8px; overflow: auto; font-size: 12.5px; min-height: 20px; white-space: pre-wrap; }
+    table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+    td, th { border-bottom: 1px solid #e3dece; padding: 6px 8px; text-align: left; vertical-align: top; }
+    .pass { color: #13792f; font-weight: 700; }
+    .fail { color: #b3261e; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Funscientia online saves: test page</h1>
+  <p>Paste your project's URL and <b>publishable</b> key (never the secret key). They are kept only in this browser.</p>
+
+  <fieldset>
+    <legend>Connection</legend>
+    <label for="url">Project URL (looks like https://abcdefgh.supabase.co)</label>
+    <input id="url" placeholder="https://xxxxxxxx.supabase.co" />
+    <label for="key">Publishable key (starts with sb_publishable_ ; older projects: the "anon public" key)</label>
+    <input id="key" placeholder="sb_publishable_..." />
+    <button id="connect">Connect</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Try it by hand</legend>
+    <label for="data">Progress data (JSON)</label>
+    <textarea id="data"></textarea>
+    <label for="code">Save code</label>
+    <input id="code" placeholder="e.g. K7QM-4FXA" />
+    <button id="create">create_save</button>
+    <button id="save">save_progress</button>
+    <button id="load">load_progress</button>
+    <pre id="out"></pre>
+  </fieldset>
+
+  <fieldset>
+    <legend>Run all checks</legend>
+    <p>Runs every check from the guide (section 7) and shows PASS / FAIL. Take a screenshot of the result for your delivery.</p>
+    <button id="checks" class="alt">Run all checks</button>
+    <p id="summary"></p>
+    <table id="results"></table>
+  </fieldset>
+
+<script>
+  // ---- connection ---------------------------------------------------------
+  const $ = (id) => document.getElementById(id);
+  const SAMPLE = {
+    version: 1,
+    hero: 'nesma',
+    playerName: '',
+    lang: 'ar',
+    place: 'esophagus',
+    discoveries: ['saliva_smell', 'teeth_chew'],
+    predictions: { saliva: 'sugar', pepsin: 'protein' },
+    savedAt: new Date().toISOString(),
+  };
+  $('data').value = JSON.stringify(SAMPLE, null, 2);
+  try {
+    $('url').value = localStorage.getItem('fs.url') || '';
+    $('key').value = localStorage.getItem('fs.key') || '';
+  } catch {}
+
+  let db = null;
+  function connect() {
+    const url = $('url').value.trim();
+    const key = $('key').value.trim();
+    if (!url || !key) return show('Please fill in the URL and the publishable key.');
+    if (key.startsWith('sb_secret_') || key.includes('service_role')) return show('STOP: that is a SECRET key. Use the publishable key.');
+    try {
+      localStorage.setItem('fs.url', url);
+      localStorage.setItem('fs.key', key);
+    } catch {}
+    db = supabase.createClient(url, key);
+    show('Connected client for ' + url);
+  }
+  $('connect').onclick = connect;
+  if ($('url').value && $('key').value) connect();
+
+  const show = (x) => ($('out').textContent = typeof x === 'string' ? x : JSON.stringify(x, null, 2));
+  const need = () => db || (show('Connect first.'), null);
+  const parsed = () => {
+    try {
+      return JSON.parse($('data').value);
+    } catch (e) {
+      show('The JSON is not valid: ' + e.message);
+      return undefined;
+    }
+  };
+
+  // ---- by hand ------------------------------------------------------------
+  $('create').onclick = async () => {
+    if (!need()) return;
+    const data = parsed();
+    if (data === undefined) return;
+    const res = await db.rpc('create_save', { p_data: data });
+    if (res.data) $('code').value = res.data;
+    show(res);
+  };
+  $('save').onclick = async () => {
+    if (!need()) return;
+    const data = parsed();
+    if (data === undefined) return;
+    show(await db.rpc('save_progress', { p_code: $('code').value, p_data: data }));
+  };
+  $('load').onclick = async () => {
+    if (!need()) return;
+    show(await db.rpc('load_progress', { p_code: $('code').value }));
+  };
+
+  // ---- all checks ---------------------------------------------------------
+  const CODE = /^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/;
+  const same = (a, b) => JSON.stringify(sortKeys(a)) === JSON.stringify(sortKeys(b));
+  const sortKeys = (v) =>
+    Array.isArray(v) ? v.map(sortKeys) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sortKeys(v[k])])) : v;
+
+  $('checks').onclick = async () => {
+    if (!need()) return;
+    const rows = [];
+    const table = $('results');
+    $('summary').textContent = 'Running...';
+    const render = () =>
+      (table.innerHTML = '<tr><th>#</th><th>Check</th><th>Result</th><th>Details</th></tr>' +
+        rows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.name}</td><td class="${r.ok ? 'pass' : 'fail'}">${r.ok ? 'PASS' : 'FAIL'}</td><td><code>${r.detail}</code></td></tr>`).join(''));
+    const check = async (name, fn) => {
+      let ok = false;
+      let detail = '';
+      try {
+        [ok, detail] = await fn();
+      } catch (e) {
+        detail = 'exception: ' + e.message;
+      }
+      rows.push({ name, ok, detail: String(detail).replace(/</g, '&lt;').slice(0, 160) });
+      render();
+    };
+    const data = { ...SAMPLE, savedAt: new Date().toISOString() };
+    let code = '';
+
+    await check('create_save returns a code like K7QM-4FXA', async () => {
+      const r = await db.rpc('create_save', { p_data: data });
+      code = r.data || '';
+      return [!r.error && CODE.test(code), r.error ? r.error.message : code];
+    });
+    await check('load_progress returns exactly what was saved', async () => {
+      const r = await db.rpc('load_progress', { p_code: code });
+      return [!r.error && same(r.data, data), r.error ? r.error.message : 'same data'];
+    });
+    await check('the code also works in lowercase, with a space instead of the dash', async () => {
+      const r = await db.rpc('load_progress', { p_code: code.toLowerCase().replace('-', ' ') });
+      return [!r.error && same(r.data, data), r.error ? r.error.message : code.toLowerCase().replace('-', ' ')];
+    });
+    await check('save_progress updates the save (returns true)', async () => {
+      const r = await db.rpc('save_progress', { p_code: code, p_data: { ...data, place: 'stomach' } });
+      return [!r.error && r.data === true, r.error ? r.error.message : String(r.data)];
+    });
+    await check('load_progress then returns the new progress', async () => {
+      const r = await db.rpc('load_progress', { p_code: code });
+      return [!r.error && r.data && r.data.place === 'stomach', r.error ? r.error.message : 'place = ' + (r.data && r.data.place)];
+    });
+    await check('an unknown code loads nothing (null, no error)', async () => {
+      const r = await db.rpc('load_progress', { p_code: 'ABCD-EFGH' });
+      return [!r.error && r.data === null, r.error ? r.error.message : String(r.data)];
+    });
+    await check('a nonsense code loads nothing (null, no error)', async () => {
+      const r = await db.rpc('load_progress', { p_code: "x'; drop table saves; --" });
+      return [!r.error && r.data === null, r.error ? r.error.message : String(r.data)];
+    });
+    await check('save_progress with an unknown code returns false', async () => {
+      const r = await db.rpc('save_progress', { p_code: 'ABCD-EFGH', p_data: data });
+      return [!r.error && r.data === false, r.error ? r.error.message : String(r.data)];
+    });
+    await check('data bigger than 16000 bytes is refused', async () => {
+      const r = await db.rpc('create_save', { p_data: { version: 1, junk: 'x'.repeat(20000) } });
+      return [!!r.error, r.error ? r.error.message : 'accepted: ' + r.data];
+    });
+    await check('data that is not a JSON object is refused', async () => {
+      const r = await db.rpc('create_save', { p_data: [1, 2, 3] });
+      return [!!r.error, r.error ? r.error.message : 'accepted: ' + r.data];
+    });
+    await check('data without a "version" is refused', async () => {
+      const r = await db.rpc('create_save', { p_data: { hero: 'fox' } });
+      return [!!r.error, r.error ? r.error.message : 'accepted: ' + r.data];
+    });
+    await check('reading the table directly is blocked', async () => {
+      const r = await db.from('saves').select('*');
+      return [!!r.error || (Array.isArray(r.data) && r.data.length === 0), r.error ? r.error.message : r.data.length + ' rows visible'];
+    });
+    await check('writing to the table directly is blocked', async () => {
+      const r = await db.from('saves').insert({ code: 'ABCD-EFGH', data: { version: 1 } });
+      return [!!r.error, r.error ? r.error.message : 'insert was accepted!'];
+    });
+    await check('deleting from the table directly is blocked', async () => {
+      const r = await db.from('saves').delete().eq('code', code);
+      const still = await db.rpc('load_progress', { p_code: code });
+      return [!!r.error || !!still.data, r.error ? r.error.message : still.data ? 'nothing deleted' : 'row deleted!'];
+    });
+    const passed = rows.filter((r) => r.ok).length;
+    $('summary').innerHTML = `<b class="${passed === rows.length ? 'pass' : 'fail'}">${passed} / ${rows.length} checks passed</b>` +
+      (passed === rows.length ? ' - ready to deliver!' : ' - see the FAIL lines and section 10 of the guide.');
+  };
+</script>
+</body>
+</html>
