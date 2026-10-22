@@ -542,6 +542,41 @@ html, body {
 .mh-results-card { max-height: 94vh; overflow-y: auto; }
 .mh-results-card .avatar-continue { margin-top: 4px; font-size: clamp(16px, 3.6vh, 26px); padding: clamp(8px, 1.8vh, 13px) clamp(26px, 4vw, 44px); }
 
+/* ---- The Stomach mini-game: the shared interface, plus the acidity gauge and the acid flask ---- */
+/* the pylorus is on the left: the step cards go to the right, and the reactions sit bottom left */
+.stomach-hud .mh-cards { left: auto; right: max(10px, env(safe-area-inset-right)); top: 54%; }
+.stomach-hud .mh-react { left: max(10px, env(safe-area-inset-left)); }
+.sh-acid { position: absolute; left: 50%; bottom: max(6px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: flex-end; gap: clamp(6px, 1vw, 14px); transition: opacity 300ms ease; }
+.sh-acid.hidden { opacity: 0; pointer-events: none; }
+.sh-gauge { position: relative; width: clamp(150px, 21vw, 270px); container-type: inline-size; }
+/* the needle covers the arc only (from 15% to 37% of the width out from the arc's centre, measured on the art) */
+.sh-needle {
+  position: absolute; left: calc(51.2% - 2.4cqw); top: calc(61.8% - 37cqw); width: 4.8cqw; height: 22cqw;
+  transform-origin: 50% calc(100% + 15cqw); transform: rotate(-90deg); transition: transform 180ms ease-out;
+  background: linear-gradient(90deg, #a3131b, #ff5c4d 45%, #c81d25); clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 0 1.5px #3b0508);
+}
+.sh-zone {
+  position: absolute; left: calc(51.2% - 39cqw); top: calc(61.8% - 39cqw); width: 78cqw; height: 78cqw; border-radius: 50%;
+  background: conic-gradient(from var(--from), rgba(255, 252, 220, 0.55) 0 calc(var(--to) - var(--from)), transparent 0);
+  -webkit-mask: radial-gradient(circle closest-side, transparent 57%, #000 58%, #000 97%, transparent 98%);
+  mask: radial-gradient(circle closest-side, transparent 57%, #000 58%, #000 97%, transparent 98%);
+  opacity: 0.55; transition: opacity 200ms ease;
+}
+.sh-acid.in-zone .sh-zone { opacity: 1; animation: zone-glow 0.9s ease-in-out infinite alternate; }
+@keyframes zone-glow { to { filter: brightness(1.35); } }
+.sh-ph {
+  position: absolute; left: 0; right: 0; top: 79%; text-align: center; direction: ltr;
+  font-size: 8.5cqw; font-weight: 900; color: #7a2a12; text-shadow: 0 1px 0 #fff1c9;
+}
+.sh-acid.in-zone .sh-ph { color: #1d7a33; }
+.sh-flask { width: clamp(70px, 15vh, 124px); margin-bottom: 4px; transition: transform 120ms ease; }
+.sh-flask:active { transform: scale(0.92); }
+.sh-flask.glow { animation: flask-glow 0.7s ease-in-out infinite alternate; }
+@keyframes flask-glow { from { filter: drop-shadow(0 0 4px #ffe14d); } to { filter: drop-shadow(0 0 18px #fff17a) brightness(1.15); transform: scale(1.08); } }
+.sh-flask.pour { animation: flask-pour 260ms ease-out; }
+@keyframes flask-pour { 40% { transform: rotate(-22deg) scale(1.05); } }
+
 /* ---- English / Arabic ---- */
 .lang-btn { right: calc(max(14px, env(safe-area-inset-right)) + 52px); font-size: 19px; font-weight: 800; font-family: 'Baloo Bhaijaan 2', 'Trebuchet MS', sans-serif; }
 html.lang-ar body, html.lang-ar button, html.lang-ar input { font-family: 'Baloo Bhaijaan 2', Tahoma, 'Segoe UI', sans-serif; }

@@ -1,0 +1,8 @@
+Edit the attached gauge (image 1) and keep its style exactly: the same golden frame, the same rainbow arc of coloured segments, the same cute cream face in the middle.
+
+Changes:
+- REMOVE the red needle completely (the area where it was shows the cream dial face and the arc segments, as if the needle was never there).
+- Keep the cute face, centred near the bottom of the dial.
+- Keep everything else the same. No text, no label plate.
+- Plain white background around the gauge (it will be cut out).
+- Landscape image, 1536 x 1024 pixels, the gauge centred and filling about 85% of the width.

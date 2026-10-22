@@ -1,0 +1,8 @@
+Use the attached card (image 1) as the exact style and layout reference: the same cream rounded-rectangle card, the same thin gold frame with a soft inner border, the same orange-gold hexagonal number badge in the top-left corner, the same glossy soft 3D cartoon icon style, the same proportions (about 760 x 614).
+
+Make a NEW card in exactly that style:
+- The number in the badge is 1.
+- The icon in the middle: a cute, glossy pink-red stomach (simple kidney-like J shape, like the attached reference image 2) squeezing itself: two small curved golden motion arcs on each side show it contracting, and a few small round food bits inside are being churned. Friendly face optional, small.
+- No text anywhere except the single digit in the badge. No words, no letters.
+- Plain white background around the card (it will be cut out).
+- Landscape image, 1536 x 1024 pixels, the card centred and filling about 85% of it.

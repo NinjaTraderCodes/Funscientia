@@ -1,0 +1,8 @@
+Use the attached food ball (image 1) as the exact style reference: the same glossy, soft 3D cartoon look, the same kind of cute face (big shiny dark eyes with white highlights, pink blush on the cheeks, a happy open smile).
+
+Create ONE new character in that style: "chyme" - the soft, smooth, creamy semi-liquid that food becomes in the stomach. It is a soft rounded blob, like a drop of thick smooth soup, light beige with a slight pink tint, very smooth and glossy (no visible food pieces any more), with a small droplet on top as if it is runny. Its face is happy and relaxed.
+
+- The whole character visible, centred, filling about 80% of the image.
+- No shadow under it, no ground, no text, no other objects.
+- Transparent background (a PNG with an alpha channel): everything around the character fully transparent.
+- Square image, 1024 x 1024 pixels.

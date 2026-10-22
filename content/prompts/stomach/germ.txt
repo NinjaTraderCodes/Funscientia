@@ -1,0 +1,8 @@
+Use the attached characters as the exact style reference (image 1: a blue bead chain; image 2: a soft food ball): the same glossy, soft 3D cartoon look, big shiny dark eyes with white highlights, pink blush.
+
+Create ONE new character in that style: a small germ (a bacterium) that came in with the food. It is a rounded capsule shape, lime-green with darker green spots, with a few short wiggly hair-like flagella around it. Its face is cheeky and mischievous (a sly grin, one eyebrow up), clearly a little "naughty" but cute, not scary or disgusting.
+
+- The whole character visible, centred, filling about 80% of the image.
+- No shadow, no ground, no text, no other objects.
+- Transparent background (a PNG with an alpha channel): everything around the character fully transparent.
+- Square image, 1024 x 1024 pixels.
