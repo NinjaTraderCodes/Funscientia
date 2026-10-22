@@ -143,15 +143,22 @@ muteBtn.addEventListener('click', (e) => {
 // the profile badge: the player's avatar and name; tapping it opens the editor (when the scene allows)
 const profileBtn = document.getElementById('profile-btn') as HTMLButtonElement;
 const SPRITE_IMG = { walid: 'avatars/boy.webp', nesma: 'avatars/girl.webp', fox: 'avatars/fox.webp' } as const;
+// only over the game itself: never on the hero page, the loading screen or the intro video
+let inGame = false;
 const showProfile = () => {
   const hero = GameState.hero;
-  profileBtn.hidden = !hero;
+  profileBtn.hidden = !hero || !inGame;
   if (!hero) return;
   profileBtn.querySelector('img')!.src = asset(SPRITE_IMG[hero]);
   profileBtn.querySelector('span')!.textContent = GameState.nameOf(hero);
 };
+const enterGame = () => {
+  inGame = true;
+  showProfile();
+};
+game.events.once(GAME_EVENTS.introDone, enterGame);
+game.events.on(GAME_EVENTS.resumed, enterGame);
 game.events.on(GAME_EVENTS.profileChanged, showProfile);
-game.events.on(GAME_EVENTS.resumed, showProfile);
 profileBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 profileBtn.addEventListener('click', (e) => {
   e.stopPropagation();
