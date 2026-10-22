@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n';
 import { asset } from '../assetUrl';
 import { DEFAULT_NAMES, type Avatar } from '../state/GameState';
 
@@ -27,8 +28,8 @@ export function chooseAvatar(current?: Profile): Promise<Profile | null> {
     root.className = 'avatar-select';
     root.innerHTML = `
       <div class="avatar-panel" role="dialog" aria-labelledby="avatar-title">
-        <h2 id="avatar-title" class="avatar-banner"><span aria-hidden="true">★</span> ${edit ? 'Your Avatar' : 'Choose Your Avatar'} <span aria-hidden="true">★</span></h2>
-        ${edit ? '<button type="button" class="avatar-close" aria-label="Close">✕</button>' : ''}
+        <h2 id="avatar-title" class="avatar-banner"><span aria-hidden="true">★</span> ${edit ? t('avatar.edit') : t('avatar.title')} <span aria-hidden="true">★</span></h2>
+        ${edit ? `<button type="button" class="avatar-close" aria-label="${t('avatar.close')}">✕</button>` : ''}
         <div class="avatar-cards" role="radiogroup" aria-label="Avatar">
           ${CARDS.map(
             (c) => `
@@ -39,13 +40,13 @@ export function chooseAvatar(current?: Profile): Promise<Profile | null> {
           ).join('')}
         </div>
         <div class="avatar-foot">
-        <p class="avatar-hint" dir="auto">Tap the one you want to be!</p>
+        <p class="avatar-hint" dir="auto">${t('avatar.hint')}</p>
         <div class="avatar-bottom">
           <label class="avatar-name">
-            <span>Player name</span>
-            <input type="text" maxlength="${MAX_NAME}" autocomplete="off" spellcheck="false" dir="auto" placeholder="Your name" />
+            <span>${t('avatar.nameLabel')}</span>
+            <input type="text" maxlength="${MAX_NAME}" autocomplete="off" spellcheck="false" dir="auto" placeholder="${t('avatar.namePlaceholder')}" />
           </label>
-          <button type="button" class="avatar-continue" disabled>${edit ? 'SAVE' : 'CONTINUE'}</button>
+          <button type="button" class="avatar-continue" disabled>${edit ? t('avatar.save') : t('avatar.continue')}</button>
         </div>
         </div>
       </div>`;
@@ -68,7 +69,7 @@ export function chooseAvatar(current?: Profile): Promise<Profile | null> {
       bottom.classList.toggle('shown', !!picked);
       root.querySelector('.avatar-hint')!.classList.toggle('gone', !!picked);
       // the name box suggests the picked character's own name
-      input.placeholder = picked ? `Your name (or ${DEFAULT_NAMES[picked]})` : 'Your name';
+      input.placeholder = picked ? t('avatar.namePlaceholderOr', { name: DEFAULT_NAMES[picked] }) : t('avatar.namePlaceholder');
     };
     show();
 

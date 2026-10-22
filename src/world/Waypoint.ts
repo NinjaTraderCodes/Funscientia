@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { I18n, t, type Key } from '../i18n/i18n';
 
 /**
  * A glowing marker on the ground that shows where to go next. Sizes are in
@@ -11,7 +12,11 @@ export class Waypoint {
   private readonly parts: Phaser.GameObjects.GameObject[] = [];
   private readonly label: Phaser.GameObjects.Text;
 
-  /** labelPx: label font size in world units (defaults to a tenth of a body height). */
+  /**
+   * text: the label, or a phrasebook key starting with @ (shown in the player's
+   * language, and redrawn when it changes). labelPx: label font size in world
+   * units (defaults to a tenth of a body height).
+   */
   constructor(scene: Phaser.Scene, x: number, y: number, bodyHeight: number, text: string, labelPx?: number) {
     this.x = x;
     this.y = y;
@@ -49,8 +54,9 @@ export class Waypoint {
     }).setDepth(y + 1);
 
     this.label = scene.add
-      .text(x, y - h * 0.8, text, {
-        fontFamily: 'Georgia, serif',
+      .text(x, y - h * 0.8, labelText(text), {
+        // (no Phaser rtl here: with a high resolution it draws off its canvas; short Arabic labels shape fine without it)
+        fontFamily: I18n.display,
         fontSize: `${Math.round(labelPx ?? h * 0.1)}px`,
         color: '#fff6e3',
         stroke: '#0b1533',
@@ -63,6 +69,10 @@ export class Waypoint {
 
     this.parts.push(glow, ring, star, sparkles, this.label, beam);
     this.setVisible(false);
+    if (text.startsWith('@')) {
+      const off = I18n.onChange(() => this.label.setFontFamily(I18n.display).setText(labelText(text)));
+      scene.events.once(Phaser.Scenes.Events.SHUTDOWN, off);
+    }
   }
 
   show(scene: Phaser.Scene): void {
@@ -89,6 +99,8 @@ export class Waypoint {
     this.setVisible(false);
   }
 }
+
+const labelText = (text: string) => (text.startsWith('@') ? t(text.slice(1) as Key) : text);
 
 /** Soft textures shared by all waypoints (created once per game). */
 function makeTextures(scene: Phaser.Scene): void {

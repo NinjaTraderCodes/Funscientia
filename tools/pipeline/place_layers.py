@@ -112,6 +112,8 @@ def main() -> None:
     ap.add_argument("--esrgan", required=True, type=Path)
     ap.add_argument("--far", type=float, default=0.22, help="depth below this = far")
     ap.add_argument("--near", type=float, default=0.62, help="depth above this (and not path) = near")
+    ap.add_argument("--walkway", help="x,y;x,y;... outline of the walkable path, when it cannot be found by colour "
+                    "(e.g. a pink path between pink walls); nothing on it goes into the near layer")
     ap.add_argument("--keep-mid", action="append", default=[], help="x0,y0,x1,y1 box forced into the mid layer "
                     "(e.g. a far-away destination the path leads into, which must not slide off the path)")
     args = ap.parse_args()
@@ -119,7 +121,13 @@ def main() -> None:
     rgb = np.array(Image.open(args.image).convert("RGB"))
     H, W = rgb.shape[:2]
     depth = estimate_depth(args.depth_model, rgb)
-    road = cv2.dilate(main_road(rgb), np.ones((25, 25), np.uint8))
+    if args.walkway:
+        pts = np.array([[float(v) for v in p.split(",")] for p in args.walkway.split(";")], np.int32)
+        walk = np.zeros((H, W), np.uint8)
+        cv2.fillPoly(walk, [pts], 1)
+        road = cv2.dilate(walk, np.ones((25, 25), np.uint8))
+    else:
+        road = cv2.dilate(main_road(rgb), np.ones((25, 25), np.uint8))
 
     far = (depth < args.far).astype(np.uint8)
     for box in args.keep_mid:

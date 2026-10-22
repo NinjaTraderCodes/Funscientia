@@ -1,0 +1,363 @@
+{
+ "type": "map",
+ "version": "1.10",
+ "tiledversion": "1.12.2",
+ "orientation": "orthogonal",
+ "renderorder": "right-down",
+ "width": 96,
+ "height": 64,
+ "tilewidth": 16,
+ "tileheight": 16,
+ "infinite": false,
+ "nextlayerid": 6,
+ "nextobjectid": 30,
+ "properties": [
+  {
+   "name": "title",
+   "type": "string",
+   "value": "Down the Esophagus"
+  },
+  {
+   "name": "dialogue",
+   "type": "string",
+   "value": "esophagus"
+  },
+  {
+   "name": "horizonY",
+   "type": "float",
+   "value": 270.0
+  },
+  {
+   "name": "pathWidthAtBottom",
+   "type": "float",
+   "value": 815.0
+  },
+  {
+   "name": "bodyPerPathWidth",
+   "type": "float",
+   "value": 0.38
+  },
+  {
+   "name": "foreshortenAtBottom",
+   "type": "float",
+   "value": 0.42
+  },
+  {
+   "name": "goal",
+   "type": "string",
+   "value": "gate"
+  },
+  {
+   "name": "next",
+   "type": "string",
+   "value": "Stomach"
+  },
+  {
+   "name": "nextChapter",
+   "type": "string",
+   "value": "chapter.2"
+  },
+  {
+   "name": "nextTitle",
+   "type": "string",
+   "value": "chapter.stomachMission"
+  },
+  {
+   "name": "waves",
+   "type": "bool",
+   "value": true
+  },
+  {
+   "name": "waveFar",
+   "type": "string",
+   "value": "948,250"
+  },
+  {
+   "name": "waveNear",
+   "type": "string",
+   "value": "768,820"
+  },
+  {
+   "name": "waveRadius",
+   "type": "float",
+   "value": 1500.0
+  },
+  {
+   "name": "bolusPath",
+   "type": "string",
+   "value": "768,960;742,870;712,770;692,680;722,590;792,505;872,440;930,388;948,356"
+  }
+ ],
+ "layers": [
+  {
+   "id": 1,
+   "name": "far",
+   "type": "imagelayer",
+   "image": "../../art/world/esophagus/esophagus_far.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.0,
+   "parallaxy": 1.0
+  },
+  {
+   "id": 2,
+   "name": "mid",
+   "type": "imagelayer",
+   "image": "../../art/world/esophagus/esophagus_mid.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.0,
+   "parallaxy": 1.0
+  },
+  {
+   "id": 3,
+   "name": "near",
+   "type": "imagelayer",
+   "image": "../../art/world/esophagus/esophagus_near.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.22,
+   "parallaxy": 1.22,
+   "properties": [
+    {
+     "name": "front",
+     "type": "bool",
+     "value": true
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "walkable",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "color": "#00ffff",
+   "objects": [
+    {
+     "id": 1,
+     "name": "path",
+     "type": "walkable",
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "polygon": [
+      {
+       "x": 372,
+       "y": 1022
+      },
+      {
+       "x": 478,
+       "y": 862
+      },
+      {
+       "x": 570,
+       "y": 724
+      },
+      {
+       "x": 655,
+       "y": 610
+      },
+      {
+       "x": 725,
+       "y": 530
+      },
+      {
+       "x": 803,
+       "y": 462
+      },
+      {
+       "x": 872,
+       "y": 408
+      },
+      {
+       "x": 906,
+       "y": 362
+      },
+      {
+       "x": 984,
+       "y": 362
+      },
+      {
+       "x": 1004,
+       "y": 402
+      },
+      {
+       "x": 980,
+       "y": 452
+      },
+      {
+       "x": 960,
+       "y": 522
+      },
+      {
+       "x": 980,
+       "y": 622
+      },
+      {
+       "x": 1034,
+       "y": 730
+      },
+      {
+       "x": 1094,
+       "y": 842
+      },
+      {
+       "x": 1165,
+       "y": 1022
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "spots",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "color": "#ffcc00",
+   "objects": [
+    {
+     "id": 10,
+     "name": "spawn",
+     "type": "spawn",
+     "x": 770,
+     "y": 975,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 11,
+     "name": "mucus",
+     "type": "hotspot",
+     "x": 585,
+     "y": 760,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "mucus"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "@label.mucus"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 70.0
+      }
+     ]
+    },
+    {
+     "id": 12,
+     "name": "upside",
+     "type": "hotspot",
+     "x": 905,
+     "y": 540,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "upside"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "@label.upside"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 55.0
+      }
+     ]
+    },
+    {
+     "id": 13,
+     "name": "gate",
+     "type": "hotspot",
+     "x": 932,
+     "y": 432,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "gate"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "@label.stomachGate"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 50.0
+      }
+     ]
+    },
+    {
+     "id": 14,
+     "name": "guardian",
+     "type": "npc",
+     "x": 992,
+     "y": 384,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "who",
+       "type": "string",
+       "value": "stomach"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,3 +1,4 @@
+import { I18n, t } from '../i18n/i18n';
 import { asset } from '../assetUrl';
 import { GameState, type Avatar } from '../state/GameState';
 
@@ -6,9 +7,9 @@ export type Mood = 'happy' | 'surprised' | 'thinking' | 'cheering';
 
 /** The three jobs of the mouth, in the order the rounds introduce them (Dounia's step cards). */
 export const CARDS = [
-  { img: 'mouth/ui_card_chew.webp', label: 'Chew' },
-  { img: 'mouth/ui_card_mix.webp', label: 'Mix' },
-  { img: 'mouth/ui_card_moisten.webp', label: 'Moisten' },
+  { img: 'mouth/ui_card_chew.webp', label: 'mouth.card.chew' },
+  { img: 'mouth/ui_card_mix.webp', label: 'mouth.card.mix' },
+  { img: 'mouth/ui_card_moisten.webp', label: 'mouth.card.moisten' },
 ] as const;
 
 export interface Results {
@@ -20,7 +21,7 @@ export interface Results {
   sweets: number;
 }
 
-const NAME_OF = (who: Who) => (who === 'tooth' ? 'Tooth Guardian' : GameState.nameOf(who));
+const NAME_OF = (who: Who) => (who === 'tooth' ? t('name.tooth') : GameState.nameOf(who));
 
 /**
  * The Mouth mini-game's interface, over the game canvas: timer, score, pause,
@@ -32,6 +33,7 @@ export class MouthHud {
   private readonly el: Record<string, HTMLElement> = {};
   private reactUntil = 0;
   private reactTimer = 0;
+  private readonly offLang: () => void;
 
   constructor(onPause: () => void, onSpray: () => void) {
     this.root = document.createElement('div');
@@ -39,15 +41,15 @@ export class MouthHud {
     this.root.innerHTML = `
       <div class="mh-bar mh-timer"><img src="${asset('mouth/ui_timer.webp')}" alt="" /><span>0:00</span></div>
       <div class="mh-bar mh-score"><img src="${asset('mouth/ui_score.webp')}" alt="" /><span>0</span></div>
-      <button type="button" class="mh-pause" aria-label="Pause"><img src="${asset('mouth/ui_pause.webp')}" alt="" /></button>
-      <ol class="mh-cards" aria-label="The mouth's three jobs">
-        ${CARDS.map((c, i) => `<li class="mh-card locked" data-i="${i}"><img src="${asset(c.img)}" alt="" /><span>${c.label}</span></li>`).join('')}
+      <button type="button" class="mh-pause"><img src="${asset('mouth/ui_pause.webp')}" alt="" /></button>
+      <ol class="mh-cards">
+        ${CARDS.map((c, i) => `<li class="mh-card locked" data-i="${i}"><img src="${asset(c.img)}" alt="" /><span></span></li>`).join('')}
       </ol>
-      <div class="mh-saliva hidden" aria-label="Saliva">
+      <div class="mh-saliva hidden">
         <img src="${asset('mouth/ui_saliva_empty.webp')}" alt="" />
         <div class="mh-water"></div>
       </div>
-      <button type="button" class="mh-spray hidden" aria-label="Saliva spray (S)"><img src="${asset('mouth/ui_spray.webp')}" alt="" /></button>
+      <button type="button" class="mh-spray hidden"><img src="${asset('mouth/ui_spray.webp')}" alt="" /></button>
       <div class="mh-react" aria-live="polite"><img alt="" /><div><b></b><p dir="auto"></p></div></div>
       <div class="mh-banner hidden"><div class="mh-banner-card"><img alt="" /><h2></h2><p dir="auto"></p><div class="mh-count"></div></div></div>`;
     document.getElementById('app')!.appendChild(this.root);
@@ -58,11 +60,22 @@ export class MouthHud {
     this.root.addEventListener('pointerdown', (e) => {
       if ((e.target as HTMLElement).closest('button, .mh-banner, .mh-results')) e.stopPropagation();
     });
+    this.labels();
+    this.offLang = I18n.onChange(() => this.labels());
     this.el.pause.addEventListener('click', onPause);
     this.el.spray.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       onSpray();
     });
+  }
+
+  /** The interface's words, in the player's language. */
+  private labels(): void {
+    this.el.cards.querySelectorAll<HTMLElement>('.mh-card span').forEach((s, i) => (s.textContent = t(CARDS[i].label)));
+    this.el.cards.setAttribute('aria-label', t('mouth.aria.jobs'));
+    this.el.pause.setAttribute('aria-label', t('mouth.aria.pause'));
+    this.el.saliva.setAttribute('aria-label', t('mouth.aria.saliva'));
+    this.el.spray.setAttribute('aria-label', t('mouth.aria.spray'));
   }
 
   setTime(seconds: number): void {
@@ -128,12 +141,12 @@ export class MouthHud {
     b.classList.remove('hidden');
     await wait(2600 + text.length * 35); // time to read
     if (countdown) {
-      for (const n of ['3', '2', '1', 'GO!']) {
-        count.textContent = n;
+      for (const n of ['3', '2', '1', '']) {
+        count.textContent = n || t('mouth.go');
         count.classList.remove('pop');
         void count.offsetWidth;
         count.classList.add('pop');
-        await wait(n === 'GO!' ? 500 : 700);
+        await wait(n ? 700 : 500);
       }
     }
     b.classList.add('hidden');
@@ -160,17 +173,17 @@ export class MouthHud {
       card.className = 'mh-results';
       const star = asset('mouth/ui_star.webp');
       card.innerHTML = `
-        <div class="mh-results-card" role="dialog" aria-label="Mission complete">
-          <h2>Mission complete!</h2>
+        <div class="mh-results-card" role="dialog" aria-label="${t('mouth.res.title')}">
+          <h2>${t('mouth.res.title')}</h2>
           <div class="mh-stars">${[0, 1, 2].map((i) => `<img src="${star}" alt="" class="${i < r.stars ? 'won' : ''}" style="--i:${i}" />`).join('')}</div>
-          <p class="mh-total"><b>${r.score}</b> points</p>
+          <p class="mh-total">${t('mouth.res.points', { n: `<b>${r.score}</b>` })}</p>
           <ul>
-            <li><b>${r.chewed}</b> foods chewed</li>
-            <li>best crunch streak <b>×${r.bestCombo}</b></li>
-            <li><b>${r.sweets}</b> sweet moments</li>
-            <li><b>${r.bites}</b> tongue ${r.bites === 1 ? 'bite' : 'bites'}</li>
+            <li>${t('mouth.res.chewed', { n: `<b>${r.chewed}</b>` })}</li>
+            <li>${t('mouth.res.streak', { n: `<b>×${r.bestCombo}</b>` })}</li>
+            <li>${t('mouth.res.sweets', { n: `<b>${r.sweets}</b>` })}</li>
+            <li>${t(r.bites === 1 ? 'mouth.res.bite' : 'mouth.res.bites', { n: `<b>${r.bites}</b>` })}</li>
           </ul>
-          <button type="button" class="avatar-continue">CONTINUE</button>
+          <button type="button" class="avatar-continue">${t('avatar.continue')}</button>
         </div>`;
       this.root.appendChild(card);
       card.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -186,7 +199,7 @@ export class MouthHud {
   pauseCard(onResume: () => void): void {
     const card = document.createElement('div');
     card.className = 'mh-results mh-paused';
-    card.innerHTML = `<div class="mh-results-card"><h2>Paused</h2><p>Your food is waiting...</p><button type="button" class="avatar-continue">RESUME</button></div>`;
+    card.innerHTML = `<div class="mh-results-card"><h2>${t('mouth.paused')}</h2><p>${t('mouth.pausedText')}</p><button type="button" class="avatar-continue">${t('mouth.resume')}</button></div>`;
     this.root.appendChild(card);
     card.addEventListener('pointerdown', (e) => e.stopPropagation());
     card.querySelector('button')!.addEventListener('click', () => {
@@ -201,6 +214,7 @@ export class MouthHud {
 
   destroy(): void {
     window.clearTimeout(this.reactTimer);
+    this.offLang();
     this.root.remove();
   }
 }

@@ -1,0 +1,8 @@
+Attached: a small badge from our game showing a cute stomach character in a navy beret with a golden moon.
+
+Create ONE full-body character in exactly that style (glossy, soft 3D cartoon, big shiny dark eyes, pink blush, happy smile): the STOMACH GUARDIAN - the same cute pink-coral stomach character, standing, wearing the same navy beret with the golden crescent moon, with small arms and short legs, one arm raised in a friendly wave. Friendly, proud and welcoming, a little wise.
+
+- The whole character visible, centred, standing, filling about 85% of the image height, facing the viewer.
+- No shadow, no ground, no text, no other objects.
+- Transparent background (a PNG with an alpha channel): everything around the character fully transparent.
+- Portrait image, 1024 x 1536 pixels.

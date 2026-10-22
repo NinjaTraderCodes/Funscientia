@@ -3,6 +3,7 @@ import './styles.css';
 import { IntroPlayer, wantsFullHD } from './intro/IntroPlayer';
 import { asset } from './assetUrl';
 import { GameState } from './state/GameState';
+import { I18n, applyPage, t } from './i18n/i18n';
 import { Sound } from './audio/Sound';
 import { BootScene, GAME_EVENTS } from './scenes/BootScene';
 import { ChapterScene } from './scenes/ChapterScene';
@@ -76,7 +77,7 @@ const fill = document.getElementById('loading-fill') as HTMLElement;
 const showLoading = () => {
   const pct = Math.round((loading.game * 0.2 + loading.intro * 0.8) * 100);
   fill.style.width = `${pct}%`;
-  note.textContent = pct < 100 ? `Preparing the adventure… ${pct}%` : 'Here we go!';
+  note.textContent = pct < 100 ? t('start.loading', { pct }) : t('start.ready');
 };
 game.events.on(GAME_EVENTS.progress, (p: number) => {
   loading.game = p;
@@ -96,18 +97,17 @@ const showHint = (text: string) => {
   hint.textContent = text;
   requestAnimationFrame(() => hint.classList.add('show'));
 };
-const FOLLOW_HINT = 'Follow the golden star to the Digestive Kingdom!';
+const FOLLOW_HINT = () => t('hint.follow');
 let onOverlook = true;
 game.events.once(GAME_EVENTS.openingDone, () => {
   showHint(touch
-    ? 'Tap the ground to walk — your friends will follow!'
-    : 'Click the ground or use the arrow keys to walk — your friends will follow!');
+    ? t('hint.walkTouch') : t('hint.walkMouse'));
 });
 game.events.once(GAME_EVENTS.firstMove, () => {
   // second hint: point the way once they know how to walk
   window.setTimeout(() => {
     hint.classList.remove('show');
-    window.setTimeout(() => onOverlook && showHint(FOLLOW_HINT), 600);
+    window.setTimeout(() => onOverlook && showHint(FOLLOW_HINT()), 600);
   }, 2500);
 });
 game.events.on(GAME_EVENTS.leaving, () => {
@@ -117,7 +117,7 @@ game.events.on(GAME_EVENTS.leaving, () => {
 });
 game.events.on(GAME_EVENTS.resumed, () => {
   onOverlook = true;
-  showHint(FOLLOW_HINT);
+  showHint(FOLLOW_HINT());
 });
 
 // sound on/off (remembered); the HUD is pointer-transparent except this button
@@ -156,4 +156,21 @@ profileBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 profileBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   game.events.emit(GAME_EVENTS.editProfile);
+});
+
+// English / Arabic: the button shows the other language; everything on screen follows
+applyPage();
+const langBtn = document.getElementById('lang-btn') as HTMLButtonElement;
+const showLang = () => {
+  langBtn.textContent = I18n.lang === 'ar' ? 'EN' : 'ع';
+};
+showLang();
+langBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+langBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  I18n.set(I18n.lang === 'ar' ? 'en' : 'ar');
+});
+I18n.onChange(() => {
+  showLang();
+  showProfile();
 });

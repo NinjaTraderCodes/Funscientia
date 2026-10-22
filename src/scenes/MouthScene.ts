@@ -1,3 +1,4 @@
+import { I18n, t } from '../i18n/i18n';
 import Phaser from 'phaser';
 import { asset } from '../assetUrl';
 import { Sound } from '../audio/Sound';
@@ -6,7 +7,7 @@ import { DialogueBox } from '../ui/DialogueBox';
 import { MouthHud, type Mood, type Who } from '../ui/MouthHud';
 import { toast } from '../ui/Toast';
 import { GameState, type Avatar } from '../state/GameState';
-import { DISCOVERIES } from '../state/discoveries';
+import { discoveryText } from '../state/discoveries';
 
 /** mouth.json (tools/pipeline/pack_mouth.py), in pixels of the 1280x853 background. */
 interface MouthLayout {
@@ -157,9 +158,9 @@ export class MouthScene extends Phaser.Scene {
   private async run(): Promise<void> {
     await this.talk('intro');
     const rounds = [
-      { title: '1 · Chew!', text: 'Tap the food with your tooth-hammer. Your molars grind it into small pieces. Soft bread needs one bite, a stubborn carrot needs three - and quick bites in a row make a crunch streak!' },
-      { title: '2 · Mix!', text: "The tongue joins in! It mixes the food with saliva and pushes it back to your teeth - food it has just mixed gives a bonus. But don't bite the tongue!" },
-      { title: '3 · Moisten!', text: 'Saliva softens the food, and its amylase starts turning bread\'s starch into sugar. Keep the saliva meter up: tap the spray (or press S). Dry food crumbles and scores less.' },
+      { title: () => t('mouth.round1.title'), text: () => t('mouth.round1.text') },
+      { title: () => t('mouth.round2.title'), text: () => t('mouth.round2.text') },
+      { title: () => t('mouth.round3.title'), text: () => t('mouth.round3.text') },
     ];
     for (let r = 0; r < 3; r++) {
       this.round = r;
@@ -170,8 +171,8 @@ export class MouthScene extends Phaser.Scene {
         this.hud.showSaliva(true);
         this.hud.setSaliva(this.saliva, false);
       }
-      await this.hud.banner(r, rounds[r].title, rounds[r].text);
-      if (r === 1) this.react(this.storyKid(), 'surprised', 'Here comes the tongue! Wheee!');
+      await this.hud.banner(r, rounds[r].title(), rounds[r].text());
+      if (r === 1) this.react(this.storyKid(), 'surprised', t('mouth.say.tongueComes'));
       await this.playRound(ROUND_SECONDS[r]);
     }
     this.hud.setRound(3);
@@ -187,7 +188,7 @@ export class MouthScene extends Phaser.Scene {
       if (GameState.discover(d)) {
         this.time.delayedCall(i * 1400, () => {
           Sound.chime();
-          toast('Discovery!', DISCOVERIES[d] ?? d, 3800);
+          toast(t('ui.discovery'), discoveryText(d), 3800);
         });
       }
     }
@@ -196,11 +197,11 @@ export class MouthScene extends Phaser.Scene {
       this.cameras.main.fadeOut(900, 11, 21, 51);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
         void Sound.music();
+        // the bolus goes down the esophagus - and the trio follows it
         this.scene.start('Chapter', {
-          title: 'Chapter 2',
-          subtitle: 'The Stomach Kingdom',
-          note: 'Your bolus is on its way down... the Stomach is being built - come back soon!',
-          back: { scene: 'Mouth', label: '‹ Play the Mouth again' },
+          title: t('chapter.2'),
+          subtitle: t('chapter.esophagus'),
+          next: { scene: 'World', data: { place: 'esophagus' } },
         });
       });
     });
@@ -265,7 +266,7 @@ export class MouthScene extends Phaser.Scene {
         f.state = 'rising';
         f.mixedUntil = 0;
         Sound.tone(500, 820, 0.09, 0.035);
-        if (f.kind.startsWith('bread') && !this.said.has('bread')) this.once('bread', 'fox', 'happy', 'Yip! Yip! Bread!');
+        if (f.kind.startsWith('bread') && !this.said.has('bread')) this.once('bread', 'fox', 'happy', t('mouth.say.bread'));
         return; // one new food at a time
       }
       if (f.state === 'up' && f.timer <= 0) {
@@ -360,40 +361,40 @@ export class MouthScene extends Phaser.Scene {
     this.stats.bestCombo = Math.max(this.stats.bestCombo, this.stats.combo);
     this.stats.lastChew = this.clock;
     let points = dry ? Math.round(def.points / 2) : def.points;
-    let label = dry ? 'Dry... crumble!' : 'CRUNCH!';
+    let label = dry ? t('mouth.pop.dry') : t('mouth.pop.crunch');
     if (this.stats.combo >= 2) {
       points += 2 * Math.min(4, this.stats.combo - 1); // a streak bonus, capped at x5
-      label = `CRUNCH ×${this.stats.combo}!`;
+      label = t('mouth.pop.streak', { n: this.stats.combo });
       Sound.tone(500 + this.stats.combo * 80, 900 + this.stats.combo * 80, 0.12, 0.05, 'triangle');
       this.cameras.main.shake(90, 0.002 * Math.min(4, this.stats.combo));
     }
     if (f.mixedUntil > this.clock) {
       points += 5;
-      label = 'Tongue assist! +5';
+      label = t('mouth.pop.assist');
     }
     if (this.round >= 2 && def.starch && this.saliva >= 50) {
       points += 3;
       this.stats.sweets++;
       this.sugar.explode(14, f.img.x, f.img.y - f.img.displayHeight * 0.5);
       Sound.tone(1320, 1760, 0.18, 0.045);
-      label = 'Sweet! Starch → sugar';
-      this.once('sweet', this.storyKid(), 'surprised', "Wait... it's getting sweet!");
+      label = t('mouth.pop.sweet');
+      this.once('sweet', this.storyKid(), 'surprised', t('mouth.say.sweet'));
     }
     this.addScore(points, f, label);
-    if (this.stats.chewed === 1) this.once('first', this.buddy(), 'happy', 'Crunch! The molars grind it into tiny bits!');
-    if (this.stats.combo === 4) this.react(GameState.hero ?? 'walid', 'cheering', "I'm a chewing machine!");
+    if (this.stats.chewed === 1) this.once('first', this.buddy(), 'happy', t('mouth.say.firstChew'));
+    if (this.stats.combo === 4) this.react(GameState.hero ?? 'walid', 'cheering', t('mouth.say.machine'));
   }
 
   private addScore(points: number, f: Food, label: string): void {
     this.stats.score = Math.max(0, this.stats.score + points);
     this.hud.setScore(this.stats.score);
-    const t = this.add
+    const pop = this.add
       .text(f.img.x, f.img.y - f.img.displayHeight - 10, `${points > 0 ? `+${points}` : points}  ${label}`, {
-        fontFamily: 'Trebuchet MS, Segoe UI, sans-serif', fontSize: '26px', fontStyle: 'bold',
+        fontFamily: I18n.font, fontSize: '26px', fontStyle: 'bold',
         color: points >= 10 ? '#fff4af' : '#ffffff', stroke: '#66315f', strokeThickness: 6, resolution: 2,
       })
       .setOrigin(0.5, 1).setDepth(2600);
-    this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 900, ease: 'Sine.easeOut', onComplete: () => t.destroy() });
+    this.tweens.add({ targets: pop, y: pop.y - 50, alpha: 0, duration: 900, ease: 'Sine.easeOut', onComplete: () => pop.destroy() });
   }
 
   private crumbs(f: Food, n: number, dry: boolean): void {
@@ -441,7 +442,7 @@ export class MouthScene extends Phaser.Scene {
           f.timer += 0.8; // it stays up a little longer: go get it
           this.tweens.add({ targets: f.img, angle: { from: -12, to: 12 }, duration: 110, yoyo: true, repeat: 3, onComplete: () => f.img.setAngle(0) });
           this.sugar.explode(5, f.img.x, f.img.y - f.img.displayHeight * 0.6);
-          this.once('mix', 'tooth', 'happy', 'The tongue mixes the food and pushes it back to your teeth!');
+          this.once('mix', 'tooth', 'happy', t('mouth.say.mix'));
         }
         this.tweens.add({ targets: this.tongue, angle: { from: -10, to: 10 }, duration: 120, yoyo: true, repeat: 2, onComplete: () => this.tongueHome() });
       },
@@ -475,14 +476,14 @@ export class MouthScene extends Phaser.Scene {
     Sound.tone(440, 300, 0.25, 0.05, 'triangle', 0.12);
     this.stats.score = Math.max(0, this.stats.score - 5);
     this.hud.setScore(this.stats.score);
-    const t = this.add.text(this.tongue.x, this.tongue.y - 70, 'OUCH!  -5', {
-      fontFamily: 'Trebuchet MS, Segoe UI, sans-serif', fontSize: '32px', fontStyle: 'bold', color: '#ffd6e8', stroke: '#7a1f45', strokeThickness: 7, resolution: 2,
+    const pop = this.add.text(this.tongue.x, this.tongue.y - 70, t('mouth.pop.ouch'), {
+      fontFamily: I18n.font, fontSize: '32px', fontStyle: 'bold', color: '#ffd6e8', stroke: '#7a1f45', strokeThickness: 7, resolution: 2,
     }).setOrigin(0.5).setDepth(2600);
-    this.tweens.add({ targets: t, y: t.y - 40, alpha: 0, duration: 1000, onComplete: () => t.destroy() });
+    this.tweens.add({ targets: pop, y: pop.y - 40, alpha: 0, duration: 1000, onComplete: () => pop.destroy() });
     const lines: [Who, Mood, string][] = [
-      ['fox', 'surprised', 'Yip! Poor tongue!'],
-      [this.buddy(), 'surprised', `Ouch! Careful, ${GameState.nameOf(GameState.hero ?? 'walid')}!`],
-      ['tooth', 'thinking', 'Everyone bites their tongue sometimes... gently!'],
+      ['fox', 'surprised', t('mouth.say.poorTongue')],
+      [this.buddy(), 'surprised', t('mouth.say.careful', { name: GameState.nameOf(GameState.hero ?? 'walid') })],
+      ['tooth', 'thinking', t('mouth.say.everyone')],
     ];
     const [who, mood, text] = lines[(this.stats.bites - 1) % lines.length];
     this.react(who, mood, text);
@@ -496,7 +497,7 @@ export class MouthScene extends Phaser.Scene {
     this.sprayIdle += dt;
     const glow = this.saliva < 40 || this.sprayIdle > 6;
     this.hud.setSaliva(this.saliva, glow);
-    if (this.saliva < 30) this.once('dry', this.buddy(), 'thinking', 'So dry... we need saliva! Tap the spray!');
+    if (this.saliva < 30) this.once('dry', this.buddy(), 'thinking', t('mouth.say.dry'));
   }
 
   private spray(): void {
@@ -508,7 +509,7 @@ export class MouthScene extends Phaser.Scene {
     for (let i = 0; i < 3; i++) this.drops.explode(10, W * (0.3 + i * 0.2), H * 0.5);
     Sound.noise(0.35, 5000, 0.6, 0.1);
     Sound.tone(700, 1100, 0.17, 0.04);
-    this.once('spray', this.storyKid(), 'happy', 'Saliva softens the food - much better!');
+    this.once('spray', this.storyKid(), 'happy', t('mouth.say.spray'));
   }
 
   // ---- swallow ------------------------------------------------------------------
@@ -530,7 +531,7 @@ export class MouthScene extends Phaser.Scene {
     this.bolus = b;
     Sound.tone(220, 440, 0.3, 0.06, 'triangle');
     this.tweens.add({ targets: b, scale: s, duration: 600, ease: 'Back.easeOut' });
-    await this.hud.say('Swallow!', 'Your teeth, tongue and saliva made a bolus - a soft ball of food. Drag it to the throat!', 2600);
+    await this.hud.say(t('mouth.swallow.title'), t('mouth.swallow.text'), 2600);
     this.phase = 'swallow';
     // a pulsing ring shows where the throat is
     const { throat } = this.layout;
@@ -569,10 +570,10 @@ export class MouthScene extends Phaser.Scene {
         Sound.tone(260, 60, 0.6, 0.12, 'sine');
         Sound.noise(0.3, 220, 1.5, 0.12, 0.1);
         this.cameras.main.shake(260, 0.004);
-        const t = this.add.text(throat.x, throat.y - 60, 'GLOOP!', {
-          fontFamily: 'Georgia, serif', fontSize: '60px', fontStyle: 'bold', color: '#fff4af', stroke: '#66315f', strokeThickness: 10, resolution: 2,
+        const pop = this.add.text(throat.x, throat.y - 60, t('mouth.pop.gloop'), {
+          fontFamily: I18n.display, fontSize: '60px', fontStyle: 'bold', color: '#fff4af', stroke: '#66315f', strokeThickness: 10, resolution: 2,
         }).setOrigin(0.5).setDepth(2800);
-        this.tweens.add({ targets: t, scale: { from: 0.6, to: 1.2 }, alpha: { from: 1, to: 0 }, duration: 1300, onComplete: () => t.destroy() });
+        this.tweens.add({ targets: pop, scale: { from: 0.6, to: 1.2 }, alpha: { from: 1, to: 0 }, duration: 1300, onComplete: () => pop.destroy() });
         this.time.delayedCall(900, () => this.swallowed?.());
       },
     });

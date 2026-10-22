@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n';
 import type { CharacterName } from '../data/types';
 import type { Hero } from '../dialogue/DialogueRunner';
 
@@ -6,8 +7,18 @@ const KEY = 'funscientia.save.v1';
 /** Who the child plays: one of the kids, or the fennec. */
 export type Avatar = 'walid' | 'nesma' | 'fox';
 
-/** The characters' own names (the player's typed name replaces their avatar's). */
-export const DEFAULT_NAMES: Record<Avatar, string> = { walid: 'Walid', nesma: 'Nesma', fox: 'Fennec' };
+/** The characters' own names, in the current language (the player's typed name replaces their avatar's). */
+export const DEFAULT_NAMES: Record<Avatar, string> = {
+  get walid() {
+    return t('name.walid');
+  },
+  get nesma() {
+    return t('name.nesma');
+  },
+  get fox() {
+    return t('name.fox');
+  },
+};
 
 interface SaveData {
   hero: Avatar | null;

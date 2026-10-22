@@ -1,4 +1,6 @@
-import { DISCOVERIES } from '../state/discoveries';
+import { Peristalsis } from '../world/Peristalsis';
+import { t, type Key } from '../i18n/i18n';
+import { discoveryText } from '../state/discoveries';
 import { GAME_EVENTS } from './BootScene';
 import { chooseAvatar } from '../ui/AvatarSelect';
 import Phaser from 'phaser';
@@ -38,6 +40,17 @@ interface Place {
   props?: { name: string; x: number; y: number; prop: string; height?: number }[];
   /** Hotspot the camera eases towards as the party gets closer (default: "gate"). */
   goal?: string;
+  /** Behind the gate: this scene (default Mouth), introduced by a chapter card (phrasebook keys). */
+  next?: string;
+  nextChapter?: string;
+  nextTitle?: string;
+  /** Peristalsis waves down a tunnel: where it vanishes and where its nearest ring is ("x,y"). */
+  waves?: boolean;
+  waveFar?: string;
+  waveNear?: string;
+  waveRadius?: number;
+  /** "x,y;x,y;..." the trio's bolus rolls along, ahead of them, to the gate. */
+  bolusPath?: string;
 }
 
 interface Hotspot {
@@ -58,6 +71,8 @@ type Phase = 'intro' | 'play' | 'talk' | 'cutting' | 'leaving';
 export class WorldScene extends Phaser.Scene {
   private placeName = 'road';
   private place!: Place;
+  /** Peristalsis waves and the rolling bolus (the esophagus). */
+  private peristalsis?: Peristalsis;
   private party!: Party;
   private chars!: Record<CharacterName, Character>;
   private walkable!: Walkable;
@@ -97,6 +112,7 @@ export class WorldScene extends Phaser.Scene {
     this.intentK = 1;
     this.push.k = 1;
     this.cutting = false;
+    this.peristalsis = undefined;
   }
 
   preload(): void {
@@ -106,6 +122,7 @@ export class WorldScene extends Phaser.Scene {
       for (const l of p.layers ?? [{ image: p.image }]) this.load.image(l.image, asset(`${l.image}.webp`));
       for (const n of p.npcs) this.load.image(`npc_${n.who}`, asset(`world/npc_${n.who}.webp`));
       for (const pr of p.props ?? []) this.load.image(`prop_${pr.prop}`, asset(`world/prop_${pr.prop}.webp`));
+      if (p.bolusPath && !this.textures.exists('m_bolus')) this.load.image('m_bolus', asset('mouth/bolus.webp'));
     });
   }
 
@@ -162,10 +179,23 @@ export class WorldScene extends Phaser.Scene {
       img.setScale((kidAt(pr.y) * (pr.height ?? 1.3)) / img.height);
     }
     this.ambient();
+    if (P.waves) {
+      const pt = (s: string | undefined, d: [number, number]) => (s ? s.split(',').map(Number) : d) as [number, number];
+      const [fx, fy] = pt(P.waveFar, [P.width / 2, P.horizonY]);
+      const [nx, ny] = pt(P.waveNear, [P.width / 2, P.height]);
+      this.peristalsis = new Peristalsis(this, {
+        far: { x: fx, y: fy },
+        near: { x: nx, y: ny },
+        nearRadius: P.waveRadius ?? P.width * 0.85,
+        bolusPath: P.bolusPath?.split(';').map((q) => q.split(',').map(Number) as [number, number]),
+        kidAt,
+      });
+    }
     // labels stay readable at any distance: at least ~18 screen px
     this.applyView(true);
     const minLabel = 18 / this.cameras.main.zoom * Math.min(window.devicePixelRatio || 1, 2);
     for (const def of P.hotspots) {
+      // a label starting with @ is a phrasebook key (shown in the player's language)
       const marker = new Waypoint(this, def.x, def.y, kidAt(def.y), def.label, Math.max(kidAt(def.y) * 0.1, minLabel));
       this.hotspots.push({ def, marker, done: false, inside: false });
     }
@@ -206,6 +236,7 @@ export class WorldScene extends Phaser.Scene {
   update(_t: number, deltaMs: number): void {
     if (!this.party) return;
     const dt = Math.min(deltaMs, 50) / 1000;
+    this.peristalsis?.update(dt);
     if (this.phase === 'play') {
       const k = this.keys;
       const x = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0);
@@ -268,23 +299,27 @@ export class WorldScene extends Phaser.Scene {
     if (close) await this.zoomTo(1.3, s.def.x, s.def.y - kidAtGate(this.place, s.def.y));
     const result = await this.talk(s.def.knot);
     if (foxRuns) this.party.release(fox, false);
-    if (close && !result.actions.includes('enter_mouth')) void this.zoomTo(1, s.def.x, s.def.y);
+    const enter = result.actions.includes('enter_mouth') || result.actions.includes('enter');
+    if (close && !enter) void this.zoomTo(1, s.def.x, s.def.y);
     s.done = true;
     if (s.def.knot !== 'gate') s.marker.hide();
     for (const d of result.discoveries) {
       if (GameState.discover(d)) {
         Sound.chime();
-        toast('Discovery!', DISCOVERIES[d] ?? d);
+        toast(t('ui.discovery'), discoveryText(d));
       }
     }
-    if (result.actions.includes('enter_mouth')) this.enterGate(s);
+    if (enter) this.enterGate(s);
   }
 
   private async talk(knot: string) {
     this.phase = 'talk';
     const result = await this.dialogue.run(knot, this.box);
-    const prediction = this.dialogue.variable('predict_saliva');
-    if (typeof prediction === 'string' && prediction) GameState.predict('saliva', prediction);
+    // the predictions asked so far on the road (ink variables predict_<question>)
+    for (const q of ['saliva', 'pepsin']) {
+      const answer = this.dialogue.variable(`predict_${q}`);
+      if (typeof answer === 'string' && answer) GameState.predict(q, answer);
+    }
     if (this.phase === 'talk') this.phase = 'play';
     return result;
   }
@@ -333,11 +368,18 @@ export class WorldScene extends Phaser.Scene {
     this.tweens.add({ targets: cam, zoom: cam.zoom * 1.8, duration: 1800, ease: 'Sine.easeIn' });
     this.tweens.add({ targets: this.camCenter, x: s.def.x + 30, y: s.def.y - kidAtGate(this.place, s.def.y), duration: 1800, ease: 'Sine.easeIn' });
     cam.fadeOut(1800, 11, 21, 51);
+    this.peristalsis?.enterGate();
+    const P = this.place;
+    const next = P.next ?? 'Mouth';
+    const built = !!this.scene.manager.keys[next];
     cam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () =>
       this.scene.start('Chapter', {
-        title: 'Chapter 1',
-        subtitle: 'Mouth Mission',
-        next: { scene: 'Mouth' },
+        title: t((P.nextChapter ?? 'chapter.1') as Key),
+        subtitle: t((P.nextTitle ?? 'chapter.mouthMission') as Key),
+        // a mini-game still being built: say so, and offer the way back
+        ...(built
+          ? { next: { scene: next } }
+          : { note: t('chapter.comingSoon'), back: { scene: 'World', label: t('chapter.back'), data: { place: this.placeName } } }),
       }),
     );
   }
@@ -372,7 +414,7 @@ export class WorldScene extends Phaser.Scene {
     const want = Phaser.Math.Clamp(Math.pow(this.spawnH / Math.max(1, L.kidHeight), 0.7), 1, 2.1);
     this.intentK += (want - this.intentK) * (snap ? 1 : 1 - Math.exp(-dt * 1.4));
     const cover = Math.max(cam.width / P.width, cam.height / P.height);
-    const walking = cover * BASE_ZOOM * this.intentK * this.focus.k * this.push.k;
+    const walking = cover * BASE_ZOOM * this.intentK * this.focus.k * this.push.k * (this.peristalsis?.squeeze ?? 1);
     // the establishing shot shows the whole picture (zoom = cover), easing into the walking framing
     const e = this.establish.t;
     const zoom = e > 0 ? Math.pow(walking, 1 - e) * Math.pow(cover, e) : walking;

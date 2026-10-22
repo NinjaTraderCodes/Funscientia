@@ -183,7 +183,7 @@
    "x": 1075,
    "y": 610,
    "knot": "signpost",
-   "label": "Signpost",
+   "label": "@label.signpost",
    "radius": 70
   },
   {
@@ -191,7 +191,7 @@
    "x": 1005,
    "y": 445,
    "knot": "",
-   "label": "To the Mouth Gate",
+   "label": "@label.toMouthGate",
    "radius": 55,
    "to": "road2"
   }

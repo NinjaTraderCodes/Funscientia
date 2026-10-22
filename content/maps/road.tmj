@@ -307,7 +307,7 @@
       {
        "name": "label",
        "type": "string",
-       "value": "Signpost"
+       "value": "@label.signpost"
       },
       {
        "name": "radius",
@@ -360,7 +360,7 @@
       {
        "name": "label",
        "type": "string",
-       "value": "To the Mouth Gate"
+       "value": "@label.toMouthGate"
       },
       {
        "name": "radius",

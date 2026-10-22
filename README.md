@@ -131,7 +131,7 @@ to **run and modify the game**; regenerating art requires the local toolchain.
 
 ## Team
 
-- **Ben** — game development
+- **Hicham** — game development
 - **Dounia** — project lead, vision, story and characters, science content
 - **Djihane** — backend development
 - *(4th member)*

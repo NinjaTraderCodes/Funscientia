@@ -56,7 +56,7 @@
    "x": 640,
    "y": 700,
    "knot": "fox_sniff",
-   "label": "Sweet smell",
+   "label": "@label.sweetSmell",
    "radius": 70,
    "foxTo": "585,690"
   },
@@ -65,7 +65,7 @@
    "x": 790,
    "y": 522,
    "knot": "gate",
-   "label": "The Mouth Gate",
+   "label": "@label.mouthGate",
    "radius": 45
   }
  ],

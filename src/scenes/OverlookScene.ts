@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n';
 import { Sound } from '../audio/Sound';
 import Phaser from 'phaser';
 import type { CharacterManifest, CharacterName, Rect, WorldLayout } from '../data/types';
@@ -79,7 +80,7 @@ export class OverlookScene extends Phaser.Scene {
     this.setView(this.world.overviewRect, 1);
 
     const trailHeight = this.characters.boy.bodyHeight * ((TRAIL_START.y - horizon) / (this.characters.boy.pos.y - horizon));
-    this.trail = new Waypoint(this, TRAIL_START.x, TRAIL_START.y, trailHeight, 'To the\nDigestive Kingdom');
+    this.trail = new Waypoint(this, TRAIL_START.x, TRAIL_START.y, trailHeight, '@label.toKingdom');
 
     this.debug = this.add.graphics().setDepth(1e6).setVisible(false);
     this.walkable.draw(this.debug);
@@ -237,8 +238,8 @@ export class OverlookScene extends Phaser.Scene {
     this.cameras.main.fadeOut(1400, 11, 21, 51);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.scene.start('Chapter', {
-        title: 'Chapter 1',
-        subtitle: 'The Road to the Mouth Gate',
+        title: t('chapter.1'),
+        subtitle: t('chapter.roadToMouth'),
         next: { scene: 'World', data: { place: 'road' } },
       });
     });

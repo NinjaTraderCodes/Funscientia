@@ -184,7 +184,7 @@
       {
        "name": "label",
        "type": "string",
-       "value": "Sweet smell"
+       "value": "@label.sweetSmell"
       },
       {
        "name": "radius",
@@ -218,7 +218,7 @@
       {
        "name": "label",
        "type": "string",
-       "value": "The Mouth Gate"
+       "value": "@label.mouthGate"
       },
       {
        "name": "radius",

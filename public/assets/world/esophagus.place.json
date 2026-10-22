@@ -1,0 +1,144 @@
+{
+ "name": "esophagus",
+ "image": "world/esophagus_far",
+ "layers": [
+  {
+   "image": "world/esophagus_far",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/esophagus_mid",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/esophagus_near",
+   "parallax": 1.22,
+   "front": true
+  }
+ ],
+ "width": 1536,
+ "height": 1024,
+ "title": "Down the Esophagus",
+ "dialogue": "esophagus",
+ "horizonY": 270.0,
+ "pathWidthAtBottom": 815.0,
+ "bodyPerPathWidth": 0.38,
+ "foreshortenAtBottom": 0.42,
+ "goal": "gate",
+ "next": "Stomach",
+ "nextChapter": "chapter.2",
+ "nextTitle": "chapter.stomachMission",
+ "waves": true,
+ "waveFar": "948,250",
+ "waveNear": "768,820",
+ "waveRadius": 1500.0,
+ "bolusPath": "768,960;742,870;712,770;692,680;722,590;792,505;872,440;930,388;948,356",
+ "walkable": [
+  [
+   372,
+   1022
+  ],
+  [
+   478,
+   862
+  ],
+  [
+   570,
+   724
+  ],
+  [
+   655,
+   610
+  ],
+  [
+   725,
+   530
+  ],
+  [
+   803,
+   462
+  ],
+  [
+   872,
+   408
+  ],
+  [
+   906,
+   362
+  ],
+  [
+   984,
+   362
+  ],
+  [
+   1004,
+   402
+  ],
+  [
+   980,
+   452
+  ],
+  [
+   960,
+   522
+  ],
+  [
+   980,
+   622
+  ],
+  [
+   1034,
+   730
+  ],
+  [
+   1094,
+   842
+  ],
+  [
+   1165,
+   1022
+  ]
+ ],
+ "spawn": {
+  "name": "spawn",
+  "x": 770,
+  "y": 975
+ },
+ "hotspots": [
+  {
+   "name": "mucus",
+   "x": 585,
+   "y": 760,
+   "knot": "mucus",
+   "label": "@label.mucus",
+   "radius": 70.0
+  },
+  {
+   "name": "upside",
+   "x": 905,
+   "y": 540,
+   "knot": "upside",
+   "label": "@label.upside",
+   "radius": 55.0
+  },
+  {
+   "name": "gate",
+   "x": 932,
+   "y": 432,
+   "knot": "gate",
+   "label": "@label.stomachGate",
+   "radius": 50.0
+  }
+ ],
+ "npcs": [
+  {
+   "name": "guardian",
+   "x": 992,
+   "y": 384,
+   "who": "stomach"
+  }
+ ],
+ "props": []
+}

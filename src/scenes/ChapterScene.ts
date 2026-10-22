@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { I18n } from '../i18n/i18n';
 
 export interface ChapterData {
   title: string;
@@ -24,10 +25,11 @@ export class ChapterScene extends Phaser.Scene {
     const H = cam.height;
     const u = Math.min(W, H) / 100;
     const text = (y: number, s: string, size: number, color: string, extra: Phaser.Types.GameObjects.Text.TextStyle = {}) =>
-      this.add.text(W / 2, H * y, s, { fontFamily: 'Trebuchet MS, Segoe UI, sans-serif', fontSize: `${Math.round(u * size)}px`, color, align: 'center', wordWrap: { width: W * 0.85 }, ...extra }).setOrigin(0.5).setAlpha(0);
+      this.add.text(W / 2, H * y, s, { fontFamily: I18n.font, ...I18n.textStyle, fontSize: `${Math.round(u * size)}px`, color, align: 'center', wordWrap: { width: W * 0.85 }, ...extra }).setOrigin(0.5).setAlpha(0);
 
-    const title = text(0.4, data.title.toUpperCase(), 4.2, '#fff6e3', { letterSpacing: u * 0.8 });
-    const subtitle = text(0.5, data.subtitle, 8, '#f3c35a', { fontFamily: 'Georgia, serif', stroke: '#5a3a0a', strokeThickness: Math.max(2, u * 0.4) });
+    // spaced capitals in English; Arabic letters join up, so no spacing there
+    const title = I18n.rtl ? text(0.4, data.title, 5, '#fff6e3') : text(0.4, data.title.toUpperCase(), 4.2, '#fff6e3', { letterSpacing: u * 0.8 });
+    const subtitle = text(0.5, data.subtitle, 8, '#f3c35a', { fontFamily: I18n.display, stroke: '#5a3a0a', strokeThickness: Math.max(2, u * 0.4) });
     const items: Phaser.GameObjects.Text[] = [];
     if (data.note) items.push(text(0.64, data.note, 3.4, '#fff6e3'));
     if (data.back) {

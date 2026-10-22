@@ -1,11 +1,13 @@
+import { t } from '../i18n/i18n';
 import type { DialogueView, Hero, Line, Speaker } from '../dialogue/DialogueRunner';
 import { asset } from '../assetUrl';
 import { Sound } from '../audio/Sound';
 import { GameState, type Avatar } from '../state/GameState';
 
 /** Name tags: the trio's come from the player's profile (their typed name replaces their avatar's). */
-const nameOf = (who: Hero | 'fox' | 'tooth') => (who === 'tooth' ? 'Tooth Guardian' : GameState.nameOf(who));
-const SPEAKERS = ['walid', 'nesma', 'fox', 'tooth'] as const;
+const nameOf = (who: Hero | 'fox' | 'tooth' | 'stomach') =>
+  who === 'tooth' ? t('name.tooth') : who === 'stomach' ? t('name.stomach') : GameState.nameOf(who);
+const SPEAKERS = ['walid', 'nesma', 'fox', 'tooth', 'stomach'] as const;
 /** Names inside a line: [walid], [nesma], [fox] and [player] (whoever the child plays). */
 const fillNames = (text: string) =>
   text.replace(/\[(walid|nesma|fox|player)\]/g, (_, w: string) => GameState.nameOf(w === 'player' ? (GameState.hero ?? 'walid') : (w as Avatar)));
@@ -27,6 +29,10 @@ export class DialogueBox implements DialogueView {
   private readonly choices: HTMLElement;
   private readonly more: HTMLElement;
   private advance: (() => void) | null = null;
+  /** The whole of the line being shown (the typewriter reveals it). */
+  private full = '';
+  private typed = true;
+  private speaker: Hero | 'fox' | 'tooth' | 'stomach' = 'walid';
 
   constructor(private readonly hero: Hero) {
     this.root = document.createElement('div');
@@ -67,7 +73,7 @@ export class DialogueBox implements DialogueView {
     return !this.root.hidden;
   }
 
-  private who(speaker: Speaker): Hero | 'fox' | 'tooth' {
+  private who(speaker: Speaker): Hero | 'fox' | 'tooth' | 'stomach' {
     if (speaker === 'leader') return this.hero;
     if (speaker === 'buddy') return this.hero === 'walid' ? 'nesma' : 'walid';
     if (speaker === 'walid' || speaker === 'nesma') return speaker;
@@ -76,6 +82,7 @@ export class DialogueBox implements DialogueView {
 
   async showLine(line: Line): Promise<void> {
     const who = this.who(line.speaker);
+    this.speaker = who;
     this.root.hidden = false;
     this.root.dataset.speaker = who;
     this.choices.replaceChildren();
@@ -87,19 +94,21 @@ export class DialogueBox implements DialogueView {
     this.more.hidden = true;
     let shown = 0;
     let done = false;
-    const full = fillNames(line.text);
+    this.full = fillNames(line.text);
+    this.typed = false;
     await new Promise<void>((resolve) => {
       const start = performance.now();
       const tick = () => {
         if (done) return;
-        shown = Math.min(full.length, Math.floor(((performance.now() - start) / 1000) * CHARS_PER_SEC));
-        this.text.textContent = full.slice(0, shown);
-        if (shown >= full.length) return finish();
+        shown = Math.min(this.full.length, Math.floor(((performance.now() - start) / 1000) * CHARS_PER_SEC));
+        this.text.textContent = this.full.slice(0, shown);
+        if (shown >= this.full.length) return finish();
         requestAnimationFrame(tick);
       };
       const finish = () => {
         done = true;
-        this.text.textContent = full;
+        this.typed = true;
+        this.text.textContent = this.full;
         this.more.hidden = false;
         this.advance = () => {
           this.advance = null;
@@ -108,6 +117,20 @@ export class DialogueBox implements DialogueView {
       };
       this.advance = finish;
       requestAnimationFrame(tick);
+    });
+  }
+
+  /** The same line in another language (the player switched): the typewriter carries on with it. */
+  retext(text: string): void {
+    this.full = fillNames(text);
+    this.name.textContent = nameOf(this.speaker);
+    if (this.typed) this.text.textContent = this.full;
+  }
+
+  /** The same choices in another language. */
+  rechoices(choices: string[]): void {
+    this.choices.querySelectorAll('button').forEach((b, i) => {
+      if (choices[i]) b.textContent = choices[i];
     });
   }
 
