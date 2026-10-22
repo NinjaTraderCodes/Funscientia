@@ -542,6 +542,44 @@ html, body {
 .mh-results-card { max-height: 94vh; overflow-y: auto; }
 .mh-results-card .avatar-continue { margin-top: 4px; font-size: clamp(16px, 3.6vh, 26px); padding: clamp(8px, 1.8vh, 13px) clamp(26px, 4vw, 44px); }
 
+/* ---- Online saves: "Continue with my code" on the hero page, the code panel, the code in the profile ---- */
+.hero .btn-start { bottom: calc(max(5vh, env(safe-area-inset-bottom)) + 46px); }
+.hero-continue {
+  left: 50%; right: auto; bottom: max(2.2vh, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  font-size: clamp(14px, 2.4vh, 18px); font-weight: 700; white-space: nowrap; cursor: pointer;
+  animation: start-in 700ms 600ms ease-out both;
+}
+.hero-continue:hover { background: rgba(11, 21, 51, 0.8); }
+.code-panel { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(11, 21, 51, 0.6); backdrop-filter: blur(3px); animation: fade-in 250ms ease-out; }
+.code-panel.closing { opacity: 0; transition: opacity 250ms ease; }
+.code-card {
+  display: grid; gap: 10px; justify-items: center; width: min(88vw, 440px); padding: clamp(16px, 3vh, 26px);
+  text-align: center; color: var(--ink);
+  background: linear-gradient(180deg, #fffaf0, #f7ebd3); border: 5px solid #e2b85a; border-radius: 24px;
+  box-shadow: 0 0 0 3px #fff4d6 inset, 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+.code-card h2 { margin: 0; font-family: Georgia, serif; font-size: clamp(22px, 4.4vh, 34px); color: #1a2f86; }
+.code-card label { font-weight: 700; font-size: clamp(15px, 2.6vh, 19px); }
+.code-card input {
+  width: 100%; box-sizing: border-box; padding: 10px 14px; text-align: center;
+  font: 900 clamp(24px, 5vh, 34px) ui-monospace, Consolas, monospace; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #1a2f86; background: #fff; border: 3px solid #e2b85a; border-radius: 14px;
+}
+.code-card input:focus { outline: 3px solid var(--gold-2); outline-offset: 2px; }
+.code-msg { min-height: 1.3em; margin: 0; font-weight: 700; color: #9a3412; }
+.code-buttons { display: flex; gap: 12px; }
+.code-buttons .btn-ghost { position: static; padding: 10px 24px; font-size: clamp(15px, 2.6vh, 19px); color: var(--ink); background: #fff; border-color: #e2b85a; cursor: pointer; }
+.code-buttons .avatar-continue:disabled { opacity: 0.6; }
+.avatar-foot > .avatar-code { grid-area: 2 / 1; }
+.avatar-code {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px;
+  margin: clamp(8px, 2vh, 14px) 0 0; font-weight: 700; color: var(--ink);
+}
+.avatar-code code { font: 900 1.25em ui-monospace, Consolas, monospace; letter-spacing: 0.1em; color: #1a2f86; background: #fff; padding: 2px 10px; border: 2px solid #e2b85a; border-radius: 10px; }
+.avatar-code .btn-ghost { position: static; padding: 4px 14px; font-size: 14px; color: var(--ink); background: #fff; border-color: #e2b85a; cursor: pointer; }
+.avatar-code small { flex-basis: 100%; font-weight: 600; color: #6b5a3c; }
+html.lang-ar .code-card, html.lang-ar .avatar-code { direction: rtl; }
+
 /* ---- The Stomach mini-game: the shared interface, plus the acidity gauge and the acid flask ---- */
 /* the pylorus is on the left: the step cards go to the right, and the reactions sit bottom left */
 .stomach-hud .mh-cards { left: auto; right: max(10px, env(safe-area-inset-right)); top: 54%; }

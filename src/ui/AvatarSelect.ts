@@ -1,6 +1,7 @@
 import { t } from '../i18n/i18n';
 import { asset } from '../assetUrl';
 import { DEFAULT_NAMES, type Avatar } from '../state/GameState';
+import { OnlineSave } from '../state/OnlineSave';
 
 export interface Profile {
   avatar: Avatar;
@@ -20,6 +21,17 @@ const MAX_NAME = 14;
  * name, Continue. With `current`, it opens as the profile editor, filled in.
  * Resolves with the choice; in edit mode, null when closed without saving.
  */
+/** The save code, in the profile editor: to continue on another device. */
+function codeRow(): string {
+  const code = OnlineSave.code;
+  if (!code) return `<p class="avatar-code" dir="auto">${t('save.notYet')}</p>`;
+  return `<div class="avatar-code">
+      <span>${t('save.codeLabel')}</span> <code dir="ltr">${code}</code>
+      <button type="button" class="btn-ghost">${t('save.copy')}</button>
+      <small dir="auto">${t('save.codeHint')}</small>
+    </div>`;
+}
+
 export function chooseAvatar(current?: Profile): Promise<Profile | null> {
   return new Promise((resolve) => {
     const edit = !!current;
@@ -48,6 +60,7 @@ export function chooseAvatar(current?: Profile): Promise<Profile | null> {
           </label>
           <button type="button" class="avatar-continue" disabled>${edit ? t('avatar.save') : t('avatar.continue')}</button>
         </div>
+        ${edit ? codeRow() : ''}
         </div>
       </div>`;
     document.getElementById('app')!.appendChild(root);
@@ -98,6 +111,16 @@ export function chooseAvatar(current?: Profile): Promise<Profile | null> {
       if (e.key === 'Enter') go.click();
     });
     root.querySelector('.avatar-close')?.addEventListener('click', () => close(null));
+    root.querySelector<HTMLButtonElement>('.avatar-code button')?.addEventListener('click', async (e) => {
+      const b = e.currentTarget as HTMLButtonElement;
+      try {
+        await navigator.clipboard.writeText(OnlineSave.code ?? '');
+        b.textContent = t('save.copied');
+      } catch {
+        // no clipboard here: select the code so it can be copied by hand
+        window.getSelection()?.selectAllChildren(root.querySelector('.avatar-code code')!);
+      }
+    });
     // taps on the panel must not reach the game underneath
     root.addEventListener('pointerdown', (e) => e.stopPropagation());
     root.addEventListener('keydown', (e) => e.stopPropagation());

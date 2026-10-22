@@ -159,6 +159,7 @@ export class StomachScene extends Phaser.Scene {
 
   create(): void {
     this.layout = this.cache.json.get('stomach') as StomachLayout;
+    GameState.place = 'stomach'; // continue from here (online save)
     const [W, H] = this.layout.size;
     this.inside = new Phaser.Geom.Polygon(this.layout.inside.flat());
     Object.assign(this, {

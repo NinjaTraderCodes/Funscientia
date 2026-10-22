@@ -3,7 +3,10 @@ import './styles.css';
 import { IntroPlayer, wantsFullHD } from './intro/IntroPlayer';
 import { asset } from './assetUrl';
 import { GameState } from './state/GameState';
-import { I18n, applyPage, t } from './i18n/i18n';
+import { OnlineSave } from './state/OnlineSave';
+import { askCode } from './ui/CodePanel';
+import { toast } from './ui/Toast';
+import { I18n, applyPage, t, type Key } from './i18n/i18n';
 import { Sound } from './audio/Sound';
 import { BootScene, GAME_EVENTS } from './scenes/BootScene';
 import { ChapterScene } from './scenes/ChapterScene';
@@ -158,6 +161,43 @@ const enterGame = () => {
   showProfile();
 };
 game.events.once(GAME_EVENTS.introDone, enterGame);
+
+// ---- online saves: a save code, and "Continue with my code" on the hero page ----
+OnlineSave.start();
+OnlineSave.onCode((code, isNew) => {
+  if (isNew) toast(t('save.yourCode'), t('save.keepIt', { code }), 7000);
+});
+// save what is pending before the page is left (or hidden, on phones)
+document.addEventListener('visibilitychange', () => document.hidden && OnlineSave.saveNow());
+
+/** Where a continued adventure picks up: the chapter card, then that place. */
+const RESUME: Record<string, { title: Key; subtitle: Key; scene: string; data?: object }> = {
+  road: { title: 'chapter.1', subtitle: 'chapter.roadToMouth', scene: 'World', data: { place: 'road' } },
+  road2: { title: 'chapter.1', subtitle: 'chapter.roadToMouth', scene: 'World', data: { place: 'road2' } },
+  mouth: { title: 'chapter.1', subtitle: 'chapter.mouthMission', scene: 'Mouth' },
+  esophagus: { title: 'chapter.2', subtitle: 'chapter.esophagus', scene: 'World', data: { place: 'esophagus' } },
+  stomach: { title: 'chapter.2', subtitle: 'chapter.stomachMission', scene: 'Stomach' },
+};
+const continueBtn = document.getElementById('continue-btn') as HTMLButtonElement;
+continueBtn.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const found = await askCode();
+  if (!found) return;
+  // a starting point (a jury code) stays as it is: the player gets a new code of their own
+  if (found.data.template) OnlineSave.forget();
+  else OnlineSave.adopt(found.code);
+  GameState.restore(found.data);
+  await intro.bypass();
+  const overlook = game.scene.getScene('Overlook');
+  const at = RESUME[GameState.place];
+  if (at) {
+    overlook.scene.start('Chapter', { title: t(at.title), subtitle: t(at.subtitle), next: { scene: at.scene, data: at.data } });
+    enterGame();
+  } else {
+    overlook.scene.restart({ skipOpening: true }); // on the overlook (it shows the badge itself)
+  }
+  toast(t('save.welcomeBack'), t('save.continuing', { code: found.code }), 4500);
+});
 game.events.on(GAME_EVENTS.resumed, enterGame);
 game.events.on(GAME_EVENTS.profileChanged, showProfile);
 profileBtn.addEventListener('pointerdown', (e) => e.stopPropagation());

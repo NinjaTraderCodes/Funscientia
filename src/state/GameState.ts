@@ -1,4 +1,4 @@
-import { t } from '../i18n/i18n';
+import { I18n, t, type Lang } from '../i18n/i18n';
 import type { CharacterName } from '../data/types';
 import type { Hero } from '../dialogue/DialogueRunner';
 
@@ -26,9 +26,29 @@ interface SaveData {
   playerName: string;
   discoveries: string[];
   predictions: Record<string, string>;
+  /** Where to continue: a place of the world (road, road2, esophagus), a mini-game (mouth, stomach), or the overlook. */
+  place: string;
 }
 
-const fresh = (): SaveData => ({ hero: null, playerName: '', discoveries: [], predictions: {} });
+/**
+ * The progress as it is saved online (backend/README.md): version 1. The backend only
+ * checks that it is an object with a version; the game reads it back with `restore`.
+ */
+export interface OnlineData {
+  version: 1;
+  hero: Avatar | null;
+  playerName: string;
+  lang: Lang;
+  place: string;
+  discoveries: string[];
+  predictions: Record<string, string>;
+  savedAt: string;
+  /** A starting point (e.g. a jury code): whoever loads it gets their own new save, it is never changed. */
+  template?: boolean;
+}
+
+const AVATARS: readonly Avatar[] = ['walid', 'nesma', 'fox'];
+const fresh = (): SaveData => ({ hero: null, playerName: '', discoveries: [], predictions: {}, place: '' });
 
 const load = (): SaveData => {
   try {
@@ -41,12 +61,14 @@ const load = (): SaveData => {
 };
 
 const data = load();
+const listeners = new Set<() => void>();
 const persist = () => {
   try {
     localStorage.setItem(KEY, JSON.stringify(data));
   } catch {
     /* ignore */
   }
+  for (const fn of listeners) fn();
 };
 
 const SPRITE: Record<Avatar, CharacterName> = { walid: 'boy', nesma: 'girl', fox: 'fox' };
@@ -101,6 +123,38 @@ export const GameState = {
   },
   predict(question: string, answer: string): void {
     data.predictions[question] = answer;
+    persist();
+  },
+  /** Where the player is (saved as they arrive, to continue from there). */
+  get place(): string {
+    return data.place;
+  },
+  set place(p: string) {
+    if (p === data.place) return;
+    data.place = p;
+    persist();
+  },
+  /** Called after every change (the online save follows). */
+  onChange(fn: () => void): () => void {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  },
+  /** The progress for the online save. */
+  snapshot(): OnlineData {
+    return {
+      version: 1, hero: data.hero, playerName: data.playerName, lang: I18n.lang, place: data.place,
+      discoveries: [...data.discoveries], predictions: { ...data.predictions }, savedAt: new Date().toISOString(),
+    };
+  },
+  /** Take over a progress loaded from an online save (checked: it came from the internet). */
+  restore(d: Partial<OnlineData>): void {
+    data.hero = AVATARS.includes(d.hero as Avatar) ? (d.hero as Avatar) : null;
+    data.playerName = typeof d.playerName === 'string' ? d.playerName.slice(0, 20) : '';
+    data.place = typeof d.place === 'string' ? d.place : '';
+    data.discoveries = Array.isArray(d.discoveries) ? d.discoveries.filter((x): x is string => typeof x === 'string') : [];
+    data.predictions = {};
+    for (const [q, a] of Object.entries(d.predictions ?? {})) if (typeof a === 'string') data.predictions[q] = a;
+    if (d.lang === 'en' || d.lang === 'ar') I18n.set(d.lang);
     persist();
   },
 };

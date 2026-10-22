@@ -218,6 +218,7 @@ export class OverlookScene extends Phaser.Scene {
         const pick = (await chooseAvatar())!;
         GameState.hero = pick.avatar;
         GameState.playerName = pick.name;
+        GameState.place = 'overlook'; // the first online save is made now
         this.makeParty();
         this.game.events.emit(GAME_EVENTS.profileChanged);
         this.phase = 'play';

@@ -99,6 +99,7 @@ export class MouthScene extends Phaser.Scene {
 
   create(): void {
     this.layout = this.cache.json.get('mouth') as MouthLayout;
+    GameState.place = 'mouth'; // continue from here (online save)
     const [W, H] = this.layout.size;
     Object.assign(this, { phase: 'intro', round: 0, saliva: 85, skill: 1, paused: false, tongueState: 'home', foods: [], clock: 0 });
     this.stats = { score: 0, chewed: 0, combo: 0, bestCombo: 0, bites: 0, sweets: 0, lastChew: -9 };

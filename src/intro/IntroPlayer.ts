@@ -124,7 +124,25 @@ export class IntroPlayer {
     });
   }
 
+  /** Straight into the game, without the intro: the player continues a saved adventure. */
+  async bypass(): Promise<void> {
+    if (this.finished) return;
+    this.finished = true;
+    Sound.unlock();
+    void enterFullscreen(document.getElementById('app') as HTMLElement);
+    this.startScreen.classList.add('hidden');
+    this.loadingScreen.classList.remove('hidden');
+    await this.gameReady;
+    this.heroVideo.pause();
+    this.heroVideo.removeAttribute('src');
+    this.heroVideo.load();
+    this.loadingScreen.classList.add('hidden');
+    this.startScreen.hidden = true;
+    void Sound.music();
+  }
+
   private async start(): Promise<void> {
+    if (this.finished) return; // continuing a saved adventure instead
     Sound.unlock(); // browsers allow audio only after a tap or click
     void Sound.prepare('wow'); // the kids' "wow" on the overlook
     void enterFullscreen(document.getElementById('app') as HTMLElement);

@@ -105,6 +105,7 @@ export class WorldScene extends Phaser.Scene {
 
   init(data: { place?: string; cut?: boolean }): void {
     this.placeName = data.place ?? 'road';
+    GameState.place = this.placeName; // continue from here (online save)
     this.cutIn = !!data.cut;
     this.hotspots = [];
     this.parallax = [];
