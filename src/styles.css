@@ -542,6 +542,30 @@ html, body {
 .mh-results-card { max-height: 94vh; overflow-y: auto; }
 .mh-results-card .avatar-continue { margin-top: 4px; font-size: clamp(16px, 3.6vh, 26px); padding: clamp(8px, 1.8vh, 13px) clamp(26px, 4vw, 44px); }
 
+/* Mission 3: reveal starch in bread, select amylase, and cut maltose pairs. */
+.mh-digest {
+  position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+  width: min(70vw, 720px); padding: 8px 18px; text-align: center;
+  color: var(--cream); background: #13234deb; border: 2px solid var(--gold); border-radius: 20px;
+  box-shadow: 0 6px 20px #0b15334d;
+}
+.mh-digest h3 { margin: 0 0 4px; font-size: clamp(17px, 3.2vh, 27px); color: var(--gold-2); }
+.mh-digest p { margin: 0; font-size: clamp(14px, 2.6vh, 21px); line-height: 1.35; }
+.mh-digest strong { display: block; margin-top: 4px; font-size: clamp(13px, 2.3vh, 18px); color: #eac0ff; }
+.mouth-hud .mh-amylase {
+  position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px; max-width: 65vw; padding: 6px 20px 6px 10px;
+  color: #fff6e3; font: inherit; font-size: clamp(15px, 2.8vh, 23px); font-weight: 700;
+  background: linear-gradient(150deg, #6631a0, #2e1b63); border: 3px solid #e2b85a; border-radius: 24px;
+  box-shadow: 0 5px 20px #0b153380;
+}
+.mouth-hud .mh-amylase img { width: clamp(48px, 11vh, 80px); max-height: 14vh; object-fit: contain; }
+.mh-amylase[aria-pressed="true"] { box-shadow: 0 0 0 3px #eac0ff, 0 0 24px #be6cff; }
+.mh-amylase:focus-visible { outline: 3px solid white; outline-offset: 4px; }
+.mh-amylase:disabled { opacity: 0.7; cursor: default; }
+.is-digesting .mh-react { display: none; }
+html.lang-ar .mh-digest, html.lang-ar .mh-amylase { direction: rtl; }
+
 /* ---- Online saves: "Continue with my code" on the hero page, the code panel, the code in the profile ---- */
 .hero .btn-start { bottom: calc(max(5vh, env(safe-area-inset-bottom)) + 46px); }
 .hero-continue {

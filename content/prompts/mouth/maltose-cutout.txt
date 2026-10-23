@@ -1,0 +1,4 @@
+Use case: background-extraction.
+Input image 1 is the edit target, an existing game sprite reference.
+Extract ONLY the connected pair of two purple hexagonal smiling glucose units (the maltose pair), preserving both exact faces, their connecting purple bond, glossy highlights, colors, proportions and 3D storybook style. Remove the white background completely. Keep the complete pair with a small transparent margin; no cropping or detached units.
+Output a genuine transparent background (alpha channel), not white, not black, not a checkerboard. No text, labels, borders, watermark, additional objects or redesign. This is a game-ready cutout.

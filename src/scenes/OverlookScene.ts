@@ -241,6 +241,7 @@ export class OverlookScene extends Phaser.Scene {
       this.scene.start('Chapter', {
         title: t('chapter.1'),
         subtitle: t('chapter.roadToMouth'),
+        artwork: 'roadToMouth',
         next: { scene: 'World', data: { place: 'road' } },
       });
     });

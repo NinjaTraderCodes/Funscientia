@@ -1,4 +1,4 @@
-import { t } from '../i18n/i18n';
+import { t, type Key } from '../i18n/i18n';
 import { asset } from '../assetUrl';
 import { MiniGameHud, type HudCard } from './MiniGameHud';
 
@@ -17,12 +17,16 @@ export interface Results {
   chewed: number;
   bestCombo: number;
   bites: number;
-  sweets: number;
+  maltose: number;
 }
 
 /** The Mouth mini-game's interface: the shared one, plus the saliva meter and spray. */
 export class MouthHud extends MiniGameHud {
-  constructor(onPause: () => void, onSpray: () => void) {
+  private digestStep: 'bread' | 'select' | 'cut' | 'done' | null = null;
+  private maltose = 0;
+  private digestHint: Key | null = null;
+
+  constructor(onPause: () => void, onSpray: () => void, onAmylase: () => void) {
     super(
       CARDS,
       onPause,
@@ -30,14 +34,21 @@ export class MouthHud extends MiniGameHud {
         <img src="${asset('mouth/ui_saliva_empty.webp')}" alt="" />
         <div class="mh-water"></div>
       </div>
-      <button type="button" class="mh-spray hidden"><img src="${asset('mouth/ui_spray.webp')}" alt="" /></button>`,
+      <button type="button" class="mh-spray hidden"><img src="${asset('mouth/ui_spray.webp')}" alt="" /></button>
+      <section class="mh-digest" hidden aria-live="polite">
+        <h3></h3><p dir="auto"></p><strong dir="auto"></strong>
+      </section>
+      <button type="button" class="mh-amylase" hidden aria-pressed="false">
+        <img src="${asset('mouth/amylase-scissors.webp')}" alt="" /><span dir="auto"></span>
+      </button>`,
     );
-    for (const k of ['saliva', 'water', 'spray'] as const) this.el[k] = this.root.querySelector(`.mh-${k}`)!;
+    for (const k of ['saliva', 'water', 'spray', 'digest', 'amylase'] as const) this.el[k] = this.root.querySelector(`.mh-${k}`)!;
     this.labels();
     this.el.spray.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       onSpray();
     });
+    this.el.amylase.addEventListener('click', onAmylase);
   }
 
   protected labels(): void {
@@ -45,6 +56,40 @@ export class MouthHud extends MiniGameHud {
     if (!this.el.saliva) return;
     this.el.saliva.setAttribute('aria-label', t('mouth.aria.saliva'));
     this.el.spray.setAttribute('aria-label', t('mouth.aria.spray'));
+    this.el.amylase.querySelector('span')!.textContent = t('mouth.digest.scissors');
+    this.el.amylase.setAttribute('aria-label', t('mouth.digest.scissors'));
+    if (this.digestStep) {
+      this.el.timer.querySelector('span')!.textContent = t('mouth.digest.timer');
+      this.el.digest.querySelector('h3')!.textContent = t('mouth.digest.title');
+      this.el.digest.querySelector('p')!.textContent = t(this.digestHint ?? `mouth.digest.${this.digestStep}`);
+      this.el.digest.querySelector('strong')!.textContent = this.digestStep === 'bread' ? '' : t('mouth.digest.progress', { n: this.maltose });
+    }
+  }
+
+  /** The untimed, required objective within mission 3. */
+  showDigest(step: 'bread' | 'select' | 'cut' | 'done', maltose = 0): void {
+    this.digestStep = step;
+    this.maltose = maltose;
+    this.digestHint = null;
+    this.root.classList.add('is-digesting');
+    this.el.timer.classList.remove('hurry');
+    this.el.digest.hidden = false;
+    this.el.amylase.hidden = step === 'bread';
+    this.el.amylase.setAttribute('aria-pressed', String(step === 'cut' || step === 'done'));
+    (this.el.amylase as HTMLButtonElement).disabled = step === 'done';
+    this.labels();
+  }
+
+  hintDigest(key: Key): void {
+    this.digestHint = key;
+    this.labels();
+  }
+
+  hideDigest(): void {
+    this.digestStep = null;
+    this.root.classList.remove('is-digesting');
+    this.el.digest.hidden = true;
+    this.el.amylase.hidden = true;
   }
 
   showSaliva(on: boolean): void {
@@ -64,7 +109,7 @@ export class MouthHud extends MiniGameHud {
     return this.showResults(r.stars, r.score, [
       t('mouth.res.chewed', { n: `<b>${r.chewed}</b>` }),
       t('mouth.res.streak', { n: `<b>×${r.bestCombo}</b>` }),
-      t('mouth.res.sweets', { n: `<b>${r.sweets}</b>` }),
+      t('mouth.res.maltose', { n: `<b>${r.maltose}</b>` }),
       t(r.bites === 1 ? 'mouth.res.bite' : 'mouth.res.bites', { n: `<b>${r.bites}</b>` }),
     ]);
   }

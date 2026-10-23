@@ -9,7 +9,7 @@ import { toast } from './ui/Toast';
 import { I18n, applyPage, t, type Key } from './i18n/i18n';
 import { Sound } from './audio/Sound';
 import { BootScene, GAME_EVENTS } from './scenes/BootScene';
-import { ChapterScene } from './scenes/ChapterScene';
+import { ChapterScene, type ChapterArtwork } from './scenes/ChapterScene';
 import { OverlookScene } from './scenes/OverlookScene';
 import { WorldScene } from './scenes/WorldScene';
 import { MouthScene } from './scenes/MouthScene';
@@ -171,12 +171,12 @@ OnlineSave.onCode((code, isNew) => {
 document.addEventListener('visibilitychange', () => document.hidden && OnlineSave.saveNow());
 
 /** Where a continued adventure picks up: the chapter card, then that place. */
-const RESUME: Record<string, { title: Key; subtitle: Key; scene: string; data?: object }> = {
-  road: { title: 'chapter.1', subtitle: 'chapter.roadToMouth', scene: 'World', data: { place: 'road' } },
-  road2: { title: 'chapter.1', subtitle: 'chapter.roadToMouth', scene: 'World', data: { place: 'road2' } },
-  mouth: { title: 'chapter.1', subtitle: 'chapter.mouthMission', scene: 'Mouth' },
-  esophagus: { title: 'chapter.2', subtitle: 'chapter.esophagus', scene: 'World', data: { place: 'esophagus' } },
-  stomach: { title: 'chapter.2', subtitle: 'chapter.stomachMission', scene: 'Stomach' },
+const RESUME: Record<string, { title: Key; subtitle: Key; artwork: ChapterArtwork; scene: string; data?: object }> = {
+  road: { title: 'chapter.1', subtitle: 'chapter.roadToMouth', artwork: 'roadToMouth', scene: 'World', data: { place: 'road' } },
+  road2: { title: 'chapter.1', subtitle: 'chapter.roadToMouth', artwork: 'roadToMouth', scene: 'World', data: { place: 'road2' } },
+  mouth: { title: 'chapter.1', subtitle: 'chapter.mouthMission', artwork: 'mouthMission', scene: 'Mouth' },
+  esophagus: { title: 'chapter.2', subtitle: 'chapter.esophagus', artwork: 'esophagus', scene: 'World', data: { place: 'esophagus' } },
+  stomach: { title: 'chapter.2', subtitle: 'chapter.stomachMission', artwork: 'stomachMission', scene: 'Stomach' },
 };
 const continueBtn = document.getElementById('continue-btn') as HTMLButtonElement;
 continueBtn.addEventListener('click', async (e) => {
@@ -191,7 +191,7 @@ continueBtn.addEventListener('click', async (e) => {
   const overlook = game.scene.getScene('Overlook');
   const at = RESUME[GameState.place];
   if (at) {
-    overlook.scene.start('Chapter', { title: t(at.title), subtitle: t(at.subtitle), next: { scene: at.scene, data: at.data } });
+    overlook.scene.start('Chapter', { title: t(at.title), subtitle: t(at.subtitle), artwork: at.artwork, next: { scene: at.scene, data: at.data } });
     enterGame();
   } else {
     overlook.scene.restart({ skipOpening: true }); // on the overlook (it shows the badge itself)

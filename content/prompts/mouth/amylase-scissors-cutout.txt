@@ -1,0 +1,4 @@
+Use case: background-extraction.
+Input image 1 is the edit target, an existing game sprite reference.
+Extract ONLY the purple-and-gold scissors, preserving the exact design, jagged purple blades, gold joints, purple handles, colors and 3D storybook shading. Remove the white background completely. Center the complete scissors with a small transparent margin; no cropping and no shadow outside the object.
+Output a genuine transparent background (alpha channel), not white, not black, not a checkerboard. No text, labels, borders, watermark, additional objects or redesign. This is a game-ready cutout.

@@ -377,6 +377,7 @@ export class WorldScene extends Phaser.Scene {
       this.scene.start('Chapter', {
         title: t((P.nextChapter ?? 'chapter.1') as Key),
         subtitle: t((P.nextTitle ?? 'chapter.mouthMission') as Key),
+        artwork: next === 'Mouth' ? 'mouthMission' : next === 'Stomach' ? 'stomachMission' : undefined,
         // a mini-game still being built: say so, and offer the way back
         ...(built
           ? { next: { scene: next } }

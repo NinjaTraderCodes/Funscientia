@@ -1,0 +1,4 @@
+Use case: precise-object-edit.
+Input image 1 is the EDIT TARGET: the existing Mouth Mission chapter card for a bilingual children's science game.
+Remove ONLY the white lettering 'CHAPTER 1' and the gold lettering 'Mouth Mission'. Reconstruct the dark navy blue area immediately behind the removed words seamlessly. The center must have no letters, numbers, text fragments or substitute symbols.
+Preserve the exact landscape aspect ratio, composition, framing, camera, architecture, blue and gold decorations, crescent and star ornaments, anatomy-inspired scenery, original warm lighting, colors and detailed 3D storybook style. Keep the dark central area for the game's own translated titles. Change only what is necessary to erase the text. No redesign, cropping, extra objects, logos or watermark. Opaque background.

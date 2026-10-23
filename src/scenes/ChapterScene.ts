@@ -1,9 +1,21 @@
 import Phaser from 'phaser';
-import { I18n } from '../i18n/i18n';
+import { I18n, t, type Key } from '../i18n/i18n';
+import { asset } from '../assetUrl';
+
+export type ChapterArtwork = 'roadToMouth' | 'mouthMission' | 'esophagus' | 'stomachMission';
+
+const ART: Record<ChapterArtwork, { file: string; title: Key; subtitle: Key; titleY: number; subtitleY: number }> = {
+  roadToMouth: { file: 'road-to-mouth', title: 'chapter.1', subtitle: 'chapter.roadToMouth', titleY: 0.34, subtitleY: 0.45 },
+  mouthMission: { file: 'mouth-mission', title: 'chapter.1', subtitle: 'chapter.mouthMission', titleY: 0.33, subtitleY: 0.43 },
+  esophagus: { file: 'esophagus', title: 'chapter.2', subtitle: 'chapter.esophagus', titleY: 0.33, subtitleY: 0.43 },
+  stomachMission: { file: 'stomach-mission', title: 'chapter.2', subtitle: 'chapter.stomachMission', titleY: 0.19, subtitleY: 0.28 },
+};
 
 export interface ChapterData {
   title: string;
   subtitle: string;
+  /** An illustrated card, with its lettering supplied by the current language. */
+  artwork?: ChapterArtwork;
   /** Optional line under the subtitle. */
   note?: string;
   /** Continue automatically to this scene after the card. */
@@ -14,11 +26,27 @@ export interface ChapterData {
 
 /** A storybook title card between places. */
 export class ChapterScene extends Phaser.Scene {
+  private artwork?: ChapterData['artwork'];
+
   constructor() {
     super('Chapter');
   }
 
+  init(data: ChapterData): void {
+    this.artwork = data.artwork;
+  }
+
+  preload(): void {
+    if (this.artwork && !this.textures.exists(`chapter_${this.artwork}`)) {
+      this.load.image(`chapter_${this.artwork}`, asset(`chapters/${ART[this.artwork].file}.webp`));
+    }
+  }
+
   create(data: ChapterData): void {
+    if (this.artwork) {
+      this.illustrated(data, this.artwork);
+      return;
+    }
     const cam = this.cameras.main;
     cam.setBackgroundColor('#0b1533');
     const W = cam.width;
@@ -44,6 +72,69 @@ export class ChapterScene extends Phaser.Scene {
         { targets: title, alpha: 1, duration: 700 },
         { targets: subtitle, alpha: 1, duration: 900 },
         ...(items.length ? [{ targets: items, alpha: 1, duration: 700, delay: 600 }] : []),
+      ],
+      onComplete: () => {
+        if (data.next) this.time.delayedCall(1100, () => this.go(data.next!.scene, data.next!.data));
+      },
+    });
+  }
+
+  /** Dounia's scene stays text-free; the game adds English or Arabic lettering. */
+  private illustrated(data: ChapterData, artwork: ChapterArtwork): void {
+    const art = ART[artwork];
+    const cam = this.cameras.main;
+    cam.setBackgroundColor('#0b1533');
+    const background = this.add.image(0, 0, `chapter_${artwork}`);
+    const title = this.add.text(0, 0, '', { color: '#fff6e3', align: 'center' }).setOrigin(0.5).setAlpha(0);
+    const subtitle = this.add.text(0, 0, '', {
+      color: '#f3c35a', align: 'center', stroke: '#5a3a0a', strokeThickness: 2,
+      shadow: { offsetY: 2, color: '#0b1533', blur: 8, fill: true },
+    }).setOrigin(0.5).setAlpha(0);
+
+    const layout = () => {
+      const W = cam.width;
+      const H = cam.height;
+      // Fill a landscape screen; in portrait, keep the whole illustration visible.
+      const scale = (W >= H ? Math.max : Math.min)(W / background.width, H / background.height);
+      background.setPosition(W / 2, H / 2).setScale(scale);
+      const top = (H - background.displayHeight) / 2;
+      const unit = Math.min(W, background.displayHeight) / 100;
+
+      title.setRTL(I18n.rtl).setStyle({
+        fontFamily: I18n.font, fontSize: `${Math.round(unit * 4.2)}px`, fontStyle: I18n.rtl ? '700' : 'normal',
+      });
+      title.setLetterSpacing(I18n.rtl ? 0 : unit * 0.8);
+      title.setText(I18n.rtl ? t(art.title) : t(art.title).toUpperCase());
+      subtitle.setRTL(I18n.rtl).setStyle({
+        fontFamily: I18n.display, fontSize: `${Math.round(unit * 8)}px`, fontStyle: I18n.rtl ? '700' : 'normal',
+      });
+      subtitle.setStroke('#5a3a0a', Math.max(2, unit * 0.35)).setText(t(art.subtitle));
+      // Scale long titles to the available width without splitting the Arabic lettering.
+      title.setScale(Math.min(1, (W * 0.88) / title.width));
+      subtitle.setScale(Math.min(1, (W * 0.88) / subtitle.width));
+      title.setPosition(W / 2, top + background.displayHeight * art.titleY);
+      subtitle.setPosition(W / 2, top + background.displayHeight * art.subtitleY);
+    };
+    const refresh = () => {
+      layout();
+      // A language switch can load the Arabic font while this card is already open.
+      void document.fonts.ready.then(() => {
+        if (title.scene && this.sys.isActive()) layout();
+      });
+    };
+    refresh();
+    this.scale.on('resize', layout);
+    const offLanguage = I18n.onChange(refresh);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off('resize', layout);
+      offLanguage();
+    });
+
+    cam.fadeIn(600, 11, 21, 51);
+    this.tweens.chain({
+      tweens: [
+        { targets: title, alpha: 1, duration: 700 },
+        { targets: subtitle, alpha: 1, duration: 900 },
       ],
       onComplete: () => {
         if (data.next) this.time.delayedCall(1100, () => this.go(data.next!.scene, data.next!.data));
