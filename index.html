@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0b1533" />
+    <meta name="description" content="Funscientia — Kingdoms of Discovery: a story-driven science adventure where kids explore the human body." />
+    <title>Funscientia — Kingdoms of Discovery</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./icon-180.png" />
+    <link rel="preload" href="./assets/hero/hero_poster.jpg" as="image" />
+    <link rel="preload" href="./assets/hero/logo.webp" as="image" />
+    <script type="module" crossorigin src="./assets/index-7Z4ilR_R.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CXvLWzln.css">
+  </head>
+  <body>
+    <div id="app">
+      <div id="game"></div>
+
+      <!-- the source (1080p or 720p) is picked in src/intro/IntroPlayer.ts -->
+      <video id="intro" playsinline preload="auto" hidden></video>
+
+      <!-- the hero page: the first thing shown; its video source is picked in src/main.ts -->
+      <section id="start-screen" class="hero">
+        <video id="hero-video" class="hero-video" loop playsinline preload="auto" poster="./assets/hero/hero_poster.jpg"></video>
+        <h1 class="hero-logo"><img src="./assets/hero/logo.webp" alt="Funscientia: Learn while playing" /></h1>
+        <button id="start-btn" class="btn-start" type="button"><span aria-hidden="true">✦</span> <b data-i18n="start.button">Start the adventure</b> <span aria-hidden="true">✦</span></button>
+        <button id="continue-btn" class="btn-ghost hero-continue" type="button" data-i18n="save.continue">Continue with my code</button>
+      </section>
+
+      <!-- after Start: the intro finishes downloading, then plays by itself -->
+      <section id="loading-screen" class="loading hidden" aria-live="polite">
+        <img class="loading-logo" src="./assets/hero/logo.webp" alt="" />
+        <div class="loading-bar"><div id="loading-fill" class="loading-fill"></div></div>
+        <p class="load-note" id="load-note">Preparing the adventure…</p>
+        <button id="play-btn" class="btn-start" type="button" hidden><span aria-hidden="true">▶</span> <b data-i18n="start.playIntro">Start the intro</b></button>
+      </section>
+
+      <button id="skip-btn" class="btn-ghost" type="button" hidden data-i18n="start.skipIntro">Skip intro ›</button>
+
+      <div id="hud" hidden>
+        <div class="brand">Funscientia</div>
+        <p id="hint" class="hint"></p>
+      </div>
+
+      <button id="mute-btn" class="mute-btn" type="button" aria-label="Sound on/off" data-i18n-aria="ui.sound">🔊</button>
+      <button id="lang-btn" class="mute-btn lang-btn" type="button" aria-label="Language" data-i18n-aria="ui.language">ع</button>
+      <button id="profile-btn" class="profile-btn" type="button" aria-label="Your avatar and name" data-i18n-aria="ui.profile" hidden><img alt="" /><span></span></button>
+      <div id="rotate-hint" class="rotate-hint" data-i18n="start.rotate">Turn your device sideways for the best view</div>
+    </div>
+  </body>
+</html>

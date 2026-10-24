@@ -1,0 +1,473 @@
+{
+  "version": 1,
+  "characters": {
+    "girl": {
+      "atlas": "characters/girl",
+      "animations": {
+        "walk_back": {
+          "prefix": "walk_",
+          "count": 23,
+          "fps": 15,
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "durations": [
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63
+          ],
+          "strides": 1
+        },
+        "walk_front": {
+          "prefix": "walk_front_",
+          "count": 16,
+          "fps": 15,
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "durations": [
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62
+          ],
+          "strides": 1
+        },
+        "walk_side": {
+          "prefix": "walk_side_",
+          "count": 19,
+          "fps": 16,
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "durations": [
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63
+          ],
+          "strides": 1
+        },
+        "idle_back": {
+          "frame": "idle",
+          "bodyPx": 560,
+          "originY": 0.9934640522875817
+        }
+      },
+      "views": {
+        "front": {
+          "frame": "view_front",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "toward"
+        },
+        "three-quarter-front": {
+          "frame": "view_three-quarter-front",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "toward-left"
+        },
+        "side": {
+          "frame": "view_side",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "left"
+        },
+        "three-quarter-back": {
+          "frame": "view_three-quarter-back",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "away-left"
+        },
+        "back": {
+          "frame": "view_back",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "away"
+        }
+      },
+      "idles": {},
+      "start": {
+        "x": 357.5,
+        "y": 442,
+        "bodyHeight": 124
+      },
+      "source": {
+        "walk_back": "001.MOV from 68.0s @30fps",
+        "walk_front": "001.MOV 0.0-5.5s @30fps",
+        "idle": "001.MOV frame at 76.2s",
+        "views": "Gemini turnaround sheets"
+      }
+    },
+    "fox": {
+      "atlas": "characters/fox",
+      "animations": {
+        "walk_back": {
+          "prefix": "walk_",
+          "count": 16,
+          "fps": 15,
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "durations": [
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62
+          ],
+          "strides": 1
+        },
+        "walk_front": {
+          "prefix": "walk_front_",
+          "count": 15,
+          "fps": 15,
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "durations": [
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63
+          ],
+          "strides": 1
+        },
+        "walk_side": {
+          "prefix": "walk_side_",
+          "count": 16,
+          "fps": 16,
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "durations": [
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62
+          ],
+          "strides": 1
+        },
+        "idle_back": {
+          "frame": "idle",
+          "bodyPx": 560,
+          "originY": 0.9934640522875817
+        }
+      },
+      "views": {
+        "front": {
+          "frame": "view_front",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "toward"
+        },
+        "three-quarter-front": {
+          "frame": "view_three-quarter-front",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "toward-left"
+        },
+        "side": {
+          "frame": "view_side",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "right"
+        },
+        "three-quarter-back": {
+          "frame": "view_three-quarter-back",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "away-right"
+        },
+        "back": {
+          "frame": "view_back",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "away"
+        }
+      },
+      "idles": {
+        "sit": {
+          "prefix": "idle_sit_",
+          "count": 53,
+          "fps": 16,
+          "bodyPx": 200,
+          "originY": 0.9638009049773756,
+          "segments": {
+            "in": [
+              0,
+              33
+            ],
+            "loop": [
+              33,
+              52
+            ]
+          }
+        },
+        "sniff": {
+          "prefix": "idle_sniff_",
+          "count": 49,
+          "fps": 16,
+          "bodyPx": 200,
+          "originY": 0.9545454545454546,
+          "segments": {
+            "once": [
+              0,
+              40
+            ]
+          }
+        }
+      },
+      "start": {
+        "x": 410.5,
+        "y": 443,
+        "bodyHeight": 75
+      },
+      "source": {
+        "walk_back": "001.MOV from 68.0s @30fps",
+        "walk_front": "001.MOV 0.0-5.5s @30fps",
+        "idle": "001.MOV frame at 76.2s",
+        "views": "Gemini turnaround sheets"
+      }
+    },
+    "boy": {
+      "atlas": "characters/boy",
+      "animations": {
+        "walk_back": {
+          "prefix": "walk_",
+          "count": 32,
+          "fps": 15,
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "durations": [
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62
+          ],
+          "strides": 2
+        },
+        "walk_front": {
+          "prefix": "walk_front_",
+          "count": 29,
+          "fps": 15,
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "durations": [
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62
+          ],
+          "strides": 2
+        },
+        "walk_side": {
+          "prefix": "walk_side_",
+          "count": 19,
+          "fps": 16,
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "durations": [
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63,
+            62,
+            62,
+            63,
+            63
+          ],
+          "strides": 1
+        },
+        "idle_back": {
+          "frame": "idle",
+          "bodyPx": 560,
+          "originY": 0.9934640522875817
+        }
+      },
+      "views": {
+        "front": {
+          "frame": "view_front",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "toward"
+        },
+        "three-quarter-front": {
+          "frame": "view_three-quarter-front",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "toward-left"
+        },
+        "side": {
+          "frame": "view_side",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "left"
+        },
+        "three-quarter-back": {
+          "frame": "view_three-quarter-back",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "away-left"
+        },
+        "back": {
+          "frame": "view_back",
+          "bodyPx": 330,
+          "originY": 0.989010989010989,
+          "facing": "away"
+        }
+      },
+      "idles": {},
+      "start": {
+        "x": 468.0,
+        "y": 448,
+        "bodyHeight": 131
+      },
+      "source": {
+        "walk_back": "001.MOV from 68.0s @30fps",
+        "walk_front": "001.MOV 0.0-5.5s @30fps",
+        "idle": "001.MOV frame at 76.2s",
+        "views": "Gemini turnaround sheets"
+      }
+    }
+  }
+}
