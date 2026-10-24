@@ -23,7 +23,8 @@ export interface Results {
 /** The Mouth mini-game's interface: the shared one, plus the saliva meter and spray. */
 export class MouthHud extends MiniGameHud {
   private digestStep: 'bread' | 'select' | 'cut' | 'done' | null = null;
-  private maltose = 0;
+  private digestProgress = 0;
+  private digestTotal = 0;
   private digestHint: Key | null = null;
 
   constructor(onPause: () => void, onSpray: () => void, onAmylase: () => void) {
@@ -61,15 +62,16 @@ export class MouthHud extends MiniGameHud {
     if (this.digestStep) {
       this.el.timer.querySelector('span')!.textContent = t('mouth.digest.timer');
       this.el.digest.querySelector('h3')!.textContent = t('mouth.digest.title');
-      this.el.digest.querySelector('p')!.textContent = t(this.digestHint ?? `mouth.digest.${this.digestStep}`);
-      this.el.digest.querySelector('strong')!.textContent = this.digestStep === 'bread' ? '' : t('mouth.digest.progress', { n: this.maltose });
+      this.el.digest.querySelector('p')!.textContent = t(this.digestHint ?? `mouth.digest.${this.digestStep}`, { total: this.digestTotal });
+      this.el.digest.querySelector('strong')!.textContent = t(this.digestStep === 'bread' ? 'mouth.digest.breads' : 'mouth.digest.progress', { n: this.digestProgress, total: this.digestTotal });
     }
   }
 
   /** The untimed, required objective within mission 3. */
-  showDigest(step: 'bread' | 'select' | 'cut' | 'done', maltose = 0): void {
+  showDigest(step: 'bread' | 'select' | 'cut' | 'done', progress: number, total: number): void {
     this.digestStep = step;
-    this.maltose = maltose;
+    this.digestProgress = progress;
+    this.digestTotal = total;
     this.digestHint = null;
     this.root.classList.add('is-digesting');
     this.el.timer.classList.remove('hurry');

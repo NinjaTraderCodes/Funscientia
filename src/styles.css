@@ -565,6 +565,14 @@ html, body {
 .mh-amylase:disabled { opacity: 0.7; cursor: default; }
 .is-digesting .mh-react { display: none; }
 html.lang-ar .mh-digest, html.lang-ar .mh-amylase { direction: rtl; }
+@media (max-height: 500px) {
+  .mh-digest { padding: 4px 12px; }
+  .mh-digest h3 { margin-bottom: 0; font-size: 16px; line-height: 1.15; }
+  .mh-digest p { font-size: 13px; line-height: 1.2; }
+  .mh-digest strong { margin-top: 2px; font-size: 12px; line-height: 1.2; }
+  .mouth-hud .mh-amylase { bottom: max(8px, env(safe-area-inset-bottom)); gap: 8px; padding: 3px 12px; border-width: 2px; font-size: 13px; }
+  .mouth-hud .mh-amylase img { width: 36px; max-height: 10vh; }
+}
 
 /* ---- Online saves: "Continue with my code" on the hero page, the code panel, the code in the profile ---- */
 .hero .btn-start { bottom: calc(max(5vh, env(safe-area-inset-bottom)) + 46px); }

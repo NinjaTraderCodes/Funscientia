@@ -41,7 +41,7 @@ So that's what it's for!
     Now, what does saliva really do to bread?
 }
 #speaker:tooth #mood:thinking
-You selected salivary amylase and cut the bread's long starch chain into pairs. Each pair is maltose, a sugar made of two glucose units. That is how saliva starts digesting starch!
+You selected salivary amylase and cut the long starch chains inside the bread into pairs. Each pair is maltose, a sugar made of two glucose units. That is how saliva starts digesting starch!
 #speaker:leader #mood:surprised
 So that's why bread tastes sweet when we chew it for a long time!
 #speaker:tooth #mood:happy

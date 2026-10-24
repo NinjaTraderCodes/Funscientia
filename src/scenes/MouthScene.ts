@@ -8,7 +8,7 @@ import { MouthHud, type Mood, type Who } from '../ui/MouthHud';
 import { toast } from '../ui/Toast';
 import { GameState, type Avatar } from '../state/GameState';
 import { discoveryText } from '../state/discoveries';
-import { StarchTask } from '../world/StarchTask';
+import { StarchTask, STARCH_BREAD_COUNT, STARCH_PAIR_COUNT } from '../world/StarchTask';
 
 /** mouth.json (tools/pipeline/pack_mouth.py), in pixels of the 1280x853 background. */
 interface MouthLayout {
@@ -59,8 +59,8 @@ type Phase = 'intro' | 'banner' | 'play' | 'bread' | 'starch' | 'swallow' | 'don
  * The Mouth mini-game (after Dounia's "Mouth Hammer" prototype): the child is
  * the mouth. Three rounds introduce its jobs one at a time - 1 Chew (tap the
  * foods with the tooth-hammer), 2 Mix (the tongue joins: it mixes food for a
- * bonus, but don't bite it), 3 Moisten and digest (reveal starch in moist bread,
- * select amylase and cut it into maltose pairs) - then the food ball is swallowed and the gate's prediction
+ * bonus, but don't bite it), 3 Moisten (play the full timed round, then reveal
+ * starch in five breads and cut all five chains with amylase) - then the food ball is swallowed and the gate's prediction
  * is explained. The friends react as it goes; the difficulty follows the player.
  */
 export class MouthScene extends Phaser.Scene {
@@ -259,15 +259,12 @@ export class MouthScene extends Phaser.Scene {
     this.hammer.x += (this.hammerAim.x - this.hammer.x) * Math.min(1, dt * 18);
     this.hammer.y += (this.hammerAim.y - this.hammer.y) * Math.min(1, dt * 18);
     for (const f of this.foods) this.drawFood(f, dt);
-    if (this.phase === 'bread') {
-      this.salivaStep(dt);
-      return;
-    }
     if (this.phase !== 'play') return;
 
     this.timeLeft -= dt;
     this.hud.setTime(this.timeLeft);
     if (this.timeLeft <= 0) {
+      this.timeLeft = 0;
       if (this.round === 2) {
         this.prepareStarchBread();
         return;
@@ -364,6 +361,10 @@ export class MouthScene extends Phaser.Scene {
     if (fromPointer) this.hammerAim.set(x, y);
     this.hammer.setPosition(x, y);
     this.tweens.add({ targets: this.hammer, angle: { from: -38, to: 0 }, duration: 140, ease: 'Back.easeOut' });
+    if (this.phase === 'bread') {
+      this.starchTask?.hitBread(x, y);
+      return;
+    }
 
     // the tongue? (it is quick - and it does not like being bitten)
     if ((this.tongueState === 'out' || this.tongueState === 'mixing') && Phaser.Math.Distance.Between(x, y, this.tongue.x, this.tongue.y) < 70) {
@@ -377,14 +378,7 @@ export class MouthScene extends Phaser.Scene {
       });
     Sound.noise(0.05, 300, 1, 0.08);
     if (!f || !f.kind) return;
-    if (this.phase === 'bread' && this.saliva < 50) {
-      this.hud.hintDigest('mouth.digest.bread');
-      this.hud.setSaliva(this.saliva, true);
-      return;
-    }
     const def = FOODS[f.kind];
-    const revealStarch = this.round === 2 && f.kind.startsWith('bread') && this.saliva >= 50;
-    const starchOrigin = this.foodTop(f);
     const dry = this.round >= 2 && this.saliva < 30;
     f.bites++;
     f.squash = 1;
@@ -418,7 +412,6 @@ export class MouthScene extends Phaser.Scene {
       label = t('mouth.pop.assist');
     }
     this.addScore(points, f, label);
-    if (revealStarch) this.beginStarch(starchOrigin);
     if (this.stats.chewed === 1) this.once('first', this.buddy(), 'happy', t('mouth.say.firstChew'));
     if (this.stats.combo === 4) this.react(GameState.hero ?? 'walid', 'cheering', t('mouth.say.machine'));
   }
@@ -546,7 +539,7 @@ export class MouthScene extends Phaser.Scene {
   }
 
   private spray(): void {
-    if ((this.phase !== 'play' && this.phase !== 'bread') || this.round < 2 || this.paused) return;
+    if (this.phase !== 'play' || this.round < 2 || this.paused) return;
     this.saliva = Math.min(100, this.saliva + 45);
     this.sprayIdle = 0;
     this.hud.setSaliva(this.saliva, false);
@@ -557,42 +550,27 @@ export class MouthScene extends Phaser.Scene {
     this.once('spray', this.storyKid(), 'happy', t('mouth.say.spray'));
   }
 
-  // ---- swallow ------------------------------------------------------------------
+  // ---- starch: after the full moistening round ------------------------------------
 
-  /** A missed timer still leaves a focused, required bread task. */
+  /** Five persistent breads start a separate, untimed task after moistening ends. */
   private prepareStarchBread(): void {
-    this.clearFoods();
-    this.tongueHome(true);
-    this.phase = 'bread';
-    const f = this.foods[6];
-    f.kind = 'bread';
-    f.state = 'up';
-    f.pop = 1;
-    f.bites = 0;
-    f.timer = Infinity;
-    f.img.setTexture('m_bread').setVisible(true);
-    this.kbHole = 6;
-    this.drawFood(f, 0);
-    const at = this.foodTop(f);
-    this.hammerAim.set(at.x, at.y);
-    this.hud.showDigest('bread');
-    this.hud.showSaliva(true);
-    this.hud.setSaliva(this.saliva, this.saliva < 50);
-  }
-
-  private beginStarch(origin: { x: number; y: number }): void {
-    this.phase = 'starch';
     this.clearFoods(true);
     this.tongueHome(true);
-    this.hammer.setVisible(false);
+    this.phase = 'bread';
     this.hud.showSaliva(false);
-    this.hud.showDigest('select');
+    this.hud.showDigest('bread', 0, STARCH_BREAD_COUNT);
     this.lastStarchCut = undefined;
-    this.starchTask = new StarchTask(this, origin, (pairs) => {
+    this.starchTask = new StarchTask(this, (revealed) => {
+      this.stats.chewed++;
+      this.stats.score += 10;
+      this.hud.setScore(this.stats.score);
+      this.hud.showDigest('bread', revealed, STARCH_BREAD_COUNT);
+      if (revealed === STARCH_BREAD_COUNT) this.beginStarch();
+    }, (pairs) => {
       this.stats.score += (pairs - this.stats.maltose) * 35;
       this.stats.maltose = pairs;
       this.hud.setScore(this.stats.score);
-      this.hud.showDigest(pairs === 3 ? 'done' : 'cut', pairs);
+      this.hud.showDigest(pairs === STARCH_PAIR_COUNT ? 'done' : 'cut', pairs, STARCH_PAIR_COUNT);
     }, (hint) => {
       this.hud.hintDigest(hint === 'select' ? 'mouth.digest.select' : 'mouth.digest.pairs');
     }, () => {
@@ -601,13 +579,23 @@ export class MouthScene extends Phaser.Scene {
       this.hud.hideDigest();
       this.phase = 'banner'; // all pairs made: mission 3 is complete, so swallowing may begin
     });
+    const at = this.starchTask.nextBread()!;
+    this.hammerAim.set(at.x, at.y);
+  }
+
+  private beginStarch(): void {
+    this.phase = 'starch';
+    this.hammer.setVisible(false);
+    this.hud.showDigest('select', 0, STARCH_PAIR_COUNT);
   }
 
   private selectAmylase(): void {
-    if (this.phase !== 'starch' || this.paused || this.stats.maltose === 3) return;
+    if (this.phase !== 'starch' || this.paused || this.stats.maltose === STARCH_PAIR_COUNT) return;
     this.starchTask?.select();
-    this.hud.showDigest('cut', this.stats.maltose);
+    this.hud.showDigest('cut', this.stats.maltose, STARCH_PAIR_COUNT);
   }
+
+  // ---- swallow ------------------------------------------------------------------
 
   private bolus?: Phaser.GameObjects.Image;
 
@@ -688,7 +676,15 @@ export class MouthScene extends Phaser.Scene {
       }
       return;
     }
-    if (this.phase !== 'play' && this.phase !== 'bread') return;
+    if (this.phase === 'bread') {
+      if (e.code === 'Space' || e.key === 'Enter') {
+        e.preventDefault();
+        const at = this.starchTask?.nextBread();
+        if (at) this.strike(at.x, at.y, false);
+      }
+      return;
+    }
+    if (this.phase !== 'play') return;
     if (e.key === 's' || e.key === 'S') return this.spray();
     const holes = this.layout.holes;
     const here = holes[this.kbHole];

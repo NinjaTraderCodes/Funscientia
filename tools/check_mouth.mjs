@@ -65,12 +65,13 @@ async function play(lang, mobile) {
         const s = window.game.scene.getScene('Mouth');
         return s.round === r && s.phase === 'play';
       }, round, { timeout: 30000 });
-      // Mobile covers timeout recovery; desktop normally completes rounds 1/2 in real time.
+      // Mobile covers an idle timeout; desktop always plays the full moistening round.
       if (((mobile || quick) && round < 2) || (mobile && round === 2)) {
         await page.evaluate(() => { window.game.scene.getScene('Mouth').timeLeft = 0.05; });
       }
       if (round === 2 && mobile) break;
       let guard = 0;
+      let moistChews = 0;
       while ((await state()).phase === 'play') {
         assert.ok(guard++ < 160, 'round makes progress');
         const target = await page.evaluate(() => {
@@ -81,28 +82,63 @@ async function play(lang, mobile) {
           return { x: f.img.x, y: f.img.y - f.img.displayHeight * 0.45 };
         });
         if (round === 2 && (await state()).saliva < 60) await page.keyboard.press('s');
-        if (target) await tap(target.x, target.y);
+        const beforeHit = await state();
+        if (target) {
+          await tap(target.x, target.y);
+          const afterHit = await state();
+          if (round === 2 && beforeHit.time > 1 && afterHit.chewed > beforeHit.chewed) {
+            moistChews++;
+            assert.equal(afterHit.phase, 'play', 'a moist bread hit must not interrupt the timed round');
+            assert.equal(await page.locator('.mh-digest').isVisible(), false, 'starch task waits for the timer');
+          }
+        }
         await page.waitForTimeout(280);
       }
+      if (round === 2) assert.ok(moistChews > 0, 'chewed moist bread during the full timed round');
       console.log(`${name} round ${round + 1}: ${JSON.stringify(await state())}`);
     }
-    if (mobile) {
-      await page.waitForFunction(() => window.game.scene.getScene('Mouth').phase === 'bread');
-      await page.evaluate(() => { window.game.scene.getScene('Mouth').saliva = 10; });
-      const bread = await page.evaluate(() => {
-        const f = window.game.scene.getScene('Mouth').foods[6];
-        return [f.img.x, f.img.y - f.img.displayHeight * 0.45];
-      });
-      await tap(...bread);
-      assert.equal((await state()).phase, 'bread', 'dry bread cannot bypass moistening');
-      await page.locator('.mh-spray').dispatchEvent('pointerdown');
-      await tap(...bread);
+    await page.waitForFunction(() => window.game.scene.getScene('Mouth').phase === 'bread');
+    const sites = await page.evaluate(() => window.game.scene.getScene('Mouth').starchTask.chains.map((c) => ({ x: c.root.x, y: c.root.y })));
+    const revealed = () => page.evaluate(() => window.game.scene.getScene('Mouth').starchTask.chains.filter((c) => c.revealed).length);
+    assert.equal(sites.length, 5, 'separate task contains five breads');
+    assert.equal(await revealed(), 0, 'starts with five unconverted breads');
+    assert.equal((await state()).time, 0, 'moistening timer finished before the separate task');
+    assert.equal(await page.locator('.mh-amylase').isVisible(), false, 'scissors stay hidden until all breads are revealed');
+    assert.equal(await page.locator('.mh-spray').evaluate((el) => el.classList.contains('hidden')), true, 'moistening is complete');
+    await shot('breads');
+    await page.keyboard.press('p');
+    await page.keyboard.press('Space');
+    assert.equal((await state()).paused, true);
+    assert.equal(await revealed(), 0, 'bread hits wait while paused');
+    await page.click('.mh-paused .avatar-continue');
+    for (const [i, index] of [3, 0, 4, 1, 2].entries()) {
+      if (!mobile && i === 3) await page.keyboard.press('Space');
+      else await tap(sites[index].x, sites[index].y);
+      await page.waitForFunction((n) => window.game.scene.getScene('Mouth').starchTask.chains.filter((c) => c.revealed).length === n, i + 1, { timeout: 3000 });
+      assert.equal(await revealed(), i + 1, 'each hit reveals exactly one persistent chain');
+      if (i < 4) {
+        assert.equal((await state()).phase, 'bread', 'all five breads are required before cutting');
+        assert.equal(await page.locator('.mh-amylase').isVisible(), false);
+        assert.match(await page.locator('.mh-digest strong').textContent(), new RegExp(`${i + 1}/5`));
+      }
+      if (i === 0) {
+        const score = (await state()).score;
+        await tap(sites[index].x, sites[index].y);
+        await page.keyboard.press('2');
+        assert.equal(await revealed(), 1, 'repeated hits cannot count the same bread twice');
+        assert.equal((await state()).score, score, 'repeated hits do not award points');
+        assert.equal((await state()).maltose, 0, 'cutting cannot start after just one bread');
+        await page.waitForTimeout(350);
+        await shot('first-chain');
+      }
     }
     await page.waitForFunction(() => window.game.scene.getScene('Mouth').phase === 'starch');
-    await page.waitForTimeout(750);
-    assert.equal(await page.evaluate(() => window.game.scene.getScene('Mouth').foods.every((f) => !f.img.visible)), true, 'bread is replaced by the chain');
+    await page.waitForTimeout(350);
+    assert.equal(await page.evaluate(() => window.game.scene.getScene('Mouth').foods.every((f) => !f.img.visible)), true, 'ordinary foods are cleared from the separate task');
+    assert.equal(await page.evaluate(() => window.game.scene.getScene('Mouth').starchTask.chains.every((c) => !c.bread.visible && c.molecule.visible)), true, 'all five breads become visible chains');
+    assert.match(await page.locator('.mh-digest strong').textContent(), /0\/15/);
     const before = await state();
-    await tap(544, 430);
+    await tap(sites[0].x - 66, sites[0].y);
     assert.equal((await state()).maltose, 0, 'must select scissors explicitly');
     await page.waitForTimeout(500);
     assert.equal((await state()).time, before.time, 'round timer freezes during the task');
@@ -116,16 +152,16 @@ async function play(lang, mobile) {
     assert.equal(await page.locator('.mh-amylase').getAttribute('aria-pressed'), 'false', 'tool selection waits while paused');
     await page.click('.mh-paused .avatar-continue');
     await page.click('.mh-amylase');
-    await tap(448, 430);
+    await tap(sites[0].x - 132, sites[0].y);
     assert.equal((await state()).maltose, 0, 'cannot split a maltose pair into singles');
-    await tap(544, 430);
+    await tap(sites[0].x - 66, sites[0].y);
     assert.equal((await state()).maltose, 1, 'first cut creates one pair');
     if (mobile) {
-      const points = await page.evaluate(() => {
+      const points = await page.evaluate((site) => {
         const c = window.game.scene.getScene('Mouth').cameras.main;
         const dpr = Math.min(devicePixelRatio, 2);
-        return [385, 475].map((y) => ({ x: (736 - c.worldView.x) * c.zoom / dpr, y: (y - c.worldView.y) * c.zoom / dpr }));
-      });
+        return [site.y - 35, site.y + 35].map((y) => ({ x: (site.x + 66 - c.worldView.x) * c.zoom / dpr, y: (y - c.worldView.y) * c.zoom / dpr }));
+      }, sites[0]);
       const touch = await context.newCDPSession(page);
       await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [points[0]] });
       await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [points[1]] });
@@ -133,6 +169,23 @@ async function play(lang, mobile) {
       await touch.detach();
     } else await page.keyboard.press('Space');
     assert.equal((await state()).maltose, 3, 'second cut creates the remaining two pairs');
+    const score = (await state()).score;
+    await tap(sites[0].x - 66, sites[0].y);
+    assert.equal((await state()).score, score, 'completed chains cannot award points again');
+    for (let i = 1; i < 5; i++) {
+      if (mobile) await tap(sites[i].x - 66, sites[i].y);
+      else await page.keyboard.press('Space');
+      if (i === 4) {
+        assert.equal((await state()).maltose, 13);
+        await page.waitForTimeout(1700);
+        assert.equal((await state()).phase, 'starch', 'swallowing waits for the last chain to be fully cut');
+      }
+      if (mobile) await tap(sites[i].x + 66, sites[i].y);
+      else await page.keyboard.press('Space');
+      assert.equal((await state()).maltose, (i + 1) * 3);
+    }
+    assert.match(await page.locator('.mh-digest strong').textContent(), /15\/15/);
+    assert.equal(await page.evaluate(() => window.game.scene.getScene('Mouth').starchTask.chains.every((c) => c.pairs.every((p) => p.complete && p.product.visible))), true, 'all five chains yield fifteen maltose pairs');
     await page.waitForTimeout(450);
     await shot('maltose');
     await page.waitForFunction(() => window.game.scene.getScene('Mouth').phase === 'swallow', null, { timeout: 15000 });
@@ -158,7 +211,7 @@ async function play(lang, mobile) {
 try {
   await Promise.all([play('en', false), play('ar', true)]);
   assert.deepEqual(errors, [], 'no page exceptions or missing assets');
-  console.log('PASS: Mouth gameplay, recovery, tools, valid cuts, pause, localization, rewards, and chapter transition.');
+  console.log('PASS: Full moistening round, five bread reveals, all five chains, tools, valid cuts, pause, localization, rewards, and chapter transition.');
 } finally {
   await browser.close();
 }
