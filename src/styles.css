@@ -647,6 +647,40 @@ html.lang-ar .code-card, html.lang-ar .avatar-code { direction: rtl; }
 .sh-flask.pour { animation: flask-pour 260ms ease-out; }
 @keyframes flask-pour { 40% { transform: rotate(-22deg) scale(1.05); } }
 
+/* Pepsin: a required protein objective, with separate acid and scissors controls. */
+.sh-task {
+  position: absolute; top: 14%; left: 50%; transform: translateX(-50%);
+  width: min(68vw, 760px); padding: 8px 16px; text-align: center;
+  color: var(--cream); background: #13234deb; border: 2px solid var(--gold); border-radius: 20px;
+  box-shadow: 0 6px 20px #0b15334d;
+}
+.sh-task h3 { margin: 0 0 4px; font-size: clamp(17px, 3vh, 25px); color: var(--gold-2); }
+.sh-task p { margin: 0; font-size: clamp(14px, 2.5vh, 20px); line-height: 1.3; }
+.sh-task strong { display: block; margin-top: 4px; font-size: clamp(13px, 2.2vh, 18px); color: #9fe4ff; }
+.stomach-hud .sh-pepsin {
+  position: absolute; left: 58%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; max-width: 40vw; padding: 5px 16px;
+  color: #fff6e3; font: inherit; font-size: clamp(14px, 2.6vh, 21px); font-weight: 700;
+  background: linear-gradient(150deg, #2375c4, #13234d); border: 3px solid #e2b85a; border-radius: 24px;
+  box-shadow: 0 5px 20px #0b153380;
+}
+.sh-pepsin img { width: clamp(40px, 8vh, 60px); max-height: 12vh; object-fit: contain; }
+.sh-pepsin[aria-pressed="true"] { box-shadow: 0 0 0 3px #9fe4ff, 0 0 24px #49aaff; }
+.sh-pepsin:focus-visible { outline: 3px solid white; outline-offset: 4px; }
+.sh-pepsin:disabled { opacity: 0.7; cursor: default; }
+.is-pepsin .sh-acid { left: max(12px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); transform: none; }
+.is-pepsin .sh-gauge { width: clamp(140px, 18vw, 230px); }
+.is-pepsin .sh-flask { width: clamp(58px, 11vh, 82px); }
+.is-pepsin .mh-react { display: none; }
+html.lang-ar .sh-task, html.lang-ar .sh-pepsin { direction: rtl; }
+@media (max-height: 500px) {
+  .sh-task { padding: 4px 12px; }
+  .sh-task h3 { margin-bottom: 0; font-size: 16px; line-height: 1.15; }
+  .sh-task p { font-size: 13px; line-height: 1.2; }
+  .sh-task strong { margin-top: 2px; font-size: 12px; line-height: 1.2; }
+  .stomach-hud .sh-pepsin { bottom: max(8px, env(safe-area-inset-bottom)); padding: 3px 12px; border-width: 2px; }
+}
+
 /* ---- English / Arabic ---- */
 .lang-btn { right: calc(max(14px, env(safe-area-inset-right)) + 52px); font-size: 19px; font-weight: 800; font-family: 'Baloo Bhaijaan 2', 'Trebuchet MS', sans-serif; }
 html.lang-ar body, html.lang-ar button, html.lang-ar input { font-family: 'Baloo Bhaijaan 2', Tahoma, 'Segoe UI', sans-serif; }

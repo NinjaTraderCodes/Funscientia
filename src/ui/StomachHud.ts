@@ -1,4 +1,4 @@
-import { I18n, t } from '../i18n/i18n';
+import { I18n, t, type Key } from '../i18n/i18n';
 import { asset } from '../assetUrl';
 import { MiniGameHud, type HudCard } from './MiniGameHud';
 
@@ -17,6 +17,7 @@ export interface StomachResults {
   zoneSeconds: number;
   germs: number;
   cuts: number;
+  polypeptides: number;
   wrong: number;
 }
 
@@ -29,7 +30,14 @@ export const phOf = (acidity: number) => 7 - 6 * Math.max(0, Math.min(1, acidity
  * needle drawn here, the pepsin zone marked) and the acid flask to tap.
  */
 export class StomachHud extends MiniGameHud {
-  constructor(onPause: () => void, onAcid: () => void, zone: [number, number]) {
+  private pepsinActive = false;
+  private proteins = 0;
+  private proteinTotal = 0;
+  private selected = false;
+  private overtime = false;
+  private hint: Key | null = null;
+
+  constructor(onPause: () => void, onAcid: () => void, onPepsin: () => void, zone: [number, number]) {
     // the gauge's arc: the needle turns from -90deg (neutral, left) to +90deg (very acidic, right)
     const deg = (a: number) => -90 + 180 * a;
     super(
@@ -43,15 +51,22 @@ export class StomachHud extends MiniGameHud {
           <span class="sh-ph"></span>
         </div>
         <button type="button" class="sh-flask"><img src="${asset('stomach/flask.webp')}" alt="" /></button>
-      </div>`,
+      </div>
+      <section class="sh-task" hidden aria-live="polite">
+        <h3></h3><p dir="auto"></p><strong dir="auto"></strong>
+      </section>
+      <button type="button" class="sh-pepsin" hidden aria-pressed="false">
+        <img src="${asset('stomach/scissors.webp')}" alt="" /><span dir="auto"></span>
+      </button>`,
       'stomach-hud',
     );
-    for (const k of ['acid', 'needle', 'ph', 'flask'] as const) this.el[k] = this.root.querySelector(`.sh-${k}`)!;
+    for (const k of ['acid', 'needle', 'ph', 'flask', 'task', 'pepsin'] as const) this.el[k] = this.root.querySelector(`.sh-${k}`)!;
     this.labels();
     this.el.flask.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       onAcid();
     });
+    this.el.pepsin.addEventListener('click', onPepsin);
   }
 
   protected labels(): void {
@@ -59,6 +74,44 @@ export class StomachHud extends MiniGameHud {
     if (!this.el.acid) return;
     this.el.acid.setAttribute('aria-label', t('stomach.aria.gauge'));
     this.el.flask.setAttribute('aria-label', t('stomach.aria.flask'));
+    this.el.pepsin.setAttribute('aria-label', t('stomach.pepsin.scissors'));
+    this.el.pepsin.querySelector('span')!.textContent = t('stomach.pepsin.scissors');
+    if (this.pepsinActive) {
+      const done = this.proteins === this.proteinTotal;
+      this.el.task.querySelector('h3')!.textContent = t('stomach.pepsin.title');
+      this.el.task.querySelector('p')!.textContent = t(this.hint ?? (done ? 'stomach.pepsin.done' : this.selected ? 'stomach.pepsin.cut' : 'stomach.pepsin.select'));
+      this.el.task.querySelector('strong')!.textContent = t('stomach.pepsin.progress', { n: this.proteins, total: this.proteinTotal });
+      if (this.overtime) this.el.timer.querySelector('span')!.textContent = t('stomach.pepsin.timer');
+    }
+  }
+
+  showPepsin(proteins: number, total: number, selected: boolean, overtime: boolean): void {
+    this.pepsinActive = true;
+    this.proteins = proteins;
+    this.proteinTotal = total;
+    this.selected = selected;
+    this.overtime = overtime;
+    this.hint = null;
+    this.root.classList.add('is-pepsin');
+    this.el.task.hidden = false;
+    this.el.pepsin.hidden = false;
+    this.el.pepsin.setAttribute('aria-pressed', String(selected));
+    (this.el.pepsin as HTMLButtonElement).disabled = proteins === total;
+    if (overtime) this.el.timer.classList.remove('hurry');
+    this.labels();
+  }
+
+  hintPepsin(key: Key): void {
+    this.hint = key;
+    this.labels();
+  }
+
+  hidePepsin(): void {
+    this.pepsinActive = false;
+    this.hint = null;
+    this.root.classList.remove('is-pepsin');
+    this.el.task.hidden = true;
+    this.el.pepsin.hidden = true;
   }
 
   showAcid(on: boolean): void {
@@ -89,6 +142,7 @@ export class StomachHud extends MiniGameHud {
       t('stomach.res.zone', { n: `<b>${Math.round(r.zoneSeconds)}</b>` }),
       t('stomach.res.germs', { n: `<b>${r.germs}</b>` }),
       t('stomach.res.cuts', { n: `<b>${r.cuts}</b>` }),
+      t('stomach.res.polypeptides', { n: `<b>${r.polypeptides}</b>` }),
       t(r.wrong === 1 ? 'stomach.res.wrong1' : 'stomach.res.wrong', { n: `<b>${r.wrong}</b>` }),
     ]);
   }
