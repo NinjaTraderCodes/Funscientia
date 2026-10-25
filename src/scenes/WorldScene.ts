@@ -56,6 +56,8 @@ interface Place {
 interface Hotspot {
   def: Place['hotspots'][number];
   marker: Waypoint;
+  /** how close (world px) a member must come: at least the glow the child sees on the ground */
+  reach: number;
   done: boolean;
   inside: boolean;
 }
@@ -198,12 +200,12 @@ export class WorldScene extends Phaser.Scene {
     for (const def of P.hotspots) {
       // a label starting with @ is a phrasebook key (shown in the player's language)
       const marker = new Waypoint(this, def.x, def.y, kidAt(def.y), def.label, Math.max(kidAt(def.y) * 0.1, minLabel));
-      this.hotspots.push({ def, marker, done: false, inside: false });
+      this.hotspots.push({ def, marker, reach: Math.max(def.radius * 1.15, kidAt(def.y) * 0.5), done: false, inside: false });
     }
 
     this.debug = this.add.graphics().setDepth(1e6).setVisible(false);
     this.walkable.draw(this.debug);
-    for (const s of P.hotspots) this.debug.strokeCircle(s.x, s.y, s.radius);
+    for (const s of this.hotspots) this.debug.strokeCircle(s.def.x, s.def.y, s.reach);
     const kb = this.input.keyboard!;
     this.keys = kb.addKeys({ up: 'UP', down: 'DOWN', left: 'LEFT', right: 'RIGHT', w: 'W', a: 'A', s: 'S', d: 'D' }) as typeof this.keys;
     kb.on('keydown-G', () => this.debug.setVisible(!this.debug.visible));
@@ -258,7 +260,7 @@ export class WorldScene extends Phaser.Scene {
     const members = this.party.members;
     for (const s of this.hotspots) {
       // whoever reaches the spot first (leader, friend or fennec) starts it
-      const inside = members.some((c) => Phaser.Math.Distance.Between(c.pos.x, c.pos.y, s.def.x, s.def.y) < s.def.radius * 1.15);
+      const inside = members.some((c) => Phaser.Math.Distance.Between(c.pos.x, c.pos.y, s.def.x, s.def.y) < s.reach);
       if (inside && !s.inside && (!s.done || s.def.knot === 'gate' || s.def.to)) void this.trigger(s);
       s.inside = inside;
     }
@@ -317,7 +319,7 @@ export class WorldScene extends Phaser.Scene {
     this.phase = 'talk';
     const result = await this.dialogue.run(knot, this.box);
     // the predictions asked so far on the road (ink variables predict_<question>)
-    for (const q of ['saliva', 'pepsin']) {
+    for (const q of ['saliva', 'pepsin', 'bile']) {
       const answer = this.dialogue.variable(`predict_${q}`);
       if (typeof answer === 'string' && answer) GameState.predict(q, answer);
     }
@@ -377,10 +379,10 @@ export class WorldScene extends Phaser.Scene {
       this.scene.start('Chapter', {
         title: t((P.nextChapter ?? 'chapter.1') as Key),
         subtitle: t((P.nextTitle ?? 'chapter.mouthMission') as Key),
-        artwork: next === 'Mouth' ? 'mouthMission' : next === 'Stomach' ? 'stomachMission' : undefined,
+        artwork: next === 'Mouth' ? 'mouthMission' : next === 'Stomach' ? 'stomachMission' : next === 'SmallIntestine' ? 'smallIntestineMission' : undefined,
         // a mini-game still being built: say so, and offer the way back
         ...(built
-          ? { next: { scene: next } }
+          ? { next: { scene: next, ...(next === 'SmallIntestine' && GameState.chapter3.lesson === 4 ? { data: { replay: true } } : {}) } }
           : { note: t('chapter.comingSoon'), back: { scene: 'World', label: t('chapter.back'), data: { place: this.placeName } } }),
       }),
     );
@@ -390,7 +392,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.phase !== 'play') return;
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
     // tapping near a hotspot walks to it
-    const near = this.hotspots.find((s) => (!s.done || s.def.knot === 'gate') && Phaser.Math.Distance.Between(w.x, w.y, s.def.x, s.def.y) < s.def.radius * 2.2);
+    const near = this.hotspots.find((s) => (!s.done || s.def.knot === 'gate') && Phaser.Math.Distance.Between(w.x, w.y, s.def.x, s.def.y) < s.reach * 1.9);
     const target = this.party.moveLeaderTo(near ? near.def.x : w.x, near ? near.def.y : w.y);
     const h = this.party.leader.bodyHeight;
     const ring = this.add.ellipse(target.x, target.y, h * 0.42, h * 0.13).setStrokeStyle(2, 0xffe29a, 0.95).setFillStyle(0xffe29a, 0.18).setDepth(target.y - 0.5);

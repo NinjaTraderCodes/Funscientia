@@ -48,6 +48,18 @@ UI_PIECES = ["timer", "score", "pause", "saliva_bar", "spray", "card_chew", "car
 SPRITES = [["hammer", "tongue", "brownie"], ["bread", "carrot", "broccoli"], ["cheese", "bread_b", "bread_c"]]
 
 
+def round_badge(im: Image.Image) -> Image.Image:
+    """The round badge of a square crop: the pixels outside its outer gold ring made transparent."""
+    a = np.array(im.convert("RGBA"))
+    h, w = a.shape[:2]
+    rows = np.nonzero(a[..., 3].max(axis=1) > 128)[0]  # the ring touches the top and bottom of the crop
+    r = (rows.max() - rows.min()) / 2
+    cy = (rows.max() + rows.min()) / 2
+    Y, X = np.ogrid[:h, :w]
+    inside = np.clip(r + 0.5 - np.sqrt((X - r - 1) ** 2 + (Y - cy) ** 2), 0, 1)
+    a[..., 3] = (a[..., 3] * inside).astype(np.uint8)
+    return Image.fromarray(a, "RGBA")
+
 def upscale(img: Image.Image) -> Image.Image:
     with tempfile.TemporaryDirectory() as tmp:
         src, dst = Path(tmp) / "in.png", Path(tmp) / "out.png"
@@ -142,8 +154,8 @@ def main() -> None:
         else:
             save(piece, f"ui_{name}.webp", quality=90, method=6)
         if name == "score":
-            # the gold star badge on its own (results stars)
-            save(piece.crop((0, 0, piece.height, piece.height)), "ui_star.webp", quality=90, method=6)
+            # the gold star badge on its own (results stars), cut round so no bit of the score pill shows
+            save(round_badge(piece.crop((0, 0, piece.height, piece.height))), "ui_star.webp", quality=90, method=6)
 
     # sprites from the prototype (hammer, tongue, foods), each trimmed to its picture
     with zipfile.ZipFile(PROTO_ZIP) as z:

@@ -1,0 +1,317 @@
+{
+ "type": "map",
+ "version": "1.10",
+ "tiledversion": "1.12.2",
+ "orientation": "orthogonal",
+ "renderorder": "right-down",
+ "width": 96,
+ "height": 64,
+ "tilewidth": 16,
+ "tileheight": 16,
+ "infinite": false,
+ "nextlayerid": 6,
+ "nextobjectid": 14,
+ "properties": [
+  {
+   "name": "title",
+   "type": "string",
+   "value": "The Road to the Small Intestine"
+  },
+  {
+   "name": "dialogue",
+   "type": "string",
+   "value": "intestine-road"
+  },
+  {
+   "name": "horizonY",
+   "type": "float",
+   "value": 226.0
+  },
+  {
+   "name": "pathWidthAtBottom",
+   "type": "float",
+   "value": 790.0
+  },
+  {
+   "name": "bodyPerPathWidth",
+   "type": "float",
+   "value": 0.36
+  },
+  {
+   "name": "foreshortenAtBottom",
+   "type": "float",
+   "value": 0.42
+  },
+  {
+   "name": "goal",
+   "type": "string",
+   "value": "exit"
+  }
+ ],
+ "layers": [
+  {
+   "id": 1,
+   "name": "far",
+   "type": "imagelayer",
+   "image": "../../art/world/intestine-road/intestine-road_far.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.0,
+   "parallaxy": 1.0
+  },
+  {
+   "id": 2,
+   "name": "mid",
+   "type": "imagelayer",
+   "image": "../../art/world/intestine-road/intestine-road_mid.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.0,
+   "parallaxy": 1.0
+  },
+  {
+   "id": 3,
+   "name": "near",
+   "type": "imagelayer",
+   "image": "../../art/world/intestine-road/intestine-road_near.png",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "repeatx": false,
+   "repeaty": false,
+   "parallaxx": 1.22,
+   "parallaxy": 1.22,
+   "properties": [
+    {
+     "name": "front",
+     "type": "bool",
+     "value": true
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "walkable",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "color": "#00ffff",
+   "objects": [
+    {
+     "id": 1,
+     "name": "path",
+     "type": "walkable",
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "polygon": [
+      {
+       "x": 520,
+       "y": 1022
+      },
+      {
+       "x": 575,
+       "y": 900
+      },
+      {
+       "x": 655,
+       "y": 800
+      },
+      {
+       "x": 700,
+       "y": 700
+      },
+      {
+       "x": 668,
+       "y": 622
+      },
+      {
+       "x": 600,
+       "y": 556
+      },
+      {
+       "x": 520,
+       "y": 498
+      },
+      {
+       "x": 468,
+       "y": 452
+      },
+      {
+       "x": 480,
+       "y": 420
+      },
+      {
+       "x": 560,
+       "y": 405
+      },
+      {
+       "x": 630,
+       "y": 420
+      },
+      {
+       "x": 730,
+       "y": 462
+      },
+      {
+       "x": 885,
+       "y": 528
+      },
+      {
+       "x": 990,
+       "y": 584
+      },
+      {
+       "x": 1085,
+       "y": 652
+      },
+      {
+       "x": 1160,
+       "y": 760
+      },
+      {
+       "x": 1235,
+       "y": 880
+      },
+      {
+       "x": 1290,
+       "y": 1022
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "spots",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "opacity": 1,
+   "visible": true,
+   "x": 0,
+   "y": 0,
+   "color": "#ffaa00",
+   "objects": [
+    {
+     "id": 10,
+     "name": "spawn",
+     "type": "spawn",
+     "x": 905,
+     "y": 965,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 11,
+     "name": "chyme",
+     "type": "hotspot",
+     "x": 795,
+     "y": 725,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "chyme"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "@label.chymeTrail"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 70.0
+      }
+     ]
+    },
+    {
+     "id": 12,
+     "name": "starch",
+     "type": "hotspot",
+     "x": 795,
+     "y": 575,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "starch"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "@label.remainingStarch"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 55.0
+      }
+     ]
+    },
+    {
+     "id": 13,
+     "name": "exit",
+     "type": "hotspot",
+     "x": 565,
+     "y": 450,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "properties": [
+      {
+       "name": "knot",
+       "type": "string",
+       "value": "exit"
+      },
+      {
+       "name": "label",
+       "type": "string",
+       "value": "@label.intestinePassage"
+      },
+      {
+       "name": "radius",
+       "type": "float",
+       "value": 50.0
+      },
+      {
+       "name": "to",
+       "type": "string",
+       "value": "intestine-gate"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,4 +1,4 @@
-import { t, type Key } from '../i18n/i18n';
+import { t } from '../i18n/i18n';
 import { asset } from '../assetUrl';
 import { MiniGameHud, type HudCard } from './MiniGameHud';
 
@@ -9,6 +9,7 @@ export const CARDS: readonly HudCard[] = [
   { img: 'mouth/ui_card_chew.webp', label: 'mouth.card.chew' },
   { img: 'mouth/ui_card_mix.webp', label: 'mouth.card.mix' },
   { img: 'mouth/ui_card_moisten.webp', label: 'mouth.card.moisten' },
+  { img: 'mouth/ui_card_digest.webp', label: 'mouth.card.digest' },
 ];
 
 export interface Results {
@@ -20,13 +21,8 @@ export interface Results {
   maltose: number;
 }
 
-/** The Mouth mini-game's interface: the shared one, plus the saliva meter and spray. */
+/** The Mouth mini-game's interface: the shared one, plus the saliva meter and spray, and (round 4) amylase's scissors. */
 export class MouthHud extends MiniGameHud {
-  private digestStep: 'bread' | 'select' | 'cut' | 'done' | null = null;
-  private digestProgress = 0;
-  private digestTotal = 0;
-  private digestHint: Key | null = null;
-
   constructor(onPause: () => void, onSpray: () => void, onAmylase: () => void) {
     super(
       CARDS,
@@ -36,20 +32,18 @@ export class MouthHud extends MiniGameHud {
         <div class="mh-water"></div>
       </div>
       <button type="button" class="mh-spray hidden"><img src="${asset('mouth/ui_spray.webp')}" alt="" /></button>
-      <section class="mh-digest" hidden aria-live="polite">
-        <h3></h3><p dir="auto"></p><strong dir="auto"></strong>
-      </section>
-      <button type="button" class="mh-amylase" hidden aria-pressed="false">
-        <img src="${asset('mouth/amylase-scissors.webp')}" alt="" /><span dir="auto"></span>
-      </button>`,
+      <button type="button" class="mh-amylase hidden"><img src="${asset('mouth/amylase_scissors.webp')}" alt="" /></button>`,
     );
-    for (const k of ['saliva', 'water', 'spray', 'digest', 'amylase'] as const) this.el[k] = this.root.querySelector(`.mh-${k}`)!;
+    for (const k of ['saliva', 'water', 'spray', 'amylase'] as const) this.el[k] = this.root.querySelector(`.mh-${k}`)!;
     this.labels();
     this.el.spray.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       onSpray();
     });
-    this.el.amylase.addEventListener('click', onAmylase);
+    this.el.amylase.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      onAmylase();
+    });
   }
 
   protected labels(): void {
@@ -57,41 +51,14 @@ export class MouthHud extends MiniGameHud {
     if (!this.el.saliva) return;
     this.el.saliva.setAttribute('aria-label', t('mouth.aria.saliva'));
     this.el.spray.setAttribute('aria-label', t('mouth.aria.spray'));
-    this.el.amylase.querySelector('span')!.textContent = t('mouth.digest.scissors');
-    this.el.amylase.setAttribute('aria-label', t('mouth.digest.scissors'));
-    if (this.digestStep) {
-      this.el.timer.querySelector('span')!.textContent = t('mouth.digest.timer');
-      this.el.digest.querySelector('h3')!.textContent = t('mouth.digest.title');
-      this.el.digest.querySelector('p')!.textContent = t(this.digestHint ?? `mouth.digest.${this.digestStep}`, { total: this.digestTotal });
-      this.el.digest.querySelector('strong')!.textContent = t(this.digestStep === 'bread' ? 'mouth.digest.breads' : 'mouth.digest.progress', { n: this.digestProgress, total: this.digestTotal });
-    }
+    this.el.amylase.setAttribute('aria-label', t('mouth.aria.amylase'));
   }
 
-  /** The untimed, required objective within mission 3. */
-  showDigest(step: 'bread' | 'select' | 'cut' | 'done', progress: number, total: number): void {
-    this.digestStep = step;
-    this.digestProgress = progress;
-    this.digestTotal = total;
-    this.digestHint = null;
-    this.root.classList.add('is-digesting');
-    this.el.timer.classList.remove('hurry');
-    this.el.digest.hidden = false;
-    this.el.amylase.hidden = step === 'bread';
-    this.el.amylase.setAttribute('aria-pressed', String(step === 'cut' || step === 'done'));
-    (this.el.amylase as HTMLButtonElement).disabled = step === 'done';
-    this.labels();
-  }
-
-  hintDigest(key: Key): void {
-    this.digestHint = key;
-    this.labels();
-  }
-
-  hideDigest(): void {
-    this.digestStep = null;
-    this.root.classList.remove('is-digesting');
-    this.el.digest.hidden = true;
-    this.el.amylase.hidden = true;
+  /** Round 4: salivary amylase's scissors - shown, in hand (taken), and glowing when there is starch to cut. */
+  showAmylase(on: boolean, taken: boolean, wanted = false): void {
+    this.el.amylase.classList.toggle('hidden', !on);
+    this.el.amylase.classList.toggle('taken', taken);
+    this.el.amylase.classList.toggle('glow', on && !taken && wanted);
   }
 
   showSaliva(on: boolean): void {

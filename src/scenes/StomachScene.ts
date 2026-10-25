@@ -17,6 +17,7 @@ interface StomachLayout {
   pylorus: { x: number; y: number };
   inside: [number, number][];
   protein: number;
+  starch: number;
   fat: number;
 }
 
@@ -44,13 +45,11 @@ const ACID_DOSE = 0.13;
 const CHUNK_SIZE = [0, 0, 84, 128];
 const BEAD = 52;
 const BEAD_GAP = 46;
-const PROTEIN_TARGET = 5;
-const PROTEIN_UNITS = 8;
-const PEPTIDE_UNITS = 4;
-const PEPTIDE_SECONDS = 3.2;
-const PROTEIN_LANES = [{ x: 730, y: 325 }, { x: 730, y: 455 }] as const;
+/** Pepsin cuts a protein into pieces of this many units: polypeptides (Dounia's model). */
+const PIECE = 4;
 
 type Phase = 'intro' | 'banner' | 'play' | 'done';
+type ChainKind = 'protein' | 'maltose';
 
 interface Floater {
   x: number;
@@ -62,6 +61,8 @@ interface Floater {
   falling: boolean;
   gone: boolean;
   wobble: number;
+  /** seconds left before it moves on through the pylorus (maltose and fat pass unchanged) */
+  life?: number;
 }
 interface Chunk extends Floater {
   img: Phaser.GameObjects.Image;
@@ -74,12 +75,11 @@ interface Germ extends Floater {
   grow: number;
 }
 interface Chain extends Floater {
+  kind: ChainKind;
   beads: Phaser.GameObjects.Image[];
   links: Phaser.GameObjects.Image[];
-  lane: number;
-  part: -1 | 0 | 1;
-  joint?: Phaser.GameObjects.Arc;
-  label?: Phaser.GameObjects.Text;
+  /** gold rings where pepsin may cut (one per cutting place) */
+  notches: Phaser.GameObjects.Image[];
   angle: number;
   spin: number;
   /** a short protein piece: seconds left before it melts into the chyme (-1: not yet) */
@@ -88,10 +88,8 @@ interface Chain extends Floater {
   /** where each bead is drawn this frame (for cutting) */
   pts: Phaser.Math.Vector2[];
 }
-interface Molecule extends Floater {
-  kind: 'maltose' | 'fat';
+interface Fat extends Floater {
   img: Phaser.GameObjects.Image;
-  homeX: number;
   angle: number;
   shake: number;
 }
@@ -104,9 +102,9 @@ interface Molecule extends Floater {
  *              while a wave squeezes it, big chunks break into smaller ones;
  *   2 Acid   - keep the right acidity (about pH 2) with the acid flask; new food
  *              lowers it; in the zone the acid stops the germs;
- *   3 Pepsin - select the blue scissors and split five eight-unit proteins into
- *              four-unit peptide pieces (maltose and fat stay unchanged, and
- *              pepsin still needs the right acidity);
+ *   3 Pepsin - the player is pepsin: cut the blue protein chains between beads
+ *              (only proteins - starch and fat bounce off - and only with acid);
+ *              short pieces are peptides;
  *   4 Chyme  - the pylorus lets the chyme out in small squirts, at the right moment.
  * The prediction asked at the Stomach Gate is explained at the end.
  */
@@ -134,9 +132,7 @@ export class StomachScene extends Phaser.Scene {
   private chunks: Chunk[] = [];
   private germs: Germ[] = [];
   private chains: Chain[] = [];
-  private molecules: Molecule[] = [];
-  private pepsinSelected = false;
-  private pepsinOvertime = false;
+  private fats: Fat[] = [];
   private spawnIn = 0;
   private spawned = 0;
   private acid = 0.35;
@@ -150,8 +146,9 @@ export class StomachScene extends Phaser.Scene {
   private sparks!: Phaser.GameObjects.Particles.ParticleEmitter;
   private acidDrops!: Phaser.GameObjects.Particles.ParticleEmitter;
   private stats = { score: 0, churned: 0, combo: 0, bestCombo: 0, last: -9, zoneSeconds: 0, germs: 0, cuts: 0, polypeptides: 0, wrong: 0 };
+  /** Round 3: the player has picked up pepsin's blue scissors. */
+  private pepsin = false;
   private said = new Set<string>();
-  private handledKeys = new WeakSet<KeyboardEvent>();
 
   constructor() {
     super('Stomach');
@@ -161,10 +158,10 @@ export class StomachScene extends Phaser.Scene {
     this.load.json('stomach', asset('stomach/stomach.json'));
     this.load.image('st_bg', asset('stomach/background.webp'));
     for (const k of ['scissors', 'germ', 'chyme', 'fat_0', 'fat_1', 'fat_2']) this.load.image(`st_${k}`, asset(`stomach/${k}.webp`));
-    this.load.image('st_maltose', asset('mouth/maltose.webp'));
     if (!this.textures.exists('m_bolus')) this.load.image('m_bolus', asset('mouth/bolus.webp'));
     this.load.once(Phaser.Loader.Events.FILE_COMPLETE + '-json-stomach', (_k: string, _t: string, data: StomachLayout) => {
       for (let i = 0; i < data.protein; i++) this.load.image(`st_protein_${i}`, asset(`stomach/protein_${String(i).padStart(2, '0')}.webp`));
+      for (let i = 0; i < data.starch; i++) this.load.image(`st_starch_${i}`, asset(`stomach/starch_${String(i).padStart(2, '0')}.webp`));
     });
   }
 
@@ -176,11 +173,11 @@ export class StomachScene extends Phaser.Scene {
     Object.assign(this, {
       phase: 'intro', round: 0, paused: false, clock: 0, waveT: 0, waves: false, spawnIn: 0, spawned: 0,
       acid: 0.35, acidOn: false, zoneTick: 0, chyme: 0, pressure: 0, squirts: 0, skill: 1,
-      chunks: [], germs: [], chains: [], molecules: [], slices: [], arrows: [], pepsinSelected: false, pepsinOvertime: false,
+      chunks: [], germs: [], chains: [], fats: [], slices: [], arrows: [],
     });
     this.stats = { score: 0, churned: 0, combo: 0, bestCombo: 0, last: -9, zoneSeconds: 0, germs: 0, cuts: 0, polypeptides: 0, wrong: 0 };
+    this.pepsin = false;
     this.said = new Set();
-    this.handledKeys = new WeakSet();
     this.makeTextures();
 
     // the background, twice: a whole copy behind (seen where the walls close in), and thin strips
@@ -217,25 +214,17 @@ export class StomachScene extends Phaser.Scene {
       scale: { start: 0.55, end: 0.2 }, tint: [0xffe14d, 0xfff17a, 0xffc93d], alpha: { start: 0.95, end: 0 }, emitting: false,
     }).setDepth(2450);
 
-    this.hud = new StomachHud(() => this.togglePause(), () => this.addAcid(), () => this.selectPepsin(), ZONE);
+    this.hud = new StomachHud(() => this.togglePause(), () => this.addAcid(), () => this.takePepsin(), ZONE);
     this.box = new DialogueBox(GameState.storyLeader);
     this.fit();
     this.scale.on('resize', this.fit, this);
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
-    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
-      this.lastCut.set(-1, -1);
-      if (p.wasTouch) this.scissors.setVisible(false); // leave the four-unit products unobstructed
-    });
     this.input.keyboard!.on('keydown', (e: KeyboardEvent) => this.onKey(e));
     const onHide = () => {
       if (document.hidden && this.phase === 'play' && !this.paused) this.togglePause();
     };
     document.addEventListener('visibilitychange', onHide);
-    const offLanguage = I18n.onChange(() => {
-      this.labelPeptides();
-      void document.fonts.ready.then(() => { if (this.sys.isActive()) this.labelPeptides(); });
-    });
     const badge = document.getElementById('profile-btn');
     const hint = document.getElementById('hud');
     const badgeWas = badge?.hidden ?? true;
@@ -245,7 +234,6 @@ export class StomachScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', this.fit, this);
       document.removeEventListener('visibilitychange', onHide);
-      offLanguage();
       this.input.setDefaultCursor('default');
       this.hud.destroy();
       this.box.destroy();
@@ -270,7 +258,8 @@ export class StomachScene extends Phaser.Scene {
         this.acid = 0.4;
         this.hud.showAcid(true);
       }
-      if (r >= 2) this.meltAll(); // clear the previous lesson before molecules or chyme arrive
+      if (r === 2) this.meltAll(true); // the chunks are churned by now: in come the molecules
+      if (r === 3) this.meltAll(false);
       await this.hud.banner(r, t(`stomach.round${r + 1}.title` as Key), t(`stomach.round${r + 1}.text` as Key));
       if (r === 1) {
         this.react('amylase', 'happy', t('stomach.say.amylase'), 3200);
@@ -308,12 +297,13 @@ export class StomachScene extends Phaser.Scene {
       this.cameras.main.fadeOut(900, 11, 21, 51);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
         void Sound.music();
-        // the chyme goes on to the small intestine: the next chapter, still to come
+        // the chyme goes on to the small intestine: the trio follows it
+        GameState.place = 'intestine-road';
         this.scene.start('Chapter', {
           title: t('chapter.3'),
-          subtitle: t('chapter.smallIntestine'),
-          note: t('chapter.toBeContinued'),
-          back: { scene: 'Stomach', label: t('chapter.playAgain') },
+          subtitle: t('chapter.roadToSmallIntestine'),
+          artwork: 'smallIntestineRoad',
+          next: { scene: 'World', data: { place: 'intestine-road' } },
         });
       });
     });
@@ -328,16 +318,10 @@ export class StomachScene extends Phaser.Scene {
     this.timeLeft = seconds;
     this.hud.setTime(seconds);
     this.phase = 'play';
-    this.scissors.setVisible(false);
-    this.input.setDefaultCursor('default');
-    if (this.round === 2) {
-      this.pepsinSelected = false;
-      this.pepsinOvertime = false;
-      this.lastCut.set(-1, -1);
-      this.hud.showPepsin(0, PROTEIN_TARGET, false, false);
-      this.addMolecule('maltose');
-      this.addMolecule('fat');
-    }
+    const pepsin = this.round === 2 && this.pepsin;
+    this.scissors.setVisible(pepsin);
+    this.input.setDefaultCursor(pepsin ? 'none' : 'default');
+    this.hud.showPepsin(this.round === 2, this.pepsin);
     return new Promise((resolve) => {
       const check = () => {
         if (this.phase === 'play') this.time.delayedCall(100, check);
@@ -348,11 +332,10 @@ export class StomachScene extends Phaser.Scene {
   }
 
   private endRound(): void {
-    if (this.round === 2 && (this.stats.cuts < PROTEIN_TARGET || this.chains.some((c) => !c.gone))) return;
     this.phase = 'banner';
+    this.hud.showPepsin(false, false);
     this.scissors.setVisible(false);
     this.input.setDefaultCursor('default');
-    this.hud.hidePepsin();
     Sound.tone(660, 990, 0.25, 0.07, 'triangle');
   }
 
@@ -364,29 +347,21 @@ export class StomachScene extends Phaser.Scene {
     for (const c of this.chunks) this.moveChunk(c, dt);
     for (const g of this.germs) this.moveGerm(g, dt);
     for (const c of this.chains) this.moveChain(c, dt);
-    for (const m of this.molecules) this.moveMolecule(m, dt);
+    for (const f of this.fats) this.moveFat(f, dt);
+    this.spread(dt);
     this.chunks = this.chunks.filter((c) => !c.gone);
     this.germs = this.germs.filter((g) => !g.gone);
     this.chains = this.chains.filter((c) => !c.gone);
-    this.molecules = this.molecules.filter((m) => !m.gone);
+    this.fats = this.fats.filter((f) => !f.gone);
     this.pool.setAlpha(Math.min(0.75, this.chyme / 100) * (0.85 + 0.15 * Math.sin(this.clock * 2)));
     this.scissors.x += (this.scissorsAim.x - this.scissors.x) * Math.min(1, dt * 20);
     this.scissors.y += (this.scissorsAim.y - this.scissors.y) * Math.min(1, dt * 20);
     this.scissors.setTint(this.inZone() ? 0xffffff : 0x8a93a8);
     if (this.phase !== 'play') return;
 
-    if (this.timeLeft > 0) {
-      this.timeLeft = Math.max(0, this.timeLeft - dt);
-      this.hud.setTime(this.timeLeft);
-    }
-    if (this.timeLeft <= 0) {
-      if (this.round !== 2) return this.endRound();
-      if (!this.pepsinOvertime) {
-        this.pepsinOvertime = true;
-        this.hud.showPepsin(this.stats.cuts, PROTEIN_TARGET, this.pepsinSelected, true);
-      }
-    }
-    if (this.round === 2 && this.stats.cuts === PROTEIN_TARGET && this.chains.length === 0) return this.endRound();
+    this.timeLeft -= dt;
+    this.hud.setTime(this.timeLeft);
+    if (this.timeLeft <= 0) return this.endRound();
     if (this.acidOn) this.acidStep(dt);
     if (this.round <= 1) this.serveChunks(dt);
     if (this.round === 2) this.serveMolecules(dt);
@@ -562,15 +537,16 @@ export class StomachScene extends Phaser.Scene {
     this.tweens.add({ targets: c.img, scale: c.img.scale * 0.2, alpha: 0, y: c.img.y + 60, duration: 500, ease: 'Sine.easeIn', onComplete: () => c.img.destroy() });
   }
 
-  /** Clear the previous lesson's objects; only active-play germ stops earn points. */
-  private meltAll(): void {
+  /** Between rounds: what is left is churned too (and germs are stopped, if the acid allows). */
+  private meltAll(germsToo: boolean): void {
     for (const c of this.chunks) this.melt(c);
-    for (const g of this.germs) this.zapGerm(g, false);
+    if (germsToo && this.inZone()) for (const g of this.germs) this.zapGerm(g, false);
     for (const ch of this.chains) this.meltChain(ch, false);
-    for (const m of this.molecules) {
-      m.gone = true;
-      this.tweens.add({ targets: m.img, alpha: 0, scale: m.img.scale * 0.3, duration: 500, onComplete: () => m.img.destroy() });
+    for (const f of this.fats) {
+      f.gone = true;
+      this.tweens.add({ targets: f.img, alpha: 0, scale: f.img.scale * 0.3, duration: 500, onComplete: () => f.img.destroy() });
     }
+    if (!germsToo) for (const g of this.germs) this.zapGerm(g, false);
   }
 
   // ---- round 2: acid and germs ----------------------------------------------------------
@@ -663,50 +639,115 @@ export class StomachScene extends Phaser.Scene {
 
   private serveMolecules(dt: number): void {
     this.spawnIn -= dt;
-    if (this.spawnIn > 0 || this.spawned >= PROTEIN_TARGET) return;
-    // Each lane remains reserved while its two completed pieces are on display.
-    // Maltose and fat have their own places, so they cannot block the next protein.
-    const lane = PROTEIN_LANES.findIndex((_p, i) => !this.chains.some((c) => !c.gone && c.lane === i));
-    if (lane < 0) return;
-    this.spawnIn = 1.8 / this.skill;
+    const proteins = this.chains.filter((c) => !c.gone && c.kind === 'protein' && c.peptide < 0).length;
+    const others = this.chains.filter((c) => !c.gone && c.kind === 'maltose').length + this.fats.filter((f) => !f.gone).length;
+    if (this.spawnIn > 0 || (proteins >= 3 && others >= 2)) return;
+    this.spawnIn = 1.5 / this.skill;
     this.spawned++;
-    this.addChain(lane);
+    // many long proteins, among the maltose (from the mouth) and fat; each kind shows up early on
+    const n = this.spawned;
+    const r = Math.random();
+    let pick: ChainKind | 'fat' = n === 1 || n === 3 ? 'protein' : n === 2 ? 'maltose' : n === 4 ? 'fat' : r < 0.6 ? 'protein' : r < 0.85 ? 'maltose' : 'fat';
+    if (n > 4 && (proteins < 2 || others >= 2)) pick = 'protein';
+    if (n > 4 && proteins >= 3) pick = r < 0.6 ? 'maltose' : 'fat';
+    const x = this.layout.cardia.x + Phaser.Math.Between(-40, 40);
+    const landY = Phaser.Math.Between(300, 540);
+    if (pick === 'fat') this.addFat(x, landY);
+    else this.addChain(pick, pick === 'protein' ? (Math.random() < 0.8 ? 2 : 3) * PIECE : 2, x, landY);
   }
 
-  private addChain(lane: number): void {
-    const beads = Array.from({ length: PROTEIN_UNITS }, () =>
-      this.add.image(this.layout.cardia.x, 0, `st_protein_${Phaser.Math.Between(0, this.layout.protein - 1)}`).setDisplaySize(BEAD, BEAD),
+  /** Floating molecules push each other gently apart (no pile of chains to dig through). */
+  private spread(dt: number): void {
+    const items: { f: Floater; r: number }[] = [
+      ...this.chains.filter((c) => !c.gone && !c.falling).map((c) => ({ f: c as Floater, r: 30 + c.beads.length * 9 })),
+      ...this.fats.filter((f) => !f.gone && !f.falling).map((f) => ({ f: f as Floater, r: 80 })),
+    ];
+    for (let a = 0; a < items.length; a++) {
+      for (let b = a + 1; b < items.length; b++) {
+        const A = items[a];
+        const B = items[b];
+        const dx = B.f.x - A.f.x;
+        const dy = (B.f.y - A.f.y) * 1.6; // chains lie flat: keep them apart in height more
+        const d = Math.hypot(dx, dy) || 1;
+        const overlap = A.r + B.r - d;
+        if (overlap <= 0) continue;
+        const push = Math.min(overlap, 220 * dt) * 0.5;
+        const nx = dx / d;
+        const ny = dy / d;
+        for (const [it, sgn] of [[A, -1], [B, 1]] as const) {
+          const x = it.f.x + nx * push * sgn;
+          const y = it.f.y + ny * push * sgn * 0.6;
+          if (this.inside.contains(x, y)) {
+            it.f.x = x;
+            it.f.y = y;
+          }
+        }
+      }
+    }
+  }
+
+  /** Where pepsin may cut a protein: between its groups of four (link i joins beads i and i + 1). */
+  private cutsAt(c: Chain): number[] {
+    if (c.kind !== 'protein' || c.peptide >= 0) return [];
+    const at: number[] = [];
+    for (let i = PIECE - 1; i < c.beads.length - 1; i += PIECE) at.push(i);
+    return at;
+  }
+
+  private addChain(kind: ChainKind, n: number, x: number, landY: number): Chain {
+    const art = kind === 'protein' ? 'protein' : 'starch'; // maltose: two of the starch units
+    const count = kind === 'protein' ? this.layout.protein : this.layout.starch;
+    const beads = Array.from({ length: n }, () =>
+      this.add.image(x, 0, `st_${art}_${Phaser.Math.Between(0, count - 1)}`).setDisplaySize(BEAD, BEAD),
     );
     const c: Chain = {
-      ...this.floater(this.layout.cardia.x, PROTEIN_LANES[lane].y), beads, links: [], lane, part: 0,
-      angle: 0, spin: Phaser.Math.FloatBetween(-0.1, 0.1), peptide: -1, shake: 0, pts: [],
-      joint: this.add.circle(0, 0, 13, 0x4aa7ef).setStrokeStyle(3, 0xffe29a).setVisible(false),
+      ...this.floater(x, landY), kind, beads, links: [], notches: [], angle: Phaser.Math.FloatBetween(-0.3, 0.3), spin: Phaser.Math.FloatBetween(-0.15, 0.15),
+      peptide: -1, shake: 0, pts: [],
     };
     this.relink(c);
     this.chains.push(c);
+    return c;
   }
 
   /** (Re)make the little links between a chain's beads. */
   private relink(c: Chain): void {
-    for (const l of c.links) l.destroy();
+    for (const l of [...c.links, ...c.notches]) l.destroy();
     c.links = [];
-    for (let i = 0; i < c.beads.length - 1; i++) c.links.push(this.add.image(0, 0, 'st_link_p'));
+    for (let i = 0; i < c.beads.length - 1; i++) c.links.push(this.add.image(0, 0, c.kind === 'protein' ? 'st_link_p' : 'st_link_s'));
+    // pepsin's cutting places: a gold link and a pulsing gold ring
+    const at = this.cutsAt(c);
+    for (const i of at) c.links[i].setTint(0xffe29a);
+    c.notches = at.map(() => this.add.image(0, 0, 'st_ring').setDisplaySize(40, 40).setTint(0xffd36b).setBlendMode(Phaser.BlendModes.ADD));
+  }
+
+  /** Maltose and fat pass the stomach unchanged: after a while they go on through the pylorus. */
+  private passOn(f: Floater, parts: Phaser.GameObjects.Image[], dt: number): boolean {
+    if (f.falling) return false;
+    f.life ??= Phaser.Math.FloatBetween(7, 10);
+    f.life -= dt;
+    if (f.life > 0) return false;
+    f.gone = true;
+    const { pylorus } = this.layout;
+    this.tweens.add({
+      targets: parts, x: pylorus.x + 30, y: pylorus.y + 10, scale: 0.15, alpha: 0, duration: 1400, ease: 'Sine.easeIn',
+      onComplete: () => parts.forEach((o) => o.destroy()),
+    });
+    if (!this.said.has('passOn')) this.once('passOn', 'fox', 'surprised', t('stomach.say.passOn'), 2800);
+    return true;
   }
 
   private moveChain(c: Chain, dt: number): void {
     if (c.gone) return;
-    const home = PROTEIN_LANES[c.lane];
-    if (c.falling) {
-      this.float(c, dt);
-      c.x += (home.x - c.x) * Math.min(1, dt * 4);
-    } else {
-      c.wobble += dt;
-      c.x += (home.x + c.part * 108 + Math.sin(c.wobble * 0.7) * 12 - c.x) * Math.min(1, dt * 4);
-      c.y += (home.y + Math.sin(c.wobble * 0.9) * 7 - c.y) * Math.min(1, dt * 4);
-    }
+    if (c.kind === 'maltose' && this.phase === 'play' && this.passOn(c, [...c.beads, ...c.links], dt)) return;
+    this.float(c, dt, 2);
     c.shake = Math.max(0, c.shake - dt * 3);
     const n = c.beads.length;
-    const sway = c.angle + Math.sin(this.clock * (0.35 + Math.abs(c.spin)) + c.wobble) * 0.1;
+    const sway = c.angle + Math.sin(this.clock * (0.35 + Math.abs(c.spin)) + c.wobble) * 0.35;
+    // the whole chain stays inside (not only its middle): clear of the pylorus and of the step cards
+    if (!c.falling) {
+      const half = ((n - 1) / 2) * BEAD_GAP * Math.abs(Math.cos(sway)) + BEAD / 2;
+      c.x = Phaser.Math.Clamp(c.x, 250 + half, 1120 - half);
+    }
     const dir = new Phaser.Math.Vector2(Math.cos(sway), Math.sin(sway));
     const nrm = new Phaser.Math.Vector2(-dir.y, dir.x);
     c.pts = [];
@@ -723,19 +764,20 @@ export class StomachScene extends Phaser.Scene {
       const b = c.pts[i + 1];
       l.setPosition((a.x + b.x) / 2, (a.y + b.y) / 2).setRotation(Math.atan2(b.y - a.y, b.x - a.x)).setDepth(c.y + 1);
       l.setDisplaySize(Math.max(8, Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y) - BEAD * 0.55), 13);
-      l.setTint(c.peptide < 0 && i === PEPTIDE_UNITS - 1 ? 0xffe29a : 0xffffff);
     });
-    if (c.joint) {
-      const a = c.pts[PEPTIDE_UNITS - 1];
-      const b = c.pts[PEPTIDE_UNITS];
-      c.joint.setVisible(!c.falling).setPosition((a.x + b.x) / 2, (a.y + b.y) / 2)
-        .setDepth(c.y + 5).setScale(1 + Math.sin(this.clock * 6) * 0.12);
-    }
-    c.label?.setPosition(c.x, this.squeezedY(c.x, c.y) + 46);
+    this.cutsAt(c).forEach((i, k) => {
+      const ring = c.notches[k];
+      if (!ring) return;
+      const pulse = 0.5 + 0.5 * Math.sin(this.clock * 6 + k);
+      ring.setPosition(c.links[i].x, c.links[i].y).setDepth(c.y + 3).setDisplaySize(34 + 10 * pulse, 34 + 10 * pulse)
+        .setAlpha(this.pepsin ? 0.55 + 0.45 * pulse : 0.3);
+    });
     if (c.peptide >= 0) {
       // a peptide: ready, it glows and melts into the chyme
       c.peptide -= dt;
-      for (const b of c.beads) b.setTint(0xcff4ff);
+      c.y -= dt * 18; // a finished polypeptide rises, shining, then melts into the chyme
+      const shine = 0.5 + 0.5 * Math.sin(this.clock * 10);
+      for (const b of c.beads) b.setTint(Phaser.Display.Color.GetColor(200 + 55 * shine, 245, 255));
       if (c.peptide <= 0) this.meltChain(c, true);
     }
   }
@@ -743,68 +785,73 @@ export class StomachScene extends Phaser.Scene {
   private meltChain(c: Chain, scored: boolean): void {
     if (c.gone) return;
     c.gone = true;
-    c.joint?.destroy();
-    c.label?.destroy();
     if (scored) {
       this.chyme = Math.min(100, this.chyme + 3);
-      this.addScore(8, c.x, c.y - 40, t('stomach.pop.peptide'));
+      this.addScore(4, c.x, c.y - 40, t('stomach.pop.peptide'));
     }
+    for (const n of c.notches) n.destroy();
     this.tweens.add({ targets: [...c.beads, ...c.links], alpha: 0, scale: 0.2, y: '+=50', duration: 600, ease: 'Sine.easeIn', onComplete: () => [...c.beads, ...c.links].forEach((o) => o.destroy()) });
   }
 
-  private addMolecule(kind: Molecule['kind']): void {
-    const home = kind === 'maltose' ? { x: 420, y: 375 } : { x: 1030, y: 405 };
-    const img = this.add.image(this.layout.cardia.x, 0, kind === 'maltose' ? 'st_maltose' : `st_fat_${Phaser.Math.Between(0, this.layout.fat - 1)}`);
-    const width = kind === 'maltose' ? 140 : 125;
-    img.setDisplaySize(width, width * img.height / img.width);
-    this.molecules.push({ ...this.floater(this.layout.cardia.x, home.y), kind, img, homeX: home.x, angle: Phaser.Math.FloatBetween(-12, 12), shake: 0 });
-    if (kind === 'fat') this.once('lipase', 'lipase', 'happy', t('stomach.say.lipase'), 3000);
+  private addFat(x: number, landY: number): void {
+    const img = this.add.image(x, 0, `st_fat_${Phaser.Math.Between(0, this.layout.fat - 1)}`);
+    img.setDisplaySize(150, 150 * (img.height / img.width));
+    this.fats.push({ ...this.floater(x, landY), img, angle: Phaser.Math.FloatBetween(-20, 20), shake: 0 });
+    this.once('lipase', 'lipase', 'happy', t('stomach.say.lipase'), 3000);
   }
 
-  private moveMolecule(m: Molecule, dt: number): void {
-    if (m.gone) return;
-    if (m.falling) {
-      this.float(m, dt);
-      m.x += (m.homeX - m.x) * Math.min(1, dt * 4);
-    } else {
-      m.wobble += dt;
-      m.x = m.homeX + Math.sin(m.wobble * 0.7) * 15;
-      m.y = m.landY + Math.sin(m.wobble * 0.8) * 12;
-    }
-    m.shake = Math.max(0, m.shake - dt * 3);
-    m.img.setPosition(m.x + Math.sin(this.clock * 40) * m.shake * 8, this.squeezedY(m.x, m.y)).setDepth(m.y)
-      .setAngle(m.angle + Math.sin(this.clock * 1.3 + m.wobble) * 8);
+  private moveFat(f: Fat, dt: number): void {
+    if (f.gone) return;
+    if (this.phase === 'play' && this.passOn(f, [f.img], dt)) return;
+    this.float(f, dt, 2);
+    f.shake = Math.max(0, f.shake - dt * 3);
+    f.img.setPosition(f.x + Math.sin(this.clock * 40) * f.shake * 8, this.squeezedY(f.x, f.y)).setDepth(f.y)
+      .setAngle(f.angle + Math.sin(this.clock * 1.3 + f.wobble) * 8);
   }
 
-  private selectPepsin(): void {
-    if (this.phase !== 'play' || this.round !== 2 || this.paused || this.stats.cuts >= PROTEIN_TARGET) return;
-    this.pepsinSelected = true;
+  /** Round 3: pick up pepsin's blue scissors (the button, or key 2). */
+  private takePepsin(): void {
+    if (this.phase !== 'play' || this.round !== 2 || this.paused || this.pepsin) return;
+    this.pepsin = true;
+    this.hud.showPepsin(true, true);
     this.scissors.setVisible(true);
     this.input.setDefaultCursor('none');
-    this.lastCut.set(-1, -1);
-    this.hud.showPepsin(this.stats.cuts, PROTEIN_TARGET, true, this.pepsinOvertime);
+    Sound.tone(900, 1600, 0.15, 0.06, 'triangle');
+    this.sparks.explode(12, this.scissorsAim.x, this.scissorsAim.y);
   }
 
-  /** Only the middle bond is a cut site: eight units become two intact groups of four. */
+  /** A snip at a point, or along a swipe from `from`: cut the protein link it crosses. */
   private snip(x: number, y: number, from?: Phaser.Math.Vector2): boolean {
-    if (this.phase !== 'play' || this.round !== 2 || this.paused || this.stats.cuts >= PROTEIN_TARGET) return false;
-    if (!this.pepsinSelected) {
-      this.hud.hintPepsin('stomach.pepsin.select');
+    if (!this.pepsin) {
+      // the scissors are still in their place: point at them
+      if (!from) {
+        this.popText(t('stomach.pop.takeScissors'), x, y - 30, '#cfe7ff');
+        this.once('takeScissors', 'pepsin', 'happy', t('stomach.say.pepsinHi'), 2800);
+      }
       return false;
     }
     const seg = from ? new Phaser.Geom.Line(from.x, from.y, x, y) : null;
     const near = (px: number, py: number, r: number) =>
       seg ? Phaser.Geom.Intersects.LineToCircle(seg, new Phaser.Geom.Circle(px, py, r)) : Phaser.Math.Distance.Between(x, y, px, py) < r;
-    // Prefer the visible cut site to nearby beads, especially on touch screens.
+    // the nearest link of a whole protein chain
+    let best: { c: Chain; i: number; d: number } | null = null;
     for (const c of this.chains) {
-      if (c.gone || c.falling || c.peptide >= 0 || c.pts.length !== PROTEIN_UNITS) continue;
-      const a = c.pts[PEPTIDE_UNITS - 1];
-      const b = c.pts[PEPTIDE_UNITS];
-      const mx = (a.x + b.x) / 2;
-      const my = (a.y + b.y) / 2;
-      if (!near(mx, my, 32)) continue;
+      if (c.gone || c.falling) continue;
+      for (let i = 0; i < c.pts.length - 1; i++) {
+        const mx = (c.pts[i].x + c.pts[i + 1].x) / 2;
+        const my = (c.pts[i].y + c.pts[i + 1].y) / 2;
+        const d = Phaser.Math.Distance.Between(x, y, mx, my);
+        if (near(mx, my, seg ? 20 : c.kind === 'protein' ? 40 : 30) && (!best || d < best.d)) best = { c, i, d };
+      }
+    }
+    if (best) {
+      const { c } = best;
+      if (c.kind === 'maltose') return this.wrongCut(c, x, y, 'maltose');
+      if (c.peptide >= 0) {
+        if (!seg) this.popText(t('stomach.pop.short'), x, y - 30, '#cff4ff');
+        return false;
+      }
       if (!this.inZone()) {
-        this.hud.hintPepsin('stomach.pepsin.acid');
         if (!seg || !this.said.has('noAcidPop')) {
           this.popText(t('stomach.pop.noAcid'), x, y - 30, '#ffd6a8');
           this.said.add('noAcidPop');
@@ -813,25 +860,30 @@ export class StomachScene extends Phaser.Scene {
         this.once('noAcidSay', 'pepsin', 'happy', t('stomach.say.noAcid'));
         return false;
       }
-      this.cutChain(c, mx, my);
+      // pepsin cuts between groups of four: the nearest such place on this chain
+      const at = this.cutsAt(c);
+      if (!at.length) return false;
+      const i = at.reduce((b, k) => (Math.abs(k - best!.i) < Math.abs(b - best!.i) ? k : b), at[0]);
+      const mx = (c.pts[i].x + c.pts[i + 1].x) / 2;
+      const my = (c.pts[i].y + c.pts[i + 1].y) / 2;
+      this.cutChain(c, i, mx, my);
       return true;
     }
     if (seg) return false;
-    // Finished pieces stay intact; other protein bonds teach the four-unit target.
+    // a tap on maltose or a fat: pepsin can't cut those
     for (const c of this.chains) {
-      if (c.gone || c.falling || !c.pts.some((p) => near(p.x, p.y, BEAD * 0.7))) continue;
-      this.hud.hintPepsin(c.peptide >= 0 ? 'stomach.pepsin.short' : 'stomach.pepsin.four');
-      return false;
+      if (c.kind === 'maltose' && c.pts.some((p) => Phaser.Math.Distance.Between(x, y, p.x, p.y) < BEAD * 0.6)) return this.wrongCut(c, x, y, 'maltose');
     }
-    const molecule = this.molecules.find((m) => !m.gone && !m.falling && near(m.img.x, m.img.y, m.img.displayWidth * 0.48));
-    if (molecule) {
-      molecule.shake = 1;
-      return this.wrongCut(x, y, molecule.kind);
+    const fat = this.fats.find((f) => !f.gone && Phaser.Math.Distance.Between(x, y, f.img.x, f.img.y) < f.img.displayWidth * 0.45);
+    if (fat) {
+      fat.shake = 1;
+      return this.wrongCut(null, x, y, 'fat');
     }
     return false;
   }
 
-  private wrongCut(x: number, y: number, what: Molecule['kind']): boolean {
+  private wrongCut(c: Chain | null, x: number, y: number, what: 'maltose' | 'fat'): boolean {
+    if (c) c.shake = 1;
     if (this.clock - this.stats.last < 0.25) return false; // one swipe is one mistake
     this.stats.last = this.clock;
     this.stats.wrong++;
@@ -842,56 +894,43 @@ export class StomachScene extends Phaser.Scene {
     Sound.tone(300, 180, 0.18, 0.07, 'square');
     Sound.tone(600, 900, 0.08, 0.04, 'triangle', 0.1); // boing
     this.popText(t('stomach.pop.notProtein'), x, y - 30, '#ffd6e8');
-    this.hud.hintPepsin('stomach.pepsin.onlyProtein');
     if (what === 'maltose') this.once('maltose', 'amylase', 'happy', t('stomach.say.maltose'), 2800);
     return false;
   }
 
-  private cutChain(c: Chain, x: number, y: number): void {
-    if (c.gone || c.peptide >= 0 || c.beads.length !== PROTEIN_UNITS) return;
+  private cutChain(c: Chain, i: number, x: number, y: number): void {
     this.snipAnim();
     Sound.tone(2200, 1400, 0.06, 0.06, 'square');
     Sound.noise(0.06, 4000, 1, 0.08);
     this.sparks.explode(8, x, y);
     this.stats.cuts++;
-    this.stats.polypeptides += 2;
     const streak = this.clock - this.stats.last < STREAK_GAP;
     this.stats.combo = streak ? this.stats.combo + 1 : 1;
     this.stats.bestCombo = Math.max(this.stats.bestCombo, this.stats.combo);
     this.stats.last = this.clock;
-    this.addScore(35 + Math.min(4, this.stats.combo - 1), x, y - 30, t('stomach.pop.cut'));
+    this.addScore(5 + Math.min(3, this.stats.combo - 1), x, y - 30, t('stomach.pop.cut'));
     // the chain becomes two: each half keeps its beads and drifts apart
-    const left = c.beads.slice(0, PEPTIDE_UNITS);
-    const right = c.beads.slice(PEPTIDE_UNITS);
-    for (const l of c.links) l.destroy();
+    const left = c.beads.slice(0, i + 1);
+    const right = c.beads.slice(i + 1);
+    for (const l of [...c.links, ...c.notches]) l.destroy();
     c.gone = true;
-    c.joint?.destroy();
     const dir = new Phaser.Math.Vector2(Math.cos(c.angle), Math.sin(c.angle));
     for (const [part, sign] of [[left, -1], [right, 1]] as const) {
       const n = part.length;
       const cx = part.reduce((s, b) => s + b.x, 0) / n;
       const cy = part.reduce((s, b) => s + b.y, 0) / n;
       const piece: Chain = {
-        ...c, beads: [...part], links: [], x: cx, y: cy, vx: c.vx + dir.x * sign * 70, vy: c.vy + dir.y * sign * 70 - 10,
-        gone: false, falling: false, pts: [], shake: 0.6, spin: c.spin + sign * 0.2, peptide: PEPTIDE_SECONDS, part: sign,
-        joint: undefined,
-        label: this.add.text(cx, cy + 46, '', { fontSize: '22px', fontStyle: '700', color: '#ffe29a', stroke: '#13234d', strokeThickness: 4 }).setOrigin(0.5).setDepth(2800),
+        ...c, beads: [...part], links: [], notches: [], x: cx, y: cy, vx: c.vx + dir.x * sign * 70, vy: c.vy + dir.y * sign * 70 - 10,
+        gone: false, falling: false, pts: [], shake: 0.6, spin: c.spin + sign * 0.2, peptide: n <= PIECE ? 2.6 : -1,
       };
       this.relink(piece);
       this.chains.push(piece);
+      if (n <= PIECE) {
+        // a polypeptide: four units, ready for the small intestine
+        this.stats.polypeptides++;
+        this.once('peptide', this.buddy(), 'happy', t('stomach.say.peptide'), 2800);
+      }
     }
-    this.labelPeptides();
-    this.hud.showPepsin(this.stats.cuts, PROTEIN_TARGET, true, this.pepsinOvertime);
-    this.once('peptide', this.buddy(), 'happy', t('stomach.say.peptide'), 2800);
-    if (this.stats.cuts === PROTEIN_TARGET) {
-      this.scissors.setVisible(false);
-      this.input.setDefaultCursor('default');
-      Sound.chime();
-    }
-  }
-
-  private labelPeptides(): void {
-    for (const c of this.chains) c.label?.setRTL(I18n.rtl).setStyle({ fontFamily: I18n.font }).setText(t('stomach.pepsin.polypeptide'));
   }
 
   private snipAnim(): void {
@@ -948,11 +987,8 @@ export class StomachScene extends Phaser.Scene {
   // ---- input, pause, view, helpers -------------------------------------------------------
 
   private onMove(p: Phaser.Input.Pointer): void {
-    if (this.paused) return;
     this.scissorsAim.set(p.worldX, p.worldY);
-    if (this.phase !== 'play' || this.round !== 2) return;
-    if (this.pepsinSelected && this.stats.cuts < PROTEIN_TARGET) this.scissors.setVisible(!p.wasTouch || p.isDown);
-    if (!p.isDown) return;
+    if (this.phase !== 'play' || this.paused || this.round !== 2 || !p.isDown) return;
     // a swipe cuts what it crosses
     const here = new Phaser.Math.Vector2(p.worldX, p.worldY);
     if (this.lastCut.x >= 0 && Phaser.Math.Distance.BetweenPoints(here, this.lastCut) > 6) {
@@ -969,7 +1005,6 @@ export class StomachScene extends Phaser.Scene {
     this.lastCut.set(x, y);
     if (this.round <= 1) return this.tapChunk(x, y);
     if (this.round === 2) {
-      this.scissors.setVisible(this.pepsinSelected && this.stats.cuts < PROTEIN_TARGET);
       this.scissors.setPosition(x, y);
       this.snip(x, y);
       return;
@@ -992,15 +1027,17 @@ export class StomachScene extends Phaser.Scene {
   }
 
   private onKey(e: KeyboardEvent): void {
-    // Phaser can deliver a queued native event again when new keys arrive between frames.
-    if (this.handledKeys.has(e)) return;
-    this.handledKeys.add(e);
-    if (e.repeat && (e.key === 'Escape' || e.key.toLowerCase() === 'p')) return;
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') return this.togglePause();
     if (this.phase !== 'play' || this.paused) return;
     if (e.key === 'a' || e.key === 'A') return this.addAcid();
+    if (e.key === '2') return this.takePepsin();
     if (this.round === 2) {
-      if (e.code === 'Digit2' || e.code === 'Numpad2') return this.selectPepsin();
+      const dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+      if (dir) {
+        e.preventDefault();
+        this.scissorsAim.set(this.scissorsAim.x + dir[0] * 36, this.scissorsAim.y + dir[1] * 36);
+        return;
+      }
     }
     if (e.code !== 'Space' && e.key !== 'Enter') return;
     e.preventDefault();
@@ -1008,20 +1045,13 @@ export class StomachScene extends Phaser.Scene {
       // squeeze the chunk the wave is on
       const c = this.chunks.filter((q) => !q.gone && !q.falling && this.inBand(q.x)).sort((a, b) => Math.abs(a.x - this.waveX) - Math.abs(b.x - this.waveX))[0];
       if (c) this.crush(c);
-    } else if (this.round === 2) {
-      const c = this.chains.find((c) => !c.gone && !c.falling && c.peptide < 0 && c.pts.length === PROTEIN_UNITS);
-      if (!c) return;
-      const a = c.pts[PEPTIDE_UNITS - 1];
-      const b = c.pts[PEPTIDE_UNITS];
-      this.scissorsAim.set((a.x + b.x) / 2, (a.y + b.y) / 2);
-      this.snip(this.scissorsAim.x, this.scissorsAim.y);
-    } else this.squirt();
+    } else if (this.round === 2) this.snip(this.scissorsAim.x, this.scissorsAim.y);
+    else this.squirt();
   }
 
   private togglePause(): void {
     if (this.phase !== 'play' && !this.paused) return;
     this.paused = !this.paused;
-    this.lastCut.set(-1, -1);
     this.tweens.pauseAll();
     this.time.paused = this.paused;
     if (this.paused) this.hud.pauseCard(() => this.togglePause());

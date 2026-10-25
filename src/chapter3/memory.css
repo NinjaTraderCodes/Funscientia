@@ -1,0 +1,123 @@
+/* The Kingdom Memory Challenge: Dounia's "Enzyme Match" cards in her hall (Memory_Game_*). */
+.revision-game .c3-main { container-type: size; overflow: hidden; padding: 0; }
+.mg-board, .mg-quiz { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(6px, 2.2cqh, 18px); }
+
+/* the navy plaque with its gold title, as on Dounia's screen */
+.mg-title {
+  position: relative; margin: 0; max-width: 94%; padding: .3em 1.9em .34em;
+  font-family: Georgia, serif; font-weight: 700; font-size: clamp(16px, 4.6cqh, 30px); line-height: 1.15; text-align: center;
+  color: #ffe9a8; text-shadow: 0 2px 0 #6b440c;
+  border: 3px solid #eec463; border-radius: 999px;
+  background: linear-gradient(180deg, #1f4f97, #0f2a5a);
+  box-shadow: 0 4px 0 #9a6519, 0 10px 22px #3b240a55, inset 0 2px 0 #ffffff30;
+}
+.mg-title::before, .mg-title::after { content: '★'; position: absolute; top: 50%; transform: translateY(-52%); color: #f5cd5e; font-size: .72em; text-shadow: none; }
+.mg-title::before { left: .75em; }
+.mg-title::after { right: .75em; }
+html.lang-ar .mg-title { font-family: 'Baloo Bhaijaan 2', Tahoma, sans-serif; font-weight: 800; }
+
+/* the board: square cards, 4 x 3 (6 x 2 on a wide, short screen; 3 x 4 when tall) */
+.mg-grid {
+  --gap: clamp(6px, 1.6cqh, 16px); --title: clamp(30px, 8cqh, 52px);
+  --w: min(100cqw, 100cqw - 40px);
+  --c: min(calc((var(--w) - 3 * var(--gap)) / 4), calc((100cqh - var(--title) - 2.2cqh - 2 * var(--gap)) / 3));
+  display: grid; grid-template-columns: repeat(4, var(--c)); grid-auto-rows: var(--c); gap: var(--gap);
+  perspective: 1100px;
+}
+@container (aspect-ratio > 2.3) {
+  .mg-grid { --c: min(calc((var(--w) - 5 * var(--gap)) / 6), calc((100cqh - var(--title) - 2.2cqh - var(--gap)) / 2)); grid-template-columns: repeat(6, var(--c)); }
+}
+@container (aspect-ratio < .85) {
+  .mg-grid { --c: min(calc((var(--w) - 2 * var(--gap)) / 3), calc((100cqh - var(--title) - 2.2cqh - 3 * var(--gap)) / 4)); grid-template-columns: repeat(3, var(--c)); }
+}
+.mg-card {
+  position: relative; width: 100%; height: 100%; padding: 0; border: 0; background: none;
+  container-type: inline-size; border-radius: 12%;
+  animation: mg-deal 520ms cubic-bezier(.2, .9, .3, 1.25) backwards; animation-delay: calc(var(--i) * 45ms);
+}
+.mg-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 460ms cubic-bezier(.3, 1.35, .5, 1); }
+.mg-card.flipped .mg-inner { transform: rotateY(180deg); }
+.mg-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 12%; filter: drop-shadow(0 5px 7px #4a2c0c55); }
+.mg-face img { width: 100%; height: 100%; display: block; }
+.mg-front { transform: rotateY(180deg); }
+.mg-card:not(.flipped):hover .mg-inner { transform: translateY(-4%) rotateZ(-1.5deg); }
+.mg-card:not(.flipped):active .mg-inner { transform: scale(.95); transition-duration: 90ms; }
+.mg-card:focus-visible { outline: 3px solid #fff; outline-offset: 3px; box-shadow: 0 0 0 7px #2e5c9e; }
+.mg-card:disabled { cursor: default; }
+
+/* the name, written in gold on the navy card */
+.mg-word {
+  position: absolute; inset: 15% 13%; display: grid; place-items: center; text-align: center;
+  font-family: Georgia, serif; font-weight: 700; font-size: calc(var(--fs, 15) * 1cqi); line-height: 1.05; overflow-wrap: normal; word-break: keep-all; hyphens: none;
+  background: linear-gradient(180deg, #fff6c2 8%, #ffd54d 45%, #e89a1c 78%, #ffe17a); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 .9cqi 0 #6a3f08) drop-shadow(0 1.6cqi 1.6cqi #00000066);
+}
+html.lang-ar .mg-word { font-family: 'Baloo Bhaijaan 2', Tahoma, sans-serif; font-weight: 800; line-height: 1.2; }
+
+/* a pair found: it pops and keeps a soft golden glow; a wrong pair shakes before turning back */
+.mg-card.matched .mg-front { animation: mg-pop 620ms 360ms ease-out both; }
+.mg-card.matched .mg-front::after {
+  content: ''; position: absolute; inset: -6%; border-radius: 16%; pointer-events: none;
+  background: radial-gradient(circle, #fff6c900 55%, #ffe58f88 70%, #ffd34f00 78%);
+  animation: mg-glow 2.4s 900ms ease-in-out infinite alternate both;
+}
+.mg-card.miss .mg-inner { animation: mg-shake 420ms 520ms ease-in-out; }
+@keyframes mg-deal { from { opacity: 0; transform: translateY(40%) scale(.6) rotate(-8deg); } }
+@keyframes mg-pop { 0% { transform: rotateY(180deg) scale(1); } 40% { transform: rotateY(180deg) scale(1.13); filter: drop-shadow(0 0 14px #ffe17a) brightness(1.15); } 100% { transform: rotateY(180deg) scale(1); } }
+@keyframes mg-glow { from { opacity: .35; } to { opacity: 1; } }
+@keyframes mg-shake { 0%, 100% { transform: rotateY(180deg); } 20%, 60% { transform: rotateY(180deg) translateX(5%); } 40%, 80% { transform: rotateY(180deg) translateX(-5%); } }
+
+/* the questions: the same picture cards, to tap (several can be chosen) */
+.mg-choices {
+  --gap: clamp(6px, 1.6cqh, 16px); --title: clamp(30px, 14cqh, 80px); --rows: 2; --cols: 3;
+  --c: min(calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols)), calc((100cqh - var(--title) - 2.2cqh - (var(--rows) - 1) * var(--gap)) / var(--rows) / 1.2));
+  display: grid; grid-template-columns: repeat(var(--cols), var(--c)); gap: var(--gap);
+}
+.mg-choices.n8 { --cols: 4; }
+@container (aspect-ratio > 3.2) { .mg-choices.n6 { --cols: 6; --rows: 1; } .mg-choices.n8 { --cols: 8; --rows: 1; } }
+@container (aspect-ratio < .85) { .mg-choices.n6, .mg-choices.n8 { --cols: 2; --rows: 4; } }
+.mg-choice {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 3%; padding: 0; border: 0; background: none; color: #fff7de;
+  container-type: inline-size; transition: transform 160ms ease;
+}
+.mg-pic { position: relative; width: 100%; aspect-ratio: 1; filter: drop-shadow(0 5px 7px #4a2c0c55); transition: filter 160ms ease; }
+.mg-pic img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mg-pic img.mg-sprite { inset: 14%; width: 72%; height: 72%; }
+.mg-label {
+  max-width: 100%; padding: .2em .7em; font-size: max(11px, 8.2cqi); line-height: 1.15; font-weight: 700; text-align: center;
+  border: 2px solid #e8bd5c; border-radius: 999px; background: linear-gradient(180deg, #1f4f97, #10306a); box-shadow: 0 2px 0 #9a6519;
+}
+.mg-choice:hover:not(:disabled) { transform: translateY(-3%); }
+.mg-choice:active:not(:disabled) { transform: scale(.95); }
+.mg-choice.on { transform: translateY(-4%); }
+.mg-choice.on .mg-pic { filter: drop-shadow(0 0 3px #fff4c4) drop-shadow(0 0 12px #ffcf4a) drop-shadow(0 6px 8px #4a2c0c66); }
+.mg-choice.on .mg-label { background: linear-gradient(180deg, #ffe07a, #e9a729); color: #3b2604; border-color: #fff1b8; }
+.mg-tick {
+  position: absolute; top: -4%; inset-inline-end: -4%; width: 24%; aspect-ratio: 1; display: grid; place-items: center;
+  font-size: 15cqi; line-height: 1; color: #fff; border: 2px solid #fff3c4; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe68a, #e09a1c); box-shadow: 0 3px 6px #0005;
+  transform: scale(0); transition: transform 220ms cubic-bezier(.3, 1.6, .5, 1);
+}
+.mg-tick.on { transform: scale(1); }
+.mg-choice.right .mg-pic { animation: mg-right 700ms ease-out; }
+@keyframes mg-right { 40% { transform: scale(1.1); filter: drop-shadow(0 0 18px #ffe17a); } }
+.mg-choice:disabled { cursor: default; }
+
+/* the fibre question: its card on one side, three answers as gold-edged plaques */
+.mg-quiz.single { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); align-items: center; justify-items: center; column-gap: clamp(12px, 3cqw, 40px); }
+.mg-quiz.single .mg-title { grid-column: 1 / -1; }
+.mg-example { position: relative; width: min(30cqw, 62cqh); aspect-ratio: 1; filter: drop-shadow(0 6px 8px #4a2c0c55); }
+.mg-example img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mg-example img.mg-sprite { inset: 14%; width: 72%; height: 72%; }
+.mg-quiz.single .mg-choices { width: min(100%, 620px); grid-template-columns: 1fr; gap: clamp(8px, 2.4cqh, 18px); }
+.mg-choice.text { flex-direction: row; justify-content: center; min-height: clamp(44px, 14cqh, 84px); padding: .5em 2.4em; color: #24406a; font-size: clamp(14px, 3.6cqh, 21px); font-weight: 700;
+  border: 3px solid #e3b45a; border-radius: 22px; background: linear-gradient(180deg, #fffaf0, #f7ead0); box-shadow: 0 4px 0 #b07a26, 0 8px 16px #4a2c0c33; container-type: normal; }
+.mg-choice.text .mg-label { font-size: inherit; padding: 0; border: 0; background: none; box-shadow: none; color: inherit; }
+.mg-choice.text.on { background: linear-gradient(180deg, #fff3c4, #ffd969); border-color: #fff; box-shadow: 0 4px 0 #b07a26, 0 0 18px #ffcf4a; }
+.mg-choice.text .mg-tick { top: 50%; inset-inline-end: .7em; width: 1.6em; font-size: 1em; transform: translateY(-50%) scale(0); }
+.mg-choice.text .mg-tick.on { transform: translateY(-50%) scale(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-inner { transition-duration: 1ms; }
+  .mg-card, .mg-card .mg-front, .mg-card .mg-inner, .mg-card .mg-front::after, .mg-choice .mg-pic { animation: none !important; }
+}

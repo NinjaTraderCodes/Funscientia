@@ -3,7 +3,7 @@ import { asset } from '../assetUrl';
 import { GameState, type Avatar } from '../state/GameState';
 
 /** Who can speak in a mini-game's quick reactions: the trio, the guardians, the enzymes. */
-export type Who = Avatar | 'tooth' | 'stomach' | 'pepsin' | 'amylase' | 'lipase';
+export type Who = Avatar | 'tooth' | 'stomach' | 'intestine' | 'pepsin' | 'amylase' | 'lipase' | 'bile';
 export type Mood = 'happy' | 'surprised' | 'thinking' | 'cheering';
 
 /** A step card: its picture and its name (a phrasebook key). */
@@ -13,7 +13,7 @@ export interface HudCard {
 }
 
 /** The enzymes have one portrait each (no moods). */
-const ONE_FACE = new Set<Who>(['pepsin', 'amylase', 'lipase']);
+const ONE_FACE = new Set<Who>(['pepsin', 'amylase', 'lipase', 'bile']);
 const NAME_OF = (who: Who) => (who === 'walid' || who === 'nesma' || who === 'fox' ? GameState.nameOf(who) : t(`name.${who}` as Key));
 
 /**
@@ -79,6 +79,13 @@ export class MiniGameHud {
     span.classList.remove('bump');
     void span.offsetWidth; // restart the little bump
     span.classList.add('bump');
+  }
+
+  /** Keep the current reaction in sync when its scene changes language. */
+  retextReaction(text: string): void {
+    const who = this.el.react.dataset.who as Who | undefined;
+    if (who) this.el.react.querySelector('b')!.textContent = NAME_OF(who);
+    this.el.react.querySelector('p')!.textContent = text;
   }
 
   /** Which job is being done: earlier cards are done, later ones still locked. */
@@ -183,6 +190,8 @@ export class MiniGameHud {
   get paused(): boolean {
     return !!this.root.querySelector('.mh-paused');
   }
+
+  dismissPause(): void { this.root.querySelector('.mh-paused')?.remove(); }
 
   destroy(): void {
     window.clearTimeout(this.reactTimer);

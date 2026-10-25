@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
 import './styles.css';
+import './chapter3/styles.css';
+import './chapter3/intestine.css';
+import './chapter3/memory.css';
 import { IntroPlayer, wantsFullHD } from './intro/IntroPlayer';
 import { asset } from './assetUrl';
 import { GameState } from './state/GameState';
@@ -14,6 +17,8 @@ import { OverlookScene } from './scenes/OverlookScene';
 import { WorldScene } from './scenes/WorldScene';
 import { MouthScene } from './scenes/MouthScene';
 import { StomachScene } from './scenes/StomachScene';
+import { SmallIntestineScene } from './scenes/IntestineScene';
+import { RevisionScene } from './scenes/RevisionScene';
 
 // Render at device resolution (capped at 2x for performance) and let CSS scale
 // the canvas back down, so the art stays sharp on phones and retina screens.
@@ -28,7 +33,7 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.NONE, width: w, height: h, zoom: 1 / dpr },
   render: { antialias: true, roundPixels: false },
   input: { activePointers: 2 },
-  scene: [BootScene, OverlookScene, ChapterScene, WorldScene, MouthScene, StomachScene],
+  scene: [BootScene, OverlookScene, ChapterScene, WorldScene, MouthScene, StomachScene, SmallIntestineScene, RevisionScene],
 });
 
 let resizeTimer = 0;
@@ -177,6 +182,11 @@ const RESUME: Record<string, { title: Key; subtitle: Key; artwork: ChapterArtwor
   mouth: { title: 'chapter.1', subtitle: 'chapter.mouthMission', artwork: 'mouthMission', scene: 'Mouth' },
   esophagus: { title: 'chapter.2', subtitle: 'chapter.esophagus', artwork: 'esophagus', scene: 'World', data: { place: 'esophagus' } },
   stomach: { title: 'chapter.2', subtitle: 'chapter.stomachMission', artwork: 'stomachMission', scene: 'Stomach' },
+  'intestine-road': { title: 'chapter.3', subtitle: 'chapter.roadToSmallIntestine', artwork: 'smallIntestineRoad', scene: 'World', data: { place: 'intestine-road' } },
+  'intestine-gate': { title: 'chapter.3', subtitle: 'chapter.roadToSmallIntestine', artwork: 'smallIntestineRoad', scene: 'World', data: { place: 'intestine-gate' } },
+  'small-intestine': { title: 'chapter.3', subtitle: 'chapter.smallIntestineMission', artwork: 'smallIntestineMission', scene: 'SmallIntestine' },
+  revision: { title: 'chapter.3', subtitle: 'chapter.revision', artwork: 'revision', scene: 'Revision' },
+  complete: { title: 'chapter.3', subtitle: 'c3.end.title', artwork: 'revision', scene: 'Revision' },
 };
 const continueBtn = document.getElementById('continue-btn') as HTMLButtonElement;
 continueBtn.addEventListener('click', async (e) => {
@@ -200,6 +210,25 @@ continueBtn.addEventListener('click', async (e) => {
 });
 game.events.on(GAME_EVENTS.resumed, enterGame);
 game.events.on(GAME_EVENTS.profileChanged, showProfile);
+
+// Local review links. Vite removes this branch from the production bundle.
+if (import.meta.env.DEV) {
+  const preview = new URLSearchParams(location.search).get('preview');
+  const destinations: Record<string, { scene: string; data?: object }> = {
+    'intestine-road': { scene: 'World', data: { place: 'intestine-road' } },
+    'intestine-gate': { scene: 'World', data: { place: 'intestine-gate' } },
+    intestine: { scene: 'SmallIntestine' },
+    revision: { scene: 'Revision' },
+  };
+  if (preview && destinations[preview]) void gameReady.then(async () => {
+    await intro.bypass();
+    if (!GameState.hero) GameState.hero = 'walid';
+    enterGame();
+    const to = destinations[preview];
+    const replay = new URLSearchParams(location.search).get('replay') === '1' && to.scene !== 'World';
+    game.scene.getScene('Overlook').scene.start(to.scene, replay ? { replay: true } : to.data);
+  });
+}
 profileBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 profileBtn.addEventListener('click', (e) => {
   e.stopPropagation();

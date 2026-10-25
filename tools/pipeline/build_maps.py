@@ -11,6 +11,7 @@ Edit the map in Tiled (free), then run:  python tools/pipeline/build_maps.py
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 from PIL import Image
@@ -28,6 +29,8 @@ def props(obj: dict) -> dict:
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     for tmj in sorted(SRC.glob("*.tmj")):
+        if len(sys.argv) > 1 and tmj.stem not in sys.argv[1:]:
+            continue
         m = json.loads(tmj.read_text(encoding="utf-8"))
         name = tmj.stem
         # every image layer ships as its own webp; Tiled's parallaxx sets how fast it scrolls

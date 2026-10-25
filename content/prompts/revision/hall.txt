@@ -1,0 +1,13 @@
+Use case: precise-object-edit. The attached image is the EDIT TARGET: the "Enzyme Match" memory-game screen of our children's educational game.
+
+Remove ONLY the game interface, and paint the empty hall behind it:
+- remove all twelve cards in the middle (the navy castle card backs and the cream cards with scissors, the stomach and the words);
+- remove the top-centre "ENZYME MATCH" title banner;
+- remove the round back-arrow button and the three stars at the top left;
+- remove the stopwatch and the "00:42" timer at the top right.
+
+Where they were, continue the hall naturally: the shiny cream-and-gold marble floor with its warm reflections, the golden arched gate in the middle with the soft pink coiled small intestine glowing inside it (now fully visible), the cream marble columns and arches, the two navy banners with golden intestine emblems, and the potted plants.
+
+Keep everything else exactly as it is: the same camera, the same soft warm lighting, the same polished 3D animated-film style, the same colours. The centre of the picture should be calm and slightly softer (a little out of focus is fine), because the game will place cards over it.
+
+No cards, no buttons, no UI, no characters, NO TEXT or letters anywhere. Landscape image, 1536 x 1024 pixels.

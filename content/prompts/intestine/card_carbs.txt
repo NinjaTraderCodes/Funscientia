@@ -1,0 +1,8 @@
+Use the attached card (image 1) as the exact style and layout reference: the same cream rounded-rectangle card, the same thin gold frame with a soft inner border, the same orange-gold hexagonal number badge in the top-left corner, the same glossy soft 3D cartoon icon style, the same proportions (about 760 x 614).
+
+Make a NEW card in exactly that style:
+- The number in the badge is 3.
+- The icon in the middle: a short chain of purple hexagon beads with cute faces (like the attached image 2) being cut into pairs by a pair of glossy purple zigzag-bladed scissors with golden handles (like image 2), and below it one pair splitting into two single purple hexagons.
+- No text anywhere except the single digit in the badge. No words, no letters.
+- Plain white background around the card (it will be cut out).
+- Landscape image, 1536 x 1024 pixels, the card centred and filling about 85% of it.

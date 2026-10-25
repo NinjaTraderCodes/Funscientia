@@ -9,7 +9,7 @@ VAR predict_saliva = ""
 #speaker:tooth #mood:happy
 Welcome inside the Mouth, [player]! Every meal starts its journey right here.
 #speaker:tooth #mood:thinking
-Your mission: chew, mix, then moisten the food and digest its starch with salivary amylase. Three jobs, one at a time!
+Your mission: get this food ready to swallow. Chew it, mix it, moisten it, and start digesting its starch. Four jobs, one at a time - just like a real mouth.
 #speaker:buddy #mood:surprised
 Wait... WE are the mouth now?
 #speaker:fox #mood:happy
@@ -41,7 +41,7 @@ So that's what it's for!
     Now, what does saliva really do to bread?
 }
 #speaker:tooth #mood:thinking
-You selected salivary amylase and cut the long starch chains inside the bread into pairs. Each pair is maltose, a sugar made of two glucose units. That is how saliva starts digesting starch!
+With salivary amylase, you cut the long starch chains of the bread into pairs. Each pair is maltose, a sugar made of two glucose units. That is how saliva starts digesting starch!
 #speaker:leader #mood:surprised
 So that's why bread tastes sweet when we chew it for a long time!
 #speaker:tooth #mood:happy

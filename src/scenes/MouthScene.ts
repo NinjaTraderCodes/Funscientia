@@ -8,7 +8,6 @@ import { MouthHud, type Mood, type Who } from '../ui/MouthHud';
 import { toast } from '../ui/Toast';
 import { GameState, type Avatar } from '../state/GameState';
 import { discoveryText } from '../state/discoveries';
-import { StarchTask, STARCH_BREAD_COUNT, STARCH_PAIR_COUNT } from '../world/StarchTask';
 
 /** mouth.json (tools/pipeline/pack_mouth.py), in pixels of the 1280x853 background. */
 interface MouthLayout {
@@ -34,9 +33,15 @@ const MENU: FoodKind[][] = [
   ['bread', 'bread', 'bread_c', 'brownie', 'bread_b', 'cheese'],
   ['bread', 'bread_b', 'bread_c', 'cheese', 'broccoli', 'carrot', 'brownie'],
   ['bread', 'bread_b', 'bread_c', 'cheese', 'broccoli', 'carrot', 'brownie', 'bread'],
+  // round 4: starchy foods only - each one holds a starch chain
+  ['bread', 'bread_b', 'bread_c', 'brownie', 'bread', 'bread_c'],
 ];
-const ROUND_SECONDS = [20, 20, 25];
-const STARS = [400, 1100]; // points for two and for three stars (everyone who finishes gets one); tuned with paced test players
+const ROUND_SECONDS = [20, 20, 25, 30];
+// round 4: starch chains of six units; salivary amylase cuts them into pairs (maltose)
+const STARCH_UNITS = 6;
+const BEAD = 46;
+const BEAD_GAP = 41;
+const STARS = [600, 1500]; // points for two and for three stars (everyone who finishes gets one); tuned with paced test players
 const STREAK_GAP = 1.5; // seconds between chews that still count as one crunch streak
 
 interface Food {
@@ -53,14 +58,33 @@ interface Food {
   squash: number;
 }
 
-type Phase = 'intro' | 'banner' | 'play' | 'bread' | 'starch' | 'swallow' | 'done';
+type Phase = 'intro' | 'banner' | 'play' | 'swallow' | 'done';
+
+/** Round 4: a starch chain freed from a bread (or, once cut, a maltose pair). */
+interface Chain {
+  beads: Phaser.GameObjects.Image[];
+  links: Phaser.GameObjects.Image[];
+  /** gold rings where amylase may cut */
+  notches: Phaser.GameObjects.Image[];
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  angle: number;
+  wobble: number;
+  /** seconds before an uncut chain sinks back (a pair: before it slides down the throat) */
+  life: number;
+  shake: number;
+  gone: boolean;
+  pts: Phaser.Math.Vector2[];
+}
 
 /**
  * The Mouth mini-game (after Dounia's "Mouth Hammer" prototype): the child is
  * the mouth. Three rounds introduce its jobs one at a time - 1 Chew (tap the
  * foods with the tooth-hammer), 2 Mix (the tongue joins: it mixes food for a
- * bonus, but don't bite it), 3 Moisten (play the full timed round, then reveal
- * starch in five breads and cut all five chains with amylase) - then the food ball is swallowed and the gate's prediction
+ * bonus, but don't bite it), 3 Moisten (keep the saliva up; moist bread turns
+ * sweet - amylase) - then the food ball is swallowed and the gate's prediction
  * is explained. The friends react as it goes; the difficulty follows the player.
  */
 export class MouthScene extends Phaser.Scene {
@@ -84,9 +108,13 @@ export class MouthScene extends Phaser.Scene {
   private emitters = new Map<number, Phaser.GameObjects.Particles.ParticleEmitter>();
   private sugar!: Phaser.GameObjects.Particles.ParticleEmitter;
   private drops!: Phaser.GameObjects.Particles.ParticleEmitter;
-  private stats = { score: 0, chewed: 0, combo: 0, bestCombo: 0, bites: 0, maltose: 0, lastChew: -9 };
-  private starchTask?: StarchTask;
-  private lastStarchCut?: Phaser.Math.Vector2;
+  private stats = { score: 0, chewed: 0, combo: 0, bestCombo: 0, bites: 0, sweets: 0, maltose: 0, lastChew: -9 };
+  /** round 4: the starch chains, and whether amylase's scissors are in hand */
+  private chains: Chain[] = [];
+  private scissorsOn = false;
+  private scissors!: Phaser.GameObjects.Image;
+  private lastCut = new Phaser.Math.Vector2(-1, -1);
+  private noChainsFor = 0;
   private said = new Set<string>();
   private clock = 0;
 
@@ -97,10 +125,9 @@ export class MouthScene extends Phaser.Scene {
   preload(): void {
     this.load.json('mouth', asset('mouth/mouth.json'));
     this.load.image('mouth_bg', asset('mouth/background.webp'));
-    for (const k of [...Object.keys(FOODS), 'hammer', 'tongue', 'tongue_ouch', 'bolus']) this.load.image(`m_${k}`, asset(`mouth/${k}.webp`));
-    this.load.image('m_amylase_scissors', asset('mouth/amylase-scissors.webp'));
-    this.load.image('m_maltose', asset('mouth/maltose.webp'));
-    for (let i = 0; i < 2; i++) this.load.image(`m_starch_${i}`, asset(`mouth/starch_${i}.webp`));
+    for (const k of [...Object.keys(FOODS), 'hammer', 'tongue', 'tongue_ouch', 'bolus', 'amylase_scissors']) this.load.image(`m_${k}`, asset(`mouth/${k}.webp`));
+    // the purple starch units (Dounia's, from the Stomach's art)
+    for (let i = 0; i < 7; i++) this.load.image(`st_starch_${i}`, asset(`stomach/starch_${String(i).padStart(2, '0')}.webp`));
   }
 
   create(): void {
@@ -108,9 +135,10 @@ export class MouthScene extends Phaser.Scene {
     GameState.place = 'mouth'; // continue from here (online save)
     const [W, H] = this.layout.size;
     Object.assign(this, { phase: 'intro', round: 0, saliva: 85, skill: 1, paused: false, tongueState: 'home', foods: [], clock: 0 });
-    this.stats = { score: 0, chewed: 0, combo: 0, bestCombo: 0, bites: 0, maltose: 0, lastChew: -9 };
-    this.starchTask = undefined;
-    this.lastStarchCut = undefined;
+    this.stats = { score: 0, chewed: 0, combo: 0, bestCombo: 0, bites: 0, sweets: 0, maltose: 0, lastChew: -9 };
+    this.chains = [];
+    this.scissorsOn = false;
+    this.noChainsFor = 0;
     this.said = new Set();
     this.emitters = new Map();
 
@@ -123,6 +151,8 @@ export class MouthScene extends Phaser.Scene {
     this.tongue = this.add.image(this.layout.ring.x, this.layout.ring.y, 'm_tongue').setVisible(false).setDepth(2000);
     this.hammer = this.add.image(640, 500, 'm_hammer').setOrigin(0.72, 0.42).setDepth(3000).setVisible(false);
     this.hammer.setDisplaySize(150, 150 * (this.hammer.height / this.hammer.width));
+    this.scissors = this.add.image(640, 500, 'm_amylase_scissors').setOrigin(0.35, 0.3).setDepth(3000).setVisible(false);
+    this.scissors.setDisplaySize(110, 110 * (this.scissors.height / this.scissors.width));
     this.sugar = this.add.particles(0, 0, 'm_star', {
       speed: { min: 60, max: 200 }, angle: { min: 200, max: 340 }, lifespan: 900, gravityY: 120,
       scale: { start: 0.9, end: 0 }, rotate: { start: 0, end: 180 }, tint: [0xffe29a, 0xfff6e3, 0xffd36b],
@@ -133,24 +163,21 @@ export class MouthScene extends Phaser.Scene {
       scale: { start: 0.7, end: 0.2 }, tint: [0x8cefff, 0xbcffff, 0x49d9ff], alpha: { start: 0.95, end: 0 }, emitting: false,
     }).setDepth(2500);
 
-    this.hud = new MouthHud(() => this.togglePause(), () => this.spray(), () => this.selectAmylase());
+    this.hud = new MouthHud(() => this.togglePause(), () => this.spray(), () => this.toggleScissors());
     this.box = new DialogueBox(GameState.storyLeader);
     this.fit();
     this.scale.on('resize', this.fit, this);
-    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (this.paused) return;
-      if (this.phase === 'starch') {
-        this.starchTask?.aimAt(p.worldX, p.worldY);
-        if (p.isDown) this.starchTask?.snip(p.worldX, p.worldY, this.lastStarchCut);
-        this.lastStarchCut = new Phaser.Math.Vector2(p.worldX, p.worldY);
-      } else this.hammerAim.set(p.worldX, p.worldY);
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      this.lastCut.set(p.worldX, p.worldY);
+      if (this.scissorsOn) return this.snip(p.worldX, p.worldY);
+      this.strike(p.worldX, p.worldY, true);
     });
-    this.input.on('pointerup', () => { this.lastStarchCut = undefined; });
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.strike(p.worldX, p.worldY, true));
+    this.input.on('pointerup', () => this.lastCut.set(-1, -1));
     const kb = this.input.keyboard!;
     kb.on('keydown', (e: KeyboardEvent) => this.onKey(e));
     const onHide = () => {
-      if (document.hidden && ['play', 'bread', 'starch'].includes(this.phase) && !this.paused) this.togglePause();
+      if (document.hidden && this.phase === 'play' && !this.paused) this.togglePause();
     };
     document.addEventListener('visibilitychange', onHide);
     // the profile badge and the walking hint do not belong in here
@@ -165,8 +192,6 @@ export class MouthScene extends Phaser.Scene {
       document.removeEventListener('visibilitychange', onHide);
       this.hud.destroy();
       this.box.destroy();
-      this.starchTask?.destroy();
-      this.starchTask = undefined;
       if (badge) badge.hidden = badgeWas;
     });
     this.cameras.main.fadeIn(700, 11, 21, 51);
@@ -180,8 +205,9 @@ export class MouthScene extends Phaser.Scene {
       { title: () => t('mouth.round1.title'), text: () => t('mouth.round1.text') },
       { title: () => t('mouth.round2.title'), text: () => t('mouth.round2.text') },
       { title: () => t('mouth.round3.title'), text: () => t('mouth.round3.text') },
+      { title: () => t('mouth.round4.title'), text: () => t('mouth.round4.text') },
     ];
-    for (let r = 0; r < 3; r++) {
+    for (let r = 0; r < 4; r++) {
       this.round = r;
       this.hud.setRound(r);
       this.phase = 'banner';
@@ -190,11 +216,21 @@ export class MouthScene extends Phaser.Scene {
         this.hud.showSaliva(true);
         this.hud.setSaliva(this.saliva, false);
       }
+      if (r === 3) {
+        // the food is moist now: the saliva's enzyme gets to work
+        this.hud.showSaliva(false);
+        this.tongueHome(true);
+        this.hud.showAmylase(true, false);
+      }
       await this.hud.banner(r, rounds[r].title(), rounds[r].text());
       if (r === 1) this.react(this.storyKid(), 'surprised', t('mouth.say.tongueComes'));
+      if (r === 3) this.react('amylase', 'happy', t('mouth.say.amylaseHi'), 3200);
       await this.playRound(ROUND_SECONDS[r]);
     }
-    this.hud.setRound(3);
+    this.hud.setRound(4);
+    this.hud.showAmylase(false, false);
+    this.setScissors(false);
+    this.meltChains();
     await this.swallow();
     await this.talk('swallow_fact');
     const stars = 1 + (this.stats.score >= STARS[0] ? 1 : 0) + (this.stats.score >= STARS[1] ? 1 : 0);
@@ -240,7 +276,7 @@ export class MouthScene extends Phaser.Scene {
     this.tongueIn = 1.6;
     return new Promise((resolve) => {
       const check = () => {
-        if (['play', 'bread', 'starch'].includes(this.phase)) this.time.delayedCall(100, check);
+        if (this.phase === 'play') this.time.delayedCall(100, check);
         else resolve();
       };
       check();
@@ -250,34 +286,31 @@ export class MouthScene extends Phaser.Scene {
   update(_t: number, deltaMs: number): void {
     if (this.paused) return;
     const dt = Math.min(deltaMs, 50) / 1000;
-    if (this.phase === 'starch') {
-      this.starchTask?.update(dt);
-      return;
-    }
     this.clock += dt;
     // the hammer follows the pointer (or the keyboard's hole)
     this.hammer.x += (this.hammerAim.x - this.hammer.x) * Math.min(1, dt * 18);
     this.hammer.y += (this.hammerAim.y - this.hammer.y) * Math.min(1, dt * 18);
     for (const f of this.foods) this.drawFood(f, dt);
+    for (const c of this.chains) this.moveChain(c, dt);
+    this.chains = this.chains.filter((c) => !c.gone);
+    this.scissors.x += (this.hammerAim.x - this.scissors.x) * Math.min(1, dt * 20);
+    this.scissors.y += (this.hammerAim.y - this.scissors.y) * Math.min(1, dt * 20);
     if (this.phase !== 'play') return;
 
     this.timeLeft -= dt;
     this.hud.setTime(this.timeLeft);
     if (this.timeLeft <= 0) {
-      this.timeLeft = 0;
-      if (this.round === 2) {
-        this.prepareStarchBread();
-        return;
-      }
       this.phase = 'banner';
       this.hammer.setVisible(false);
+      this.setScissors(false);
       this.tongueHome(true);
       Sound.tone(660, 990, 0.25, 0.07, 'triangle');
       return;
     }
     this.serveFood(dt);
-    if (this.round >= 1) this.tongueStep(dt);
-    if (this.round >= 2) this.salivaStep(dt);
+    if (this.round === 1 || this.round === 2) this.tongueStep(dt);
+    if (this.round === 2) this.salivaStep(dt);
+    if (this.round === 3) this.scissorsStep(dt);
   }
 
   // ---- food -------------------------------------------------------------------
@@ -351,20 +384,10 @@ export class MouthScene extends Phaser.Scene {
 
   private strike(x: number, y: number, fromPointer: boolean): void {
     if (this.phase === 'swallow') return this.tapThroat(x, y);
-    if (this.paused) return;
-    if (this.phase === 'starch') {
-      this.lastStarchCut = new Phaser.Math.Vector2(x, y);
-      this.starchTask?.snip(x, y);
-      return;
-    }
-    if (this.phase !== 'play' && this.phase !== 'bread') return;
+    if (this.phase !== 'play' || this.paused) return;
     if (fromPointer) this.hammerAim.set(x, y);
     this.hammer.setPosition(x, y);
     this.tweens.add({ targets: this.hammer, angle: { from: -38, to: 0 }, duration: 140, ease: 'Back.easeOut' });
-    if (this.phase === 'bread') {
-      this.starchTask?.hitBread(x, y);
-      return;
-    }
 
     // the tongue? (it is quick - and it does not like being bitten)
     if ((this.tongueState === 'out' || this.tongueState === 'mixing') && Phaser.Math.Distance.Between(x, y, this.tongue.x, this.tongue.y) < 70) {
@@ -379,6 +402,7 @@ export class MouthScene extends Phaser.Scene {
     Sound.noise(0.05, 300, 1, 0.08);
     if (!f || !f.kind) return;
     const def = FOODS[f.kind];
+    if (this.round === 3) return this.freeStarch(f);
     const dry = this.round >= 2 && this.saliva < 30;
     f.bites++;
     f.squash = 1;
@@ -411,6 +435,14 @@ export class MouthScene extends Phaser.Scene {
       points += 5;
       label = t('mouth.pop.assist');
     }
+    if (this.round === 2 && def.starch && this.saliva >= 50) {
+      points += 3;
+      this.stats.sweets++;
+      this.sugar.explode(14, f.img.x, f.img.y - f.img.displayHeight * 0.5);
+      Sound.tone(1320, 1760, 0.18, 0.045);
+      label = t('mouth.pop.sweet');
+      this.once('sweet', this.storyKid(), 'surprised', t('mouth.say.sweet'));
+    }
     this.addScore(points, f, label);
     if (this.stats.chewed === 1) this.once('first', this.buddy(), 'happy', t('mouth.say.firstChew'));
     if (this.stats.combo === 4) this.react(GameState.hero ?? 'walid', 'cheering', t('mouth.say.machine'));
@@ -441,15 +473,8 @@ export class MouthScene extends Phaser.Scene {
     e.explode(n, f.img.x, f.img.y - f.img.displayHeight * 0.45);
   }
 
-  private clearFoods(immediate = false): void {
-    for (const f of this.foods) {
-      if (immediate) {
-        f.state = 'empty';
-        f.kind = null;
-        f.pop = 0;
-        f.img.setVisible(false);
-      } else if (f.state !== 'empty') f.state = 'sinking';
-    }
+  private clearFoods(): void {
+    for (const f of this.foods) if (f.state !== 'empty') f.state = 'sinking';
   }
 
   // ---- the tongue -------------------------------------------------------------
@@ -550,49 +575,215 @@ export class MouthScene extends Phaser.Scene {
     this.once('spray', this.storyKid(), 'happy', t('mouth.say.spray'));
   }
 
-  // ---- starch: after the full moistening round ------------------------------------
+  // ---- round 4: starch, and salivary amylase's scissors -------------------------------
 
-  /** Five persistent breads start a separate, untimed task after moistening ends. */
-  private prepareStarchBread(): void {
-    this.clearFoods(true);
-    this.tongueHome(true);
-    this.phase = 'bread';
-    this.hud.showSaliva(false);
-    this.hud.showDigest('bread', 0, STARCH_BREAD_COUNT);
-    this.lastStarchCut = undefined;
-    this.starchTask = new StarchTask(this, (revealed) => {
-      this.stats.chewed++;
-      this.stats.score += 10;
-      this.hud.setScore(this.stats.score);
-      this.hud.showDigest('bread', revealed, STARCH_BREAD_COUNT);
-      if (revealed === STARCH_BREAD_COUNT) this.beginStarch();
-    }, (pairs) => {
-      this.stats.score += (pairs - this.stats.maltose) * 35;
-      this.stats.maltose = pairs;
-      this.hud.setScore(this.stats.score);
-      this.hud.showDigest(pairs === STARCH_PAIR_COUNT ? 'done' : 'cut', pairs, STARCH_PAIR_COUNT);
-    }, (hint) => {
-      this.hud.hintDigest(hint === 'select' ? 'mouth.digest.select' : 'mouth.digest.pairs');
-    }, () => {
-      this.starchTask?.destroy();
-      this.starchTask = undefined;
-      this.hud.hideDigest();
-      this.phase = 'banner'; // all pairs made: mission 3 is complete, so swallowing may begin
+  /** A hit on moist bread: its starch shows - a long purple chain rises out of it. */
+  private freeStarch(f: Food): void {
+    f.state = 'sinking';
+    f.squash = 1;
+    this.crumbs(f, 16, false);
+    Sound.noise(0.1, 900, 0.9, 0.2);
+    Sound.tone(500, 900, 0.18, 0.05, 'triangle');
+    this.stats.chewed++;
+    const x = Phaser.Math.Clamp(f.img.x, 250, 1030);
+    const y = f.img.y - f.img.displayHeight * 0.5;
+    const beads = Array.from({ length: STARCH_UNITS }, () => this.add.image(x, y, `st_starch_${Phaser.Math.Between(0, 6)}`).setDisplaySize(BEAD, BEAD).setScale(0));
+    const c: Chain = {
+      beads, links: [], notches: [], x, y, vx: Phaser.Math.FloatBetween(-25, 25), vy: -45,
+      angle: Phaser.Math.FloatBetween(-0.2, 0.2), wobble: Math.random() * 6, life: 9, shake: 0, gone: false, pts: [],
+    };
+    this.relink(c);
+    this.chains.push(c);
+    this.tweens.add({ targets: beads, scale: BEAD / beads[0].width, duration: 380, ease: 'Back.easeOut' });
+    this.addScore(6, f, t('mouth.pop.starch'));
+    this.once('starchChain', 'fox', 'surprised', t('mouth.say.starchChain'));
+    this.hud.showAmylase(true, this.scissorsOn, this.chains.length > 0);
+  }
+
+  /** Where amylase may cut: between pairs (link i joins beads i and i + 1). */
+  private cutsAt(c: Chain): number[] {
+    const at: number[] = [];
+    for (let i = 1; i < c.beads.length - 1; i += 2) at.push(i);
+    return at;
+  }
+
+  private relink(c: Chain): void {
+    for (const o of [...c.links, ...c.notches]) o.destroy();
+    c.links = [];
+    for (let i = 0; i < c.beads.length - 1; i++) c.links.push(this.add.image(0, 0, 'm_link_s'));
+    const at = this.cutsAt(c);
+    for (const i of at) c.links[i].setTint(0xffe29a);
+    c.notches = at.map(() => this.add.image(0, 0, 'm_ring').setTint(0xffd36b).setBlendMode(Phaser.BlendModes.ADD));
+  }
+
+  private moveChain(c: Chain, dt: number): void {
+    if (c.gone) return;
+    const pair = c.beads.length === 2;
+    if (this.phase === 'play' || pair) c.life -= dt;
+    if (c.life <= 0) {
+      c.gone = true;
+      for (const n of c.notches) n.destroy();
+      if (pair) {
+        // a maltose pair slides down the throat
+        const { throat } = this.layout;
+        this.tweens.add({ targets: [...c.beads, ...c.links], x: throat.x, y: throat.y, scale: 0.1, alpha: 0.3, duration: 650, ease: 'Sine.easeIn', onComplete: () => [...c.beads, ...c.links].forEach((o) => o.destroy()) });
+      } else {
+        // not cut in time: it sinks back into the food
+        this.tweens.add({ targets: [...c.beads, ...c.links], y: '+=90', alpha: 0, duration: 500, ease: 'Sine.easeIn', onComplete: () => [...c.beads, ...c.links].forEach((o) => o.destroy()) });
+      }
+      return;
+    }
+    // it floats up a little, then hovers over the teeth
+    c.wobble += dt;
+    c.vy += (-c.vy * 1.6 + Math.sin(c.wobble * 1.1) * 12) * dt;
+    c.vx += (Math.sin(c.wobble * 0.8) * 14 - c.vx * 0.3) * dt;
+    c.x = Phaser.Math.Clamp(c.x + c.vx * dt, 200 + (c.beads.length * BEAD_GAP) / 2, 1080 - (c.beads.length * BEAD_GAP) / 2);
+    c.y = Phaser.Math.Clamp(c.y + c.vy * dt, 350, 540);
+    c.shake = Math.max(0, c.shake - dt * 3);
+    const n = c.beads.length;
+    const sway = c.angle + Math.sin(this.clock * 0.6 + c.wobble) * 0.25;
+    const dir = new Phaser.Math.Vector2(Math.cos(sway), Math.sin(sway));
+    const nrm = new Phaser.Math.Vector2(-dir.y, dir.x);
+    c.pts = [];
+    for (let i = 0; i < n; i++) {
+      const along = (i - (n - 1) / 2) * BEAD_GAP;
+      const wave = Math.sin(this.clock * 2.4 + i * 0.9 + c.wobble) * 6 + Math.sin(this.clock * 40) * c.shake * 5;
+      c.pts.push(new Phaser.Math.Vector2(c.x + dir.x * along + nrm.x * wave, c.y + dir.y * along + nrm.y * wave));
+    }
+    c.pts.forEach((p, i) => c.beads[i].setPosition(p.x, p.y).setDepth(2300).setAngle(Math.sin(this.clock * 1.5 + i) * 8));
+    c.links.forEach((l, i) => {
+      const a = c.pts[i];
+      const b = c.pts[i + 1];
+      l.setPosition((a.x + b.x) / 2, (a.y + b.y) / 2).setRotation(Math.atan2(b.y - a.y, b.x - a.x)).setDepth(2299);
+      l.setDisplaySize(Math.max(8, Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y) - BEAD * 0.55), 12);
     });
-    const at = this.starchTask.nextBread()!;
-    this.hammerAim.set(at.x, at.y);
+    this.cutsAt(c).forEach((i, k) => {
+      const pulse = 0.5 + 0.5 * Math.sin(this.clock * 6 + k);
+      c.notches[k]?.setPosition(c.links[i].x, c.links[i].y).setDepth(2301).setDisplaySize(30 + 9 * pulse, 30 + 9 * pulse)
+        .setAlpha(this.scissorsOn ? 0.55 + 0.45 * pulse : 0.3);
+    });
+    if (pair) {
+      const shine = 0.5 + 0.5 * Math.sin(this.clock * 10);
+      for (const b of c.beads) b.setTint(Phaser.Display.Color.GetColor(255, 220 + 35 * shine, 255));
+    }
   }
 
-  private beginStarch(): void {
-    this.phase = 'starch';
-    this.hammer.setVisible(false);
-    this.hud.showDigest('select', 0, STARCH_PAIR_COUNT);
+  /** Amylase's scissors in hand, or the hammer again. */
+  private setScissors(on: boolean): void {
+    this.scissorsOn = on;
+    this.scissors.setVisible(on && this.phase === 'play');
+    this.hammer.setVisible(!on && this.phase === 'play');
+    this.hud.showAmylase(this.round === 3 && this.phase === 'play', on, this.chains.length > 0);
   }
 
-  private selectAmylase(): void {
-    if (this.phase !== 'starch' || this.paused || this.stats.maltose === STARCH_PAIR_COUNT) return;
-    this.starchTask?.select();
-    this.hud.showDigest('cut', this.stats.maltose, STARCH_PAIR_COUNT);
+  private toggleScissors(): void {
+    if (this.phase !== 'play' || this.round !== 3 || this.paused) return;
+    this.setScissors(!this.scissorsOn);
+    Sound.tone(this.scissorsOn ? 900 : 600, this.scissorsOn ? 1500 : 400, 0.12, 0.05, 'triangle');
+  }
+
+  /** With nothing left to cut, the hammer comes back by itself. */
+  private scissorsStep(dt: number): void {
+    const cuttable = this.chains.some((c) => !c.gone && c.beads.length > 2);
+    this.noChainsFor = cuttable ? 0 : this.noChainsFor + dt;
+    if (this.scissorsOn && this.noChainsFor > 0.9) this.setScissors(false);
+    this.hud.showAmylase(true, this.scissorsOn, cuttable);
+  }
+
+  private onMove(p: Phaser.Input.Pointer): void {
+    this.hammerAim.set(p.worldX, p.worldY);
+    if (!this.scissorsOn || !p.isDown || this.lastCut.x < 0) return;
+    // a swipe cuts what it crosses
+    const here = new Phaser.Math.Vector2(p.worldX, p.worldY);
+    if (Phaser.Math.Distance.BetweenPoints(here, this.lastCut) > 6) {
+      this.snip(here.x, here.y, this.lastCut.clone());
+      this.lastCut.copy(here);
+    }
+  }
+
+  /** A snip at a point (or along a swipe): the chain's nearest glowing bond is cut. */
+  private snip(x: number, y: number, from?: Phaser.Math.Vector2): void {
+    if (this.phase !== 'play' || this.paused) return;
+    const seg = from ? new Phaser.Geom.Line(from.x, from.y, x, y) : null;
+    let best: { c: Chain; i: number; d: number } | null = null;
+    for (const c of this.chains) {
+      if (c.gone || c.beads.length <= 2) continue;
+      for (let i = 0; i < c.pts.length - 1; i++) {
+        const mx = (c.pts[i].x + c.pts[i + 1].x) / 2;
+        const my = (c.pts[i].y + c.pts[i + 1].y) / 2;
+        const d = Phaser.Math.Distance.Between(x, y, mx, my);
+        const hit = seg ? Phaser.Geom.Intersects.LineToCircle(seg, new Phaser.Geom.Circle(mx, my, 20)) : d < 44;
+        if (hit && (!best || d < best.d)) best = { c, i, d };
+      }
+    }
+    if (!best) {
+      if (!seg && !this.chains.some((c) => c.beads.length > 2)) this.setScissors(false);
+      return;
+    }
+    const { c } = best;
+    const at = this.cutsAt(c);
+    const i = at.reduce((b, k) => (Math.abs(k - best!.i) < Math.abs(b - best!.i) ? k : b), at[0]);
+    this.cutChain(c, i);
+  }
+
+  private cutChain(c: Chain, i: number): void {
+    const mx = (c.pts[i].x + c.pts[i + 1].x) / 2;
+    const my = (c.pts[i].y + c.pts[i + 1].y) / 2;
+    this.tweens.killTweensOf(this.scissors);
+    const sx = this.scissors.scaleX;
+    this.tweens.add({ targets: this.scissors, scaleX: sx * 0.8, angle: { from: -16, to: 0 }, duration: 90, yoyo: true, onComplete: () => this.scissors.setScale(sx, this.scissors.scaleY) });
+    Sound.tone(2200, 1400, 0.06, 0.06, 'square');
+    Sound.noise(0.06, 4000, 1, 0.08);
+    this.sugar.explode(8, mx, my);
+    const streak = this.clock - this.stats.lastChew < STREAK_GAP;
+    this.stats.combo = streak ? this.stats.combo + 1 : 1;
+    this.stats.bestCombo = Math.max(this.stats.bestCombo, this.stats.combo);
+    this.stats.lastChew = this.clock;
+    // the chain becomes two; pairs are maltose (one pop for the whole cut)
+    const pairs = [i + 1, c.beads.length - i - 1].filter((n) => n === 2).length;
+    const points = 5 + Math.min(3, this.stats.combo - 1) + 4 * pairs;
+    this.popAt(points, mx, my - 30, pairs ? t('mouth.pop.maltose') : t('mouth.pop.snip'));
+    for (const o of [...c.links, ...c.notches]) o.destroy();
+    c.gone = true;
+    const dir = new Phaser.Math.Vector2(Math.cos(c.angle), Math.sin(c.angle));
+    for (const [part, sign] of [[c.beads.slice(0, i + 1), -1], [c.beads.slice(i + 1), 1]] as const) {
+      const n = part.length;
+      const piece: Chain = {
+        ...c, beads: [...part], links: [], notches: [], pts: [], gone: false, shake: 0.6,
+        x: part.reduce((s, b) => s + b.x, 0) / n, y: part.reduce((s, b) => s + b.y, 0) / n,
+        vx: c.vx + dir.x * sign * 60, vy: c.vy - 20, life: n === 2 ? 1.6 : c.life + 2,
+      };
+      this.relink(piece);
+      this.chains.push(piece);
+      if (n === 2) this.maltose(piece);
+    }
+  }
+
+  /** A pair: maltose - two sugar units, it tastes sweet. */
+  private maltose(c: Chain): void {
+    this.stats.maltose++;
+    this.sugar.explode(14, c.x, c.y);
+    Sound.tone(1320, 1760, 0.18, 0.045);
+    if (this.stats.maltose === 2) this.react(this.storyKid(), 'surprised', t('mouth.say.maltose'), 3000);
+  }
+
+  /** The round is over: what is left melts away. */
+  private meltChains(): void {
+    for (const c of this.chains) {
+      c.gone = true;
+      for (const n of c.notches) n.destroy();
+      this.tweens.add({ targets: [...c.beads, ...c.links], alpha: 0, scale: 0.2, duration: 400, onComplete: () => [...c.beads, ...c.links].forEach((o) => o.destroy()) });
+    }
+    this.chains = [];
+  }
+
+  private popAt(points: number, x: number, y: number, label: string): void {
+    this.stats.score = Math.max(0, this.stats.score + points);
+    this.hud.setScore(this.stats.score);
+    const pop = this.add
+      .text(x, y, `+${points}  ${label}`, { fontFamily: I18n.font, fontSize: '26px', fontStyle: 'bold', color: '#fff4af', stroke: '#66315f', strokeThickness: 6, resolution: 2 })
+      .setOrigin(0.5, 1).setDepth(2600);
+    this.tweens.add({ targets: pop, y: pop.y - 50, alpha: 0, duration: 900, ease: 'Sine.easeOut', onComplete: () => pop.destroy() });
   }
 
   // ---- swallow ------------------------------------------------------------------
@@ -667,25 +858,15 @@ export class MouthScene extends Phaser.Scene {
   private onKey(e: KeyboardEvent): void {
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') return this.togglePause();
     if (this.phase === 'swallow' && (e.code === 'Space' || e.key === 'Enter')) return this.gulp();
-    if (this.paused) return;
-    if (this.phase === 'starch') {
-      if (e.code === 'Digit2' || e.code === 'Numpad2') this.selectAmylase();
-      if (e.code === 'Space' || e.key === 'Enter') {
-        e.preventDefault();
-        this.starchTask?.cutNext();
-      }
-      return;
-    }
-    if (this.phase === 'bread') {
-      if (e.code === 'Space' || e.key === 'Enter') {
-        e.preventDefault();
-        const at = this.starchTask?.nextBread();
-        if (at) this.strike(at.x, at.y, false);
-      }
-      return;
-    }
-    if (this.phase !== 'play') return;
+    if (this.phase !== 'play' || this.paused) return;
     if (e.key === 's' || e.key === 'S') return this.spray();
+    if (e.key === '2') return this.toggleScissors();
+    if (this.scissorsOn && (e.code === 'Space' || e.key === 'Enter')) {
+      e.preventDefault();
+      const c = this.chains.filter((q) => !q.gone && q.beads.length > 2).sort((a, b) => Phaser.Math.Distance.Between(a.x, a.y, this.hammerAim.x, this.hammerAim.y) - Phaser.Math.Distance.Between(b.x, b.y, this.hammerAim.x, this.hammerAim.y))[0];
+      if (c) this.cutChain(c, this.cutsAt(c)[0]);
+      return;
+    }
     const holes = this.layout.holes;
     const here = holes[this.kbHole];
     const dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
@@ -715,7 +896,7 @@ export class MouthScene extends Phaser.Scene {
   }
 
   private togglePause(): void {
-    if (!['play', 'bread', 'starch'].includes(this.phase) && !this.paused) return;
+    if (this.phase !== 'play' && !this.paused) return;
     this.paused = !this.paused;
     this.tweens.pauseAll();
     this.time.paused = this.paused;
@@ -732,7 +913,7 @@ export class MouthScene extends Phaser.Scene {
   }
 
   private makeTextures(): void {
-    if (this.textures.exists('m_dot')) return;
+    if (this.textures.exists('m_ring')) return;
     const g = this.make.graphics({}, false);
     g.fillStyle(0xffffff, 1).fillCircle(8, 8, 8);
     g.generateTexture('m_dot', 16, 16);
@@ -742,6 +923,10 @@ export class MouthScene extends Phaser.Scene {
       { x: 12, y: 0 }, { x: 15, y: 9 }, { x: 24, y: 12 }, { x: 15, y: 15 }, { x: 12, y: 24 }, { x: 9, y: 15 }, { x: 0, y: 12 }, { x: 9, y: 9 },
     ] as Phaser.Math.Vector2[], true);
     g.generateTexture('m_star', 24, 24);
+    g.clear().fillStyle(0x9a5ae0, 1).fillRoundedRect(0, 0, 40, 12, 6).fillStyle(0xe2c6ff, 0.9).fillRoundedRect(6, 3, 28, 3, 2);
+    g.generateTexture('m_link_s', 40, 12);
+    g.clear().lineStyle(8, 0xffffff, 1).strokeCircle(32, 32, 27);
+    g.generateTexture('m_ring', 64, 64);
     g.destroy();
   }
 
@@ -756,13 +941,13 @@ export class MouthScene extends Phaser.Scene {
     return GameState.storyLeader;
   }
 
-  private react(who: Who, mood: Mood, text: string): void {
-    this.hud.react(who, mood, text);
+  private react(who: Who, mood: Mood, text: string, ms?: number): void {
+    this.hud.react(who, mood, text, ms);
   }
 
   /** Say something the first time it happens only. */
-  private once(key: string, who: Who, mood: Mood, text: string): void {
+  private once(key: string, who: Who, mood: Mood, text: string, ms?: number): void {
     if (this.said.has(key)) return;
-    if (this.hud.react(who, mood, text)) this.said.add(key);
+    if (this.hud.react(who, mood, text, ms)) this.said.add(key);
   }
 }

@@ -3,7 +3,7 @@ import { Story } from 'inkjs';
 import { asset } from '../assetUrl';
 
 /** leader/buddy resolve to the chosen hero; walid/nesma name a kid directly (before the choice). */
-export type Speaker = 'leader' | 'buddy' | 'walid' | 'nesma' | 'fox' | 'tooth' | 'stomach';
+export type Speaker = 'leader' | 'buddy' | 'walid' | 'nesma' | 'fox' | 'tooth' | 'stomach' | 'intestine';
 export type Hero = 'walid' | 'nesma';
 
 export interface Line {

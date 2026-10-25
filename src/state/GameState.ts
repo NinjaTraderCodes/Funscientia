@@ -7,6 +7,13 @@ const KEY = 'funscientia.save.v1';
 /** Who the child plays: one of the kids, or the fennec. */
 export type Avatar = 'walid' | 'nesma' | 'fox';
 
+export interface Chapter3Progress { lesson: number; quiz: number; score: number; mistakes: number }
+const chapter3Progress = (value: unknown): Chapter3Progress => {
+  const p = value && typeof value === 'object' ? value as Partial<Chapter3Progress> : {};
+  const number = (n: unknown, max: number) => typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : 0;
+  return { lesson: number(p.lesson, 4), quiz: number(p.quiz, 5), score: number(p.score, 100000), mistakes: number(p.mistakes, 10000) };
+};
+
 /** The characters' own names, in the current language (the player's typed name replaces their avatar's). */
 export const DEFAULT_NAMES: Record<Avatar, string> = {
   get walid() {
@@ -21,6 +28,7 @@ export const DEFAULT_NAMES: Record<Avatar, string> = {
 };
 
 interface SaveData {
+  chapter3: Chapter3Progress;
   hero: Avatar | null;
   /** The name the child typed for their avatar ('' = the character's own name). */
   playerName: string;
@@ -35,6 +43,8 @@ interface SaveData {
  * checks that it is an object with a version; the game reads it back with `restore`.
  */
 export interface OnlineData {
+  /** Optional for older saves; checkpoints are between lessons, never half-cut molecules. */
+  chapter3?: Chapter3Progress;
   version: 1;
   hero: Avatar | null;
   playerName: string;
@@ -48,12 +58,17 @@ export interface OnlineData {
 }
 
 const AVATARS: readonly Avatar[] = ['walid', 'nesma', 'fox'];
-const fresh = (): SaveData => ({ hero: null, playerName: '', discoveries: [], predictions: {}, place: '' });
+const fresh = (): SaveData => ({ hero: null, playerName: '', discoveries: [], predictions: {}, place: '', chapter3: chapter3Progress(null) });
 
 const load = (): SaveData => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...fresh(), ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const saved = { ...fresh(), ...parsed, chapter3: chapter3Progress(parsed.chapter3) };
+      if (!parsed.chapter3 && saved.place === 'stomach' && saved.discoveries.includes('chyme')) saved.place = 'intestine-road';
+      return saved;
+    }
   } catch {
     /* storage blocked: play without saving */
   }
@@ -75,6 +90,11 @@ const SPRITE: Record<Avatar, CharacterName> = { walid: 'boy', nesma: 'girl', fox
 
 /** Progress that outlives a scene: chosen avatar and name, discoveries, predictions. */
 export const GameState = {
+  get chapter3(): Chapter3Progress { return { ...data.chapter3 }; },
+  checkpointChapter3(update: Partial<Chapter3Progress>): void {
+    data.chapter3 = chapter3Progress({ ...data.chapter3, ...update });
+    persist();
+  },
   get hero(): Avatar | null {
     return data.hero;
   },
@@ -144,14 +164,17 @@ export const GameState = {
     return {
       version: 1, hero: data.hero, playerName: data.playerName, lang: I18n.lang, place: data.place,
       discoveries: [...data.discoveries], predictions: { ...data.predictions }, savedAt: new Date().toISOString(),
+      chapter3: { ...data.chapter3 },
     };
   },
   /** Take over a progress loaded from an online save (checked: it came from the internet). */
   restore(d: Partial<OnlineData>): void {
+    data.chapter3 = chapter3Progress(d.chapter3);
     data.hero = AVATARS.includes(d.hero as Avatar) ? (d.hero as Avatar) : null;
     data.playerName = typeof d.playerName === 'string' ? d.playerName.slice(0, 20) : '';
     data.place = typeof d.place === 'string' ? d.place : '';
     data.discoveries = Array.isArray(d.discoveries) ? d.discoveries.filter((x): x is string => typeof x === 'string') : [];
+    if (!d.chapter3 && data.place === 'stomach' && data.discoveries.includes('chyme')) data.place = 'intestine-road';
     data.predictions = {};
     for (const [q, a] of Object.entries(d.predictions ?? {})) if (typeof a === 'string') data.predictions[q] = a;
     if (d.lang === 'en' || d.lang === 'ar') I18n.set(d.lang);

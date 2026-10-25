@@ -2,9 +2,12 @@ import Phaser from 'phaser';
 import { I18n, t, type Key } from '../i18n/i18n';
 import { asset } from '../assetUrl';
 
-export type ChapterArtwork = 'roadToMouth' | 'mouthMission' | 'esophagus' | 'stomachMission';
+export type ChapterArtwork = 'roadToMouth' | 'mouthMission' | 'esophagus' | 'stomachMission' | 'smallIntestineRoad' | 'smallIntestineMission' | 'revision';
 
 const ART: Record<ChapterArtwork, { file: string; title: Key; subtitle: Key; titleY: number; subtitleY: number }> = {
+  smallIntestineRoad: { file: 'small-intestine-road', title: 'chapter.3', subtitle: 'chapter.roadToSmallIntestine', titleY: 0.13, subtitleY: 0.24 },
+  smallIntestineMission: { file: 'small-intestine-mission', title: 'chapter.3', subtitle: 'chapter.smallIntestineMission', titleY: 0.19, subtitleY: 0.28 },
+  revision: { file: 'revision', title: 'chapter.3', subtitle: 'chapter.revision', titleY: 0.25, subtitleY: 0.43 },
   roadToMouth: { file: 'road-to-mouth', title: 'chapter.1', subtitle: 'chapter.roadToMouth', titleY: 0.34, subtitleY: 0.45 },
   mouthMission: { file: 'mouth-mission', title: 'chapter.1', subtitle: 'chapter.mouthMission', titleY: 0.33, subtitleY: 0.43 },
   esophagus: { file: 'esophagus', title: 'chapter.2', subtitle: 'chapter.esophagus', titleY: 0.33, subtitleY: 0.43 },
@@ -86,6 +89,7 @@ export class ChapterScene extends Phaser.Scene {
     cam.setBackgroundColor('#0b1533');
     const background = this.add.image(0, 0, `chapter_${artwork}`);
     const title = this.add.text(0, 0, '', { color: '#fff6e3', align: 'center' }).setOrigin(0.5).setAlpha(0);
+    if (this.artwork === 'smallIntestineRoad' || this.artwork === 'revision') title.setStroke('#17294b', 3);
     const subtitle = this.add.text(0, 0, '', {
       color: '#f3c35a', align: 'center', stroke: '#5a3a0a', strokeThickness: 2,
       shadow: { offsetY: 2, color: '#0b1533', blur: 8, fill: true },

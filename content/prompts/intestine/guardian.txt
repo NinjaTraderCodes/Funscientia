@@ -1,0 +1,8 @@
+Image 1 is our Stomach Guardian; image 2 shows the inside of the small intestine in our game.
+
+Create ONE full-body character in exactly the same style as image 1 (glossy, soft 3D animated-film cartoon, big shiny dark eyes with white highlights, pink blush, friendly smile): the SMALL INTESTINE GUARDIAN. Its body is a soft, rosy-pink tube gently coiled into a cute rounded loop shape (like a small, neat coil of the small intestine), with a velvety surface of tiny finger-like villi bumps, the same coral-pink tones as the intestine in image 2. It wears the same navy beret with the golden crescent moon as image 1 and a small golden belt buckle with a crescent. Small arms and short legs; one arm raised in a friendly wave. Friendly, calm, clever, welcoming.
+
+- The whole character visible, centred, standing, filling about 85% of the image height, facing the viewer.
+- No shadow, no ground, no text, no other objects.
+- Transparent background (a PNG with an alpha channel): everything around the character fully transparent.
+- Portrait image, 1024 x 1536 pixels.

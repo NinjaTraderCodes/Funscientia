@@ -483,6 +483,13 @@ html, body {
 }
 .mh-saliva { position: absolute; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-62%); width: clamp(240px, 36vw, 520px); transition: opacity 300ms ease; }
 .mh-saliva.hidden, .mh-spray.hidden { opacity: 0; pointer-events: none; }
+/* round 4: salivary amylase's purple scissors (Dounia's art) where the spray was: press it to cut */
+.mh-amylase { position: absolute; bottom: max(6px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: clamp(70px, 15vh, 124px); transition: opacity 300ms ease, transform 120ms ease, filter 200ms ease; }
+.mh-amylase.hidden { opacity: 0; pointer-events: none; }
+.mh-amylase:active { transform: translateX(-50%) scale(0.92); }
+.mh-amylase.glow { animation: amylase-glow 0.7s ease-in-out infinite alternate; }
+@keyframes amylase-glow { from { filter: drop-shadow(0 0 4px #c9a2ff); } to { filter: drop-shadow(0 0 20px #e7d4ff) brightness(1.15); transform: translateX(-50%) scale(1.1) rotate(-8deg); } }
+.mh-amylase.taken { filter: drop-shadow(0 0 12px #c9a2ff) saturate(0.6) brightness(0.9); opacity: 0.75; }
 /* the water: from the end of the drop circle to the end of the channel (shares from mouth.json) */
 .mh-water {
   position: absolute; left: 22.1%; top: 25.9%; bottom: 25.4%; width: 0;
@@ -541,38 +548,6 @@ html, body {
 .mh-results-card ul b { color: #1a2f86; }
 .mh-results-card { max-height: 94vh; overflow-y: auto; }
 .mh-results-card .avatar-continue { margin-top: 4px; font-size: clamp(16px, 3.6vh, 26px); padding: clamp(8px, 1.8vh, 13px) clamp(26px, 4vw, 44px); }
-
-/* Mission 3: reveal starch in bread, select amylase, and cut maltose pairs. */
-.mh-digest {
-  position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
-  width: min(70vw, 720px); padding: 8px 18px; text-align: center;
-  color: var(--cream); background: #13234deb; border: 2px solid var(--gold); border-radius: 20px;
-  box-shadow: 0 6px 20px #0b15334d;
-}
-.mh-digest h3 { margin: 0 0 4px; font-size: clamp(17px, 3.2vh, 27px); color: var(--gold-2); }
-.mh-digest p { margin: 0; font-size: clamp(14px, 2.6vh, 21px); line-height: 1.35; }
-.mh-digest strong { display: block; margin-top: 4px; font-size: clamp(13px, 2.3vh, 18px); color: #eac0ff; }
-.mouth-hud .mh-amylase {
-  position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%);
-  display: flex; align-items: center; gap: 12px; max-width: 65vw; padding: 6px 20px 6px 10px;
-  color: #fff6e3; font: inherit; font-size: clamp(15px, 2.8vh, 23px); font-weight: 700;
-  background: linear-gradient(150deg, #6631a0, #2e1b63); border: 3px solid #e2b85a; border-radius: 24px;
-  box-shadow: 0 5px 20px #0b153380;
-}
-.mouth-hud .mh-amylase img { width: clamp(48px, 11vh, 80px); max-height: 14vh; object-fit: contain; }
-.mh-amylase[aria-pressed="true"] { box-shadow: 0 0 0 3px #eac0ff, 0 0 24px #be6cff; }
-.mh-amylase:focus-visible { outline: 3px solid white; outline-offset: 4px; }
-.mh-amylase:disabled { opacity: 0.7; cursor: default; }
-.is-digesting .mh-react { display: none; }
-html.lang-ar .mh-digest, html.lang-ar .mh-amylase { direction: rtl; }
-@media (max-height: 500px) {
-  .mh-digest { padding: 4px 12px; }
-  .mh-digest h3 { margin-bottom: 0; font-size: 16px; line-height: 1.15; }
-  .mh-digest p { font-size: 13px; line-height: 1.2; }
-  .mh-digest strong { margin-top: 2px; font-size: 12px; line-height: 1.2; }
-  .mouth-hud .mh-amylase { bottom: max(8px, env(safe-area-inset-bottom)); gap: 8px; padding: 3px 12px; border-width: 2px; font-size: 13px; }
-  .mouth-hud .mh-amylase img { width: 36px; max-height: 10vh; }
-}
 
 /* ---- Online saves: "Continue with my code" on the hero page, the code panel, the code in the profile ---- */
 .hero .btn-start { bottom: calc(max(5vh, env(safe-area-inset-bottom)) + 46px); }
@@ -647,39 +622,22 @@ html.lang-ar .code-card, html.lang-ar .avatar-code { direction: rtl; }
 .sh-flask.pour { animation: flask-pour 260ms ease-out; }
 @keyframes flask-pour { 40% { transform: rotate(-22deg) scale(1.05); } }
 
-/* Pepsin: a required protein objective, with separate acid and scissors controls. */
-.sh-task {
-  position: absolute; top: 14%; left: 50%; transform: translateX(-50%);
-  width: min(68vw, 760px); padding: 8px 16px; text-align: center;
-  color: var(--cream); background: #13234deb; border: 2px solid var(--gold); border-radius: 20px;
-  box-shadow: 0 6px 20px #0b15334d;
+/* round 3: pepsin's blue scissors (Dounia's art) beside the flask, like the flask: a button you press */
+.sh-pepsin { width: clamp(70px, 15vh, 124px); margin-bottom: 4px; transition: transform 120ms ease, opacity 300ms ease, filter 200ms ease; }
+.sh-pepsin.hidden { opacity: 0; pointer-events: none; }
+.sh-pepsin:active { transform: scale(0.92); }
+.sh-pepsin.glow { animation: pepsin-glow 0.7s ease-in-out infinite alternate; }
+@keyframes pepsin-glow { from { filter: drop-shadow(0 0 4px #7cc8ff); } to { filter: drop-shadow(0 0 20px #bfe6ff) brightness(1.15); transform: scale(1.1) rotate(-8deg); } }
+.sh-pepsin.taken { filter: drop-shadow(0 0 10px #7cc8ff) saturate(0.6) brightness(0.9); opacity: 0.75; }
+
+/* ---- The Small Intestine mini-game: the shared interface; the rings on both sides are the way in and out,
+   so the step cards sit in a row at the bottom right (the helpers come from the openings in the picture) ---- */
+.intestine-hud .mh-cards {
+  left: auto; top: auto; right: max(12px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); transform: none;
+  grid-auto-flow: column; width: auto; gap: clamp(5px, 1vw, 10px);
 }
-.sh-task h3 { margin: 0 0 4px; font-size: clamp(17px, 3vh, 25px); color: var(--gold-2); }
-.sh-task p { margin: 0; font-size: clamp(14px, 2.5vh, 20px); line-height: 1.3; }
-.sh-task strong { display: block; margin-top: 4px; font-size: clamp(13px, 2.2vh, 18px); color: #9fe4ff; }
-.stomach-hud .sh-pepsin {
-  position: absolute; left: 58%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%);
-  display: flex; align-items: center; gap: 10px; max-width: 40vw; padding: 5px 16px;
-  color: #fff6e3; font: inherit; font-size: clamp(14px, 2.6vh, 21px); font-weight: 700;
-  background: linear-gradient(150deg, #2375c4, #13234d); border: 3px solid #e2b85a; border-radius: 24px;
-  box-shadow: 0 5px 20px #0b153380;
-}
-.sh-pepsin img { width: clamp(40px, 8vh, 60px); max-height: 12vh; object-fit: contain; }
-.sh-pepsin[aria-pressed="true"] { box-shadow: 0 0 0 3px #9fe4ff, 0 0 24px #49aaff; }
-.sh-pepsin:focus-visible { outline: 3px solid white; outline-offset: 4px; }
-.sh-pepsin:disabled { opacity: 0.7; cursor: default; }
-.is-pepsin .sh-acid { left: max(12px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); transform: none; }
-.is-pepsin .sh-gauge { width: clamp(140px, 18vw, 230px); }
-.is-pepsin .sh-flask { width: clamp(58px, 11vh, 82px); }
-.is-pepsin .mh-react { display: none; }
-html.lang-ar .sh-task, html.lang-ar .sh-pepsin { direction: rtl; }
-@media (max-height: 500px) {
-  .sh-task { padding: 4px 12px; }
-  .sh-task h3 { margin-bottom: 0; font-size: 16px; line-height: 1.15; }
-  .sh-task p { font-size: 13px; line-height: 1.2; }
-  .sh-task strong { margin-top: 2px; font-size: 12px; line-height: 1.2; }
-  .stomach-hud .sh-pepsin { bottom: max(8px, env(safe-area-inset-bottom)); padding: 3px 12px; border-width: 2px; }
-}
+.intestine-hud .mh-card { width: clamp(58px, 8.5vw, 108px); }
+.intestine-hud .mh-react { left: max(10px, env(safe-area-inset-left)); max-width: min(44vw, 440px); }
 
 /* ---- English / Arabic ---- */
 .lang-btn { right: calc(max(14px, env(safe-area-inset-right)) + 52px); font-size: 19px; font-weight: 800; font-family: 'Baloo Bhaijaan 2', 'Trebuchet MS', sans-serif; }

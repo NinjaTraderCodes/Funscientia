@@ -125,11 +125,45 @@ def beads(rgb: np.ndarray, grow: float) -> list[Image.Image]:
     return [trim(Image.fromarray(np.dstack([rgb, np.where(m, alpha, 0)]).astype(np.uint8), "RGBA")) for _, m in found]
 
 
-def ship(im: Image.Image, name: str, height: int, folder: Path = OUT) -> None:
-    """Sharpened x4, then shipped at `height` pixels high."""
+def clear_holes(im: Image.Image, whole: bool = False, keep_left: float = 0) -> Image.Image:
+    """See-through holes: the white background shut inside a shape (a scissors' finger rings, the gaps
+    between a fat's tails) made transparent, with a soft edge. cut_white only clears the white joined to
+    the border. Only big flat-white patches count, so the white of eyes and glossy highlights stay.
+    whole: also drop the small loose bits around the shape (keep its largest piece).
+    keep_left: no holes in the left share of the picture (a fat's glycerol body, whose shine is white too)."""
+    a = np.array(im.convert("RGBA"))
+    rgb, alpha = a[..., :3].astype(int), a[..., 3].astype(np.float32)
+    opaque = alpha > 200
+    flat = opaque & (rgb.min(axis=2) > 236) & ((rgb.max(axis=2) - rgb.min(axis=2)) < 14)
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(flat.astype(np.uint8), 4)
+    hole = np.zeros(flat.shape, bool)
+    for i in range(1, n):
+        if stats[i][4] > max(60, opaque.sum() * 0.004) and stats[i][0] >= keep_left * a.shape[1]:
+            hole |= lab == i
+    # grow each hole into the light, colourless pixels around it (the soft edge of the hole)
+    light = (rgb.min(axis=2) > 200) & ((rgb.max(axis=2) - rgb.min(axis=2)) < 40)
+    for _ in range(4):
+        hole |= cv2.dilate(hole.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool) & light
+    ring = cv2.dilate(hole.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool) & ~hole
+    alpha[hole] = 0
+    whiteness = rgb.min(axis=2).astype(np.float32)
+    alpha[ring] = np.minimum(alpha[ring], np.clip((255 - whiteness[ring]) / (255 - 150) * 255, 60, 255))
+    if whole:
+        m, cl, st, _ = cv2.connectedComponentsWithStats((alpha > 40).astype(np.uint8), 8)
+        if m > 2:
+            keep = 1 + int(np.argmax(st[1:, cv2.CC_STAT_AREA]))
+            alpha[cl != keep] = 0
+    a[..., 3] = alpha.astype(np.uint8)
+    return trim(Image.fromarray(a, "RGBA"))
+
+
+def ship(im: Image.Image, name: str, height: int, folder: Path = OUT, holes: bool = False, whole: bool = False,
+         keep_left: float = 0) -> None:
+    """Sharpened x4, then shipped at `height` pixels high (holes: clear_holes, see there)."""
     big = upscale(im)
     w = round(big.width * height / big.height)
-    save(big.resize((w, height), Image.LANCZOS), folder / f"{name}.webp", quality=90, method=6)
+    small = big.resize((w, height), Image.LANCZOS)
+    save(clear_holes(small, whole, keep_left) if holes or whole else small, folder / f"{name}.webp", quality=90, method=6)
 
 
 def portrait(im: Image.Image, name: str) -> None:
@@ -167,9 +201,9 @@ def main() -> None:
         ship(b, f"starch_{i:02d}", 128)
     fats = pieces(np.array(Image.open(IMAGES / "Stomach_Element_4.jpg").convert("RGB")))
     for i, f in enumerate(fats[:3]):
-        ship(f, f"fat_{i}", 220)
+        ship(f, f"fat_{i}", 220, holes=True, keep_left=0.2)
     scissors = pieces(np.array(Image.open(IMAGES / "Stomach_Elements_6.jpg").convert("RGB")))
-    ship(scissors[0], "scissors", 220)  # the blue pair (left)
+    ship(scissors[0], "scissors", 220, holes=True)  # the blue pair (left)
 
     sheet = np.array(Image.open(IMAGES / "Stomach_Elements_5.jpg").convert("RGB"))
     for name, (x0, y0, x1, y1) in SHEET_PIECES.items():

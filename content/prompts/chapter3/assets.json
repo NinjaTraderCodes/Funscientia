@@ -1,0 +1,76 @@
+{
+  "method": "Built-in image_gen",
+  "assets": [
+    {
+      "key": "mission-card",
+      "refs": [
+        "C:\\Users\\TheShadow\\Funscientia\\docs\\images\\Chapter3_Small_Intestines_Mission.jpg"
+      ],
+      "prompt": "Use case: precise-object-edit. The supplied image is the EDIT TARGET. Remove ONLY the two English text lines 'CHAPTER 3' and 'Small Intestines Mission' from the large upper navy arch surface. Fill those letter areas naturally with the same smooth navy blue material and lighting. Preserve absolutely everything else: crescent/star motif, gold architecture, blue banners with intestinal icons, pink intestinal gate, staircase, carpet, flowers, camera, lighting and original 16:9 composition. Do not add any new letters, text, labels, people, symbols, objects, logos, UI or watermarks. Output a clean text-free chapter-title background for live English/Arabic text."
+    },
+    {
+      "key": "maltase",
+      "refs": [
+        "C:\\Users\\TheShadow\\Funscientia\\public\\assets\\mouth\\amylase-scissors.webp"
+      ],
+      "prompt": "Use case: precise-object-edit. Asset type: transparent game tool sprite, Maltase scissors. The input is the edit target: existing purple-and-gold enzyme scissors. Change ONLY the purple blade and purple handle-inlay material to bright rose pink, to distinguish Maltase from purple Amylase in an educational game. Preserve the gold frame, star hinge, silhouette, lighting, proportions, polished 3D cartoon style and all other features. A single isolated pair of pink-and-gold scissors centered with small clear margin. No text, labels, badge, background, card frame, shadow backdrop, extra objects or watermark. Genuinely transparent background."
+    },
+    {
+      "key": "lipase",
+      "refs": [
+        "C:\\Users\\TheShadow\\Funscientia\\docs\\images\\Memory_Game_05.jpg"
+      ],
+      "prompt": "Use case: background-extraction. Asset type: transparent yellow Lipase scissors sprite. Input image is the EDIT TARGET. Extract ONLY the central golden/yellow enzyme scissors from the cream and gold card. Remove the whole card, gold border, cream/white background and margins. Preserve the exact playful irregular yellow blades, yellow handle inlays, gold frame, star hinge and glossy 3D cartoon style; do not redesign. Single complete tool with a little clear margin, centered on a genuinely transparent background. No letters, words, labels, extra objects or watermark."
+    },
+    {
+      "key": "bile",
+      "refs": [
+        "C:\\Users\\TheShadow\\Funscientia\\docs\\images\\Memory_Game_19.jpg"
+      ],
+      "prompt": "Use case: background-extraction. Asset type: transparent bile helper icon for an educational digestion game. Input image is the EDIT TARGET. Extract ONLY the friendly green-gold liquid bile mascot with its navy blue beret, face, arms and surrounding attached droplets. Remove the complete cream card, gold border and white background. Preserve its original pose, face, colors, smooth glossy 3D cartoon rendering and proportions. One isolated complete mascot with a small clear margin, centered on genuinely transparent background. No text, labels, frames, extra figures or watermark."
+    },
+    {
+      "key": "glycerol",
+      "prompt": "Use case: background-extraction / precise-object-edit. Asset type: ONE transparent glycerol product sprite for an educational digestion game. The supplied reference is the EDIT TARGET: a friendly green glycerol body joined to three yellow fatty acid tails. Extract and preserve ONLY the complete GREEN left-hand glycerol body with its happy face and three small green round attachment nubs. Remove ALL THREE YELLOW TAILS completely. Where the nubs were joined to yellow tails, finish each nub as a clean green round end. Preserve the exact green body's face, glossy 3D cartoon shading, proportions and color from the reference. Output a single complete isolated green glycerol body centered with clear margins on a genuinely transparent background. No yellow parts, no extra molecules, no card, no background, no text or watermark."
+    },
+    {
+      "key": "fattyAcid",
+      "prompt": "Use case: background-extraction / precise-object-edit. Asset type: ONE transparent fatty-acid product sprite for an educational digestion game. The supplied reference is the EDIT TARGET: a green body connected to three yellow wavy tails. Extract ONLY ONE COMPLETE YELLOW WAVY TAIL, choosing the upper tail with its round happy face at the far right. Preserve its playful wavy yellow chain, face, gold/yellow glossy 3D cartoon shading and overall shape. Remove the whole green body and BOTH other yellow tails. Finish the left end of this one chain cleanly, with no green attachment nub. Output exactly ONE yellow wavy fatty-acid chain, horizontal with its face on the right, fully visible with clear margins, isolated on a genuinely transparent background. No second tail or chain, no green parts, no scissors, no background, no frame, no text or watermark."
+    },
+    {
+      "key": "water",
+      "refs": [
+        "C:\\Users\\TheShadow\\Funscientia\\docs\\images\\SI_3rdGame_05.jpg"
+      ],
+      "prompt": "Use case: background-extraction. Asset type: transparent moving nutrient sprite for a 3D cartoon educational digestion game. The supplied image is the EDIT TARGET. Remove only the white background and empty margins around the complete friendly blue water-drop mascot. Preserve the exact original characters, faces, colors, arrangement, 3D cartoon rendering and any vitamin letter symbols or food-source props. Do not add, remove or redraw the subjects. Center the complete subject with small clear margins on a genuinely transparent background. No white rectangle, card, frame, added writing, shadows on a floor, new objects or watermark."
+    },
+    {
+      "key": "minerals",
+      "refs": [
+        "C:\\Users\\TheShadow\\Funscientia\\docs\\images\\SI_3rdGame_06.jpg"
+      ],
+      "prompt": "Use case: background-extraction. Asset type: transparent moving nutrient sprite for a 3D cartoon educational digestion game. The supplied image is the EDIT TARGET. Remove only the white background and empty margins around the complete group of friendly mineral crystal mascots. Preserve the exact original characters, faces, colors, arrangement, 3D cartoon rendering and any vitamin letter symbols or food-source props. Do not add, remove or redraw the subjects. Center the complete subject with small clear margins on a genuinely transparent background. No white rectangle, card, frame, added writing, shadows on a floor, new objects or watermark."
+    },
+    {
+      "key": "waterVitamins",
+      "refs": [
+        "C:\\Users\\TheShadow\\Funscientia\\docs\\images\\SI_3rdGame_07.jpg"
+      ],
+      "prompt": "Use case: background-extraction. Asset type: transparent moving nutrient sprite for a 3D cartoon educational digestion game. The supplied image is the EDIT TARGET. Remove only the white background and empty margins around the complete group of water-soluble B and C vitamin mascots. Preserve the exact original characters, faces, colors, arrangement, 3D cartoon rendering and any vitamin letter symbols or food-source props. Do not add, remove or redraw the subjects. Center the complete subject with small clear margins on a genuinely transparent background. No white rectangle, card, frame, added writing, shadows on a floor, new objects or watermark."
+    },
+    {
+      "key": "fatVitamins",
+      "refs": [
+        "C:\\Users\\TheShadow\\Funscientia\\docs\\images\\SI_3rdGame_08.jpg"
+      ],
+      "prompt": "Use case: background-extraction. Asset type: transparent moving nutrient sprite for a 3D cartoon educational digestion game. The supplied image is the EDIT TARGET. Remove only the white background and empty margins around the complete group of fat-soluble A D E K vitamin mascots. Preserve the exact original characters, faces, colors, arrangement, 3D cartoon rendering and any vitamin letter symbols or food-source props. Do not add, remove or redraw the subjects. Center the complete subject with small clear margins on a genuinely transparent background. No white rectangle, card, frame, added writing, shadows on a floor, new objects or watermark."
+    },
+    {
+      "key": "fibre",
+      "refs": [
+        "C:\\Users\\TheShadow\\Funscientia\\docs\\images\\SI_3rdGame_09.jpg"
+      ],
+      "prompt": "Use case: background-extraction. Asset type: transparent moving nutrient sprite for a 3D cartoon educational digestion game. The supplied image is the EDIT TARGET. Remove only the white background and empty margins around the complete green cellulose fibre-bundle mascot. Preserve the exact original characters, faces, colors, arrangement, 3D cartoon rendering and any vitamin letter symbols or food-source props. Do not add, remove or redraw the subjects. Center the complete subject with small clear margins on a genuinely transparent background. No white rectangle, card, frame, added writing, shadows on a floor, new objects or watermark."
+    }
+  ]
+}

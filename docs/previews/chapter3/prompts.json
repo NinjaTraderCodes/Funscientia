@@ -1,0 +1,65 @@
+{
+  "purpose": "Background concepts for review before implementation",
+  "method": "Built-in image_gen tool",
+  "transparent_background": false,
+  "deliverables": [
+    {
+      "file": "road-a-concept-v1.png",
+      "generation_key": "road-a-final"
+    },
+    {
+      "file": "road-b-concept-v1.png",
+      "generation_key": "road-b"
+    },
+    {
+      "file": "digestion-room-concept-v1.png",
+      "generation_key": "digestion-room"
+    },
+    {
+      "file": "memory-hall-concept-v1.png",
+      "generation_key": "memory-hall"
+    }
+  ],
+  "requests": [
+    {
+      "key": "road-a",
+      "references": [
+        "public/assets/world/esophagus_far.webp",
+        "docs/images/SI_3rdGame_01.jpg",
+        "docs/images/Chapter3_Small_Intestines_Mission.jpg"
+      ],
+      "prompt": "Use case: stylized-concept. Asset type: a text-free background concept for a walkable educational adventure game, chapter 3 road, first of two views. Input image 1 is the existing game's STYLE AND CAMERA reference (the esophagus palace passage); image 2 is the small-intestine ANATOMY/MATERIAL reference; image 3 is the destination palace STYLE reference, ignore its lettering. Create ONE coherent landscape environment, 1536x1024 composition, not a collage. Depict the first stretch immediately AFTER leaving the stomach through the pylorus, inside the small-intestine lumen, which opens from a short narrow organic passage into a broader softly folded coral-peach duodenal gallery. Match the polished 3D animated-film rendering, cream marble, peach and rose-gold, navy accents, warm lamps and clean friendly glossy organic walls of the existing game. Camera elevated behind and above the party's intended walking route, looking forward and slightly down, like input 1. A broad unbroken pearly cream and rose marble path enters at the bottom center occupying about half the image width and winds gently toward a rounded gold-trimmed arch in the far middle-right, with a spacious bend halfway for a dialogue stop. Maintain clear readable walkable floor from foreground to arch, easy for three small character sprites walking together. Short cream-and-gold railings and warm lanterns at the path edges; a few subtle golden directional arrow inlays on the floor. Soft folded intestinal walls distinguish this from the evenly ringed esophagus. Warm pastel amber light in the passage behind, soft rose light ahead. Small amount of magical bubbles and fine golden motes, mostly away from the floor. The palace is a narrative metaphor inside the organ, no outside landscape. No characters, creatures, food, enzymes, tools, UI, signs, writing, letters, numbers, logos or watermarks. No steps blocking the walking path, no gore, blood, veins or raw dark-red tissue. Render the entire picture edge-to-edge as a polished background, not a framed card."
+    },
+    {
+      "key": "road-b",
+      "references": [
+        "public/assets/world/esophagus_far.webp",
+        "docs/images/SI_3rdGame_01.jpg",
+        "docs/images/Chapter3_Small_Intestines_Mission.jpg"
+      ],
+      "prompt": "Use case: stylized-concept. Asset type: a text-free background concept for a walkable educational adventure game, chapter 3 road, second/final view, the helpers' junction and small-intestine mission gate. Input 1 is the existing game's STYLE AND CAMERA reference; input 2 is the SMALL INTESTINE ORGAN/DUCT reference, not a requirement for realistic red flesh; input 3 is the DESTINATION GATE reference, ignore all its lettering. Create ONE coherent 1536x1024 landscape background, no collage. Match the existing polished 3D animated-film cream-marble and golden palace style inside softly folded peach/coral intestinal walls. Camera elevated behind and above a wide walking path, looking forward and slightly down like input 1. A wide unbroken pearly cream and rose marble route begins bottom center, broad enough for three game characters together; it bends very gently to a spacious central landing then reaches a grand rounded gold entrance arch in the distance, inspired by input 3. The arch surrounds a softly glowing pink intestinal passage and has navy banners with simple gold coiled-small-intestine emblems and absolutely no lettering. NO stairs; use a continuous gently sloped floor. On a side wall above and clearly OFF the walking route, include exactly TWO modest gold-rimmed supply openings in a small alcove: one green-tinted channel for bile and one amber-tinted channel for pancreatic secretion, both opening INTO the chamber. These are side supply ducts, not doors or branching routes the player can walk through. A few tiny green-gold droplets beneath the green outlet and clear amber droplets beneath the other communicate secretion. Do NOT put whole organs on the walkway. Keep the central floor readable and clear, with a little space beside the landing for a future guardian sprite, not drawn now. Cream-and-gold low railings and lanterns at edges, coral silk-like intestinal folds, subtle sparkles and gentle warm light, golden floor arrows leading onward. No characters, creatures, food, scissors, enzymes, UI, text, letters, numbers, labels, logos, watermarks, blood or gore. Full edge-to-edge background, not a poster or framed card."
+    },
+    {
+      "key": "memory-hall",
+      "references": [
+        "docs/images/Memory_Game_01.jpg"
+      ],
+      "prompt": "Use case: precise-object-edit. Asset type: clean background plate for the digestive-kingdom memory and quiz game. The input is the EDIT TARGET and style/composition reference. Preserve its warm cream marble palace interior, tall gold-trimmed columns, beautiful royal blue digestive-emblem banners, sunny soft lighting, glossy floor and central pink-organ architectural alcove. Remove ALL foreground cards, all card backs, all card illustrations, the complete ENZYME MATCH heading/plaque, navigation arrow, star-rating strip, stopwatch and timer, every HUD element, and ALL writing, letters and numbers. Reconstruct the architecture naturally where those elements used to be. Make the central two-thirds visually calm and uncluttered so real interactive cards can be layered later; keep the decorative architectural detail mostly at the sides and top. ONE coherent 16:9 landscape environment background, 1536x864 composition, matching the original polished 3D animated-game finish, no contact sheet. No characters, no new objects in the center, no cards, no text, no icons pretending to be UI, no logos or watermarks. This is an empty background plate, not a playable screenshot."
+    },
+    {
+      "key": "road-a-final",
+      "references": [
+        "Intermediate generated road A draft, before correcting its organ emblems"
+      ],
+      "prompt": "Use case: precise-object-edit. The reference is the EDIT TARGET. Make exactly one localized symbolic correction to this chapter-3 small-intestine road background: replace the gold stomach-shaped glyph on the navy plaque above the distant arch AND the matching gold stomach glyph on each of its two navy banners with a simple gold coiled SMALL INTESTINE glyph, like a short vertical winding tube with several gentle bends. All three glyphs should clearly depict the small intestine instead of the stomach. Keep absolutely everything else unchanged: composition, path and its arrows, camera, left-side portal, folds, railings, lanterns, bubbles, colors, lighting and image dimensions. No text, letters, numbers, extra objects, people or UI. Output one corrected complete background."
+    },
+    {
+      "key": "digestion-room",
+      "references": [
+        "docs/images/SI_3rdGame_01.jpg",
+        "public/assets/world/esophagus_far.webp"
+      ],
+      "prompt": "Use case: precise-object-edit. Asset type: background concept for the small-intestine digestion mini-game. Input image 1 is the EDIT TARGET and anatomy/composition reference. Input image 2 is only a supporting palette/rendering-style reference from the existing game, NOT a request to add its walkway or gate. Adapt input 1 into one clean playable chamber background while preserving its broad side-view cutaway layout: a gold-rimmed intestinal entrance at the far left, a gold-rimmed continuation at the far right, folded intestinal lining below, a green gallbladder and its green bile duct above, and an orange pancreas with its amber pancreatic duct above. Those are supply ducts opening into the lumen; food travels left to right through the intestine, not into those organs. Make the two relevant supply openings visible, green bile and amber pancreatic, and omit the third small unlabeled red hole from the reference. Keep the pancreas and gallbladder readable in the upper quarter, away from the main play space. Soften the anatomical red and wet detail into friendly polished peach/coral/rose 3D animated-game materials and warm gold lighting, compatible with input 2. Reduce the density and contrast of folds in the central 60 percent to create a broad calm peach interior area where separate blue protein chains, purple sugars and green/yellow fats will later be clearly visible; do NOT draw any of those particles now. Keep peripheral folds gently sculpted so this is still unmistakably inside the small intestine. This is a side-view mini-game chamber, NO marble walking path, NO stairs or railings across the play field. Full 16:9 landscape image, 1536x864 composition. No characters, faces, food particles, scissors, buttons, HUD, progress bars, diagram arrows, labels, signs, text, numbers, logos or watermarks. No blood, veins, gore or frightening anatomy."
+    }
+  ]
+}

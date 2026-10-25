@@ -5,9 +5,9 @@ import { Sound } from '../audio/Sound';
 import { GameState, type Avatar } from '../state/GameState';
 
 /** Name tags: the trio's come from the player's profile (their typed name replaces their avatar's). */
-const nameOf = (who: Hero | 'fox' | 'tooth' | 'stomach') =>
-  who === 'tooth' ? t('name.tooth') : who === 'stomach' ? t('name.stomach') : GameState.nameOf(who);
-const SPEAKERS = ['walid', 'nesma', 'fox', 'tooth', 'stomach'] as const;
+type Who = Hero | 'fox' | 'tooth' | 'stomach' | 'intestine';
+const nameOf = (who: Who) => (who === 'walid' || who === 'nesma' || who === 'fox' ? GameState.nameOf(who) : t(`name.${who}`));
+const SPEAKERS = ['walid', 'nesma', 'fox', 'tooth', 'stomach', 'intestine'] as const;
 /** Names inside a line: [walid], [nesma], [fox] and [player] (whoever the child plays). */
 const fillNames = (text: string) =>
   text.replace(/\[(walid|nesma|fox|player)\]/g, (_, w: string) => GameState.nameOf(w === 'player' ? (GameState.hero ?? 'walid') : (w as Avatar)));
@@ -32,7 +32,7 @@ export class DialogueBox implements DialogueView {
   /** The whole of the line being shown (the typewriter reveals it). */
   private full = '';
   private typed = true;
-  private speaker: Hero | 'fox' | 'tooth' | 'stomach' = 'walid';
+  private speaker: Who = 'walid';
 
   constructor(private readonly hero: Hero) {
     this.root = document.createElement('div');
@@ -73,7 +73,7 @@ export class DialogueBox implements DialogueView {
     return !this.root.hidden;
   }
 
-  private who(speaker: Speaker): Hero | 'fox' | 'tooth' | 'stomach' {
+  private who(speaker: Speaker): Who {
     if (speaker === 'leader') return this.hero;
     if (speaker === 'buddy') return this.hero === 'walid' ? 'nesma' : 'walid';
     if (speaker === 'walid' || speaker === 'nesma') return speaker;
