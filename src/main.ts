@@ -8,6 +8,7 @@ import { asset } from './assetUrl';
 import { GameState } from './state/GameState';
 import { OnlineSave } from './state/OnlineSave';
 import { askCode } from './ui/CodePanel';
+import { ReviewMenu, type ReviewStop } from './ui/ReviewMenu';
 import { toast } from './ui/Toast';
 import { I18n, applyPage, t, type Key } from './i18n/i18n';
 import { Sound } from './audio/Sound';
@@ -210,6 +211,50 @@ continueBtn.addEventListener('click', async (e) => {
 });
 game.events.on(GAME_EVENTS.resumed, enterGame);
 game.events.on(GAME_EVENTS.profileChanged, showProfile);
+
+// ---- the team's review menu (?review in the address): jump straight to any road or mini-game ----
+if (new URLSearchParams(location.search).has('review')) {
+  const stops: ReviewStop[] = [
+    { group: 'chapter.1', label: 'chapter.roadToMouth', at: 'road' },
+    { group: 'chapter.1', label: 'review.mouthGate', at: 'road2' },
+    { group: 'chapter.1', label: 'chapter.mouthMission', at: 'mouth' },
+    { group: 'chapter.2', label: 'chapter.esophagus', at: 'esophagus' },
+    { group: 'chapter.2', label: 'chapter.stomachMission', at: 'stomach' },
+    { group: 'chapter.3', label: 'chapter.roadToSmallIntestine', at: 'intestine-road' },
+    { group: 'chapter.3', label: 'review.junction', at: 'intestine-gate' },
+    { group: 'chapter.3', label: 'chapter.smallIntestineMission', at: 'small-intestine' },
+    { group: 'chapter.3', label: 'chapter.revision', at: 'revision' },
+  ];
+  // the mini-games and the Memory Game start from their first round
+  const FRESH = new Set(['mouth', 'stomach', 'small-intestine', 'revision']);
+  let started = false;
+  const jump = async (at: string) => {
+    const to = RESUME[at];
+    if (!started) {
+      started = true;
+      await intro.bypass(); // from the hero page: no intro
+    }
+    if (!GameState.hero) GameState.hero = 'walid';
+    GameState.place = at;
+    // whatever is running gives way to the chapter card, then the place
+    const running = game.scene.getScenes(true).filter((s) => s.sys.settings.key !== 'Boot');
+    const from = running[0] ?? game.scene.getScene('Overlook');
+    for (const s of running.slice(1)) s.scene.stop();
+    from.scene.start('Chapter', {
+      title: t(to.title), subtitle: t(to.subtitle), artwork: to.artwork,
+      next: { scene: to.scene, data: FRESH.has(at) ? { replay: true } : to.data },
+    });
+    enterGame();
+  };
+  // "from the beginning": the hero page as a pupil sees it (once in the game: reload, the menu comes back)
+  const menu = new ReviewMenu(stops, (at) => void jump(at), () => started && location.reload());
+  game.events.once(GAME_EVENTS.introDone, () => {
+    started = true;
+    menu.showTab();
+  });
+  void gameReady.then(() => menu.setReady());
+  menu.open();
+}
 
 // Local review links. Vite removes this branch from the production bundle.
 if (import.meta.env.DEV) {

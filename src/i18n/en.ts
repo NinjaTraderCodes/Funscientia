@@ -263,6 +263,15 @@ export const en = {
   'si.res.absorbed': '{n} nutrients absorbed',
   'si.res.wrong': '{n} wrong helpers',
   'si.res.wrong1': '{n} wrong helper',
+  // the team's review menu (?review)
+  'review.title': 'Jump to',
+  'review.note': 'The team’s review menu. The mini-games and the Memory Game start fresh.',
+  'review.loading': 'Loading the game…',
+  'review.start': 'From the beginning (with the intro)',
+  'review.open': 'Jump to another part',
+  'review.close': 'Close',
+  'review.mouthGate': 'The Mouth Gate',
+  'review.junction': 'The Helpers’ Junction',
   // chapter cards
   'chapter.1': 'Chapter 1',
   'chapter.2': 'Chapter 2',

@@ -645,3 +645,33 @@ html.lang-ar body, html.lang-ar button, html.lang-ar input { font-family: 'Baloo
 /* Arabic reads right to left: text blocks, dialogue and panels follow (the screen layout stays put) */
 html.lang-ar .dialogue, html.lang-ar .avatar-panel, html.lang-ar .hint, html.lang-ar .toast, html.lang-ar .loading,
 html.lang-ar .mh-banner-card, html.lang-ar .mh-results-card, html.lang-ar .mh-react, html.lang-ar .btn-start, html.lang-ar .btn-ghost { direction: rtl; }
+
+/* ---- The team's review menu (?review): jump to any road or mini-game ---- */
+.review { position: absolute; inset: 0; z-index: 24; display: grid; place-items: center; padding: 14px; background: rgba(11, 21, 51, 0.6); backdrop-filter: blur(4px); pointer-events: auto; }
+.review[hidden] { display: none; }
+.review-card {
+  position: relative; display: grid; gap: 10px; width: min(94vw, 860px); max-height: 100%; overflow-y: auto; padding: clamp(14px, 3vh, 26px) clamp(14px, 3vw, 30px);
+  color: var(--cream); background: linear-gradient(160deg, #163d74f5, #11294ef5); border: 3px solid var(--gold); border-radius: 24px; box-shadow: 0 16px 50px rgba(0, 0, 0, 0.5);
+}
+.review-card h2 { margin: 0; font-family: Georgia, serif; font-size: clamp(22px, 4.5vh, 34px); color: var(--gold-2); text-align: center; text-shadow: 0 2px 0 #6b440c; }
+.review-card > p { margin: 0; text-align: center; font-size: clamp(13px, 2.2vh, 16px); opacity: 0.85; }
+.review-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.review-groups section { display: grid; align-content: start; gap: 8px; }
+.review-groups h3 { margin: 0; font-size: clamp(14px, 2.4vh, 17px); color: var(--gold-2); text-align: center; letter-spacing: 0.04em; }
+.review-card button { font: inherit; cursor: pointer; }
+.review-groups button {
+  min-height: 44px; padding: 8px 12px; font-weight: 700; font-size: clamp(14px, 2.3vh, 17px); color: #1b3864;
+  background: linear-gradient(180deg, #fffaf0, #f4e3c0); border: 2px solid #e3b45a; border-radius: 14px; box-shadow: 0 3px 0 #a87422;
+}
+.review-groups button:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.review-groups button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #a87422; }
+.review-groups button:disabled { opacity: 0.5; cursor: wait; }
+.review-start { justify-self: center; padding: 6px 16px; color: var(--cream); background: none; border: 1px solid rgba(243, 195, 90, 0.7); border-radius: 999px; }
+.review-close { position: absolute; top: 8px; inset-inline-end: 10px; width: 36px; height: 36px; font-size: 24px; line-height: 1; color: var(--cream); background: none; border: 0; }
+.review-tab {
+  position: absolute; left: 0; top: 50%; z-index: 23; width: 34px; height: 52px; transform: translateY(-50%); padding: 0;
+  font-size: 20px; color: var(--cream); background: rgba(11, 21, 51, 0.6); border: 2px solid rgba(243, 195, 90, 0.8); border-left: 0; border-radius: 0 14px 14px 0;
+  cursor: pointer; pointer-events: auto; backdrop-filter: blur(4px);
+}
+.review-tab[hidden] { display: none; }
+@media (max-width: 620px) { .review-groups { grid-template-columns: 1fr; } }

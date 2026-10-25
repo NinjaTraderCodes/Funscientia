@@ -264,6 +264,15 @@ export const ar: Record<Key, string> = {
   'si.res.absorbed': 'المغذّيات الممتصّة: {n}',
   'si.res.wrong': 'مساعدون خاطئون: {n}',
   'si.res.wrong1': 'مساعدون خاطئون: {n}',
+  // قائمة المراجعة للفريق (?review)
+  'review.title': 'انتقل إلى',
+  'review.note': 'قائمة المراجعة للفريق. تبدأ الألعاب المصغّرة وتحدّي الذاكرة من جديد.',
+  'review.loading': 'جارٍ تحميل اللعبة…',
+  'review.start': 'من البداية (مع المقدّمة)',
+  'review.open': 'انتقل إلى جزء آخر',
+  'review.close': 'إغلاق',
+  'review.mouthGate': 'بوابة الفم',
+  'review.junction': 'ملتقى المساعدين',
   // بطاقات الفصول
   'chapter.1': 'الفصل الأول',
   'chapter.2': 'الفصل الثاني',
