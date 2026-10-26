@@ -262,6 +262,7 @@ export class SmallIntestineScene extends Phaser.Scene {
     }
     this.hud.setRound(4);
     const stars = 1 + (this.stats.score >= STARS[0] ? 1 : 0) + (this.stats.score >= STARS[1] ? 1 : 0);
+    GameState.recordResult('small-intestine', stars, this.stats.score);
     if (stars === 3) Sound.tone(523, 1046, 0.5, 0.08, 'triangle');
     await this.hud.results({ stars, ...this.stats });
     GameState.checkpointChapter3({ lesson: 4, score: this.stats.score, mistakes: this.stats.wrong });

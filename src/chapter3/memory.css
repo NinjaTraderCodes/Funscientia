@@ -120,3 +120,30 @@ html.lang-ar .mg-word { font-family: 'Baloo Bhaijaan 2', Tahoma, sans-serif; fon
   .mg-inner { transition-duration: 1ms; }
   .mg-card, .mg-card .mg-front, .mg-card .mg-inner, .mg-card .mg-front::after, .mg-choice .mg-pic { animation: none !important; }
 }
+
+/* the finale: the certificate, the kingdoms still to come, who made the game */
+.revision-game .c3-ending.fin {
+  width: min(94vw, 1120px); max-height: 100%; overflow-y: auto; touch-action: pan-y;
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 12px 24px; align-items: start; justify-items: stretch; text-align: center;
+}
+.fin-head { grid-column: 1 / -1; display: grid; justify-items: center; gap: 6px; }
+.fin-head h2 { margin: 0; }
+.fin-head p { margin: 0; max-width: 760px; }
+.fin-head .c3-trio img { width: clamp(46px, 9vh, 72px); height: clamp(46px, 9vh, 72px); }
+.fin-cert { display: grid; justify-items: center; gap: 10px; }
+.fin-cert-img { width: 100%; aspect-ratio: 1600 / 1130; border-radius: 12px; background: #f6e8c8; box-shadow: 0 8px 22px #3b240a44; }
+.fin-more { display: grid; gap: 14px; align-content: start; }
+.fin-more h3 { margin: 0 0 6px; font-family: Georgia, serif; font-size: clamp(16px, 2.8vh, 20px); color: #1b3864; }
+html.lang-ar .fin-more h3 { font-family: 'Baloo Bhaijaan 2', Tahoma, sans-serif; }
+.fin-next > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fin-next figure { margin: 0; display: grid; justify-items: center; gap: 4px; }
+.fin-next img { width: min(100%, 86px); aspect-ratio: 1; object-fit: contain; filter: grayscale(0.5); }
+.fin-next figcaption { font-size: 12px; font-weight: 700; color: #1b3864; line-height: 1.25; }
+.fin-credits { padding: 10px 12px; border: 2px solid #e8cd8d; border-radius: 16px; background: #fffdf7; }
+.fin-credits ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: clamp(13px, 2.2vh, 15px); color: #2b2314; }
+.fin-credits p { margin: 8px 0 0; font-size: 12px; color: #8a6c36; }
+.revision-game .c3-ending.fin .c3-ending-actions { grid-column: 1 / -1; }
+@media (max-width: 760px), (max-height: 500px) {
+  .revision-game .c3-ending.fin { grid-template-columns: 1fr; padding: 12px; }
+  .fin-head p { font-size: 13px; }
+}

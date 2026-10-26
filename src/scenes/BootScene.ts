@@ -11,6 +11,8 @@ export const GAME_EVENTS = {
   openingDone: 'opening:done',
   /** The profile badge was tapped: the scene opens the avatar editor if it is a good moment. */
   editProfile: 'profile:edit',
+  /** The Discovery Book opened (payload: a promise that resolves when it closes): the scene waits. */
+  bookOpen: 'book:open',
   /** The avatar or name changed (the badge shows the new one). */
   profileChanged: 'profile:changed',
   firstMove: 'party:first-move',

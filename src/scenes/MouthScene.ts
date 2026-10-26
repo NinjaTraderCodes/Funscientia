@@ -7,6 +7,7 @@ import { DialogueBox } from '../ui/DialogueBox';
 import { MouthHud, type Mood, type Who } from '../ui/MouthHud';
 import { toast } from '../ui/Toast';
 import { GameState, type Avatar } from '../state/GameState';
+import { Settings } from '../state/Settings';
 import { discoveryText } from '../state/discoveries';
 
 /** mouth.json (tools/pipeline/pack_mouth.py), in pixels of the 1280x853 background. */
@@ -234,6 +235,7 @@ export class MouthScene extends Phaser.Scene {
     await this.swallow();
     await this.talk('swallow_fact');
     const stars = 1 + (this.stats.score >= STARS[0] ? 1 : 0) + (this.stats.score >= STARS[1] ? 1 : 0);
+    GameState.recordResult('mouth', stars, this.stats.score);
     if (stars === 3) Sound.tone(523, 1046, 0.5, 0.08, 'triangle');
     await this.hud.results({ stars, ...this.stats });
     const runner = await DialogueRunner.load('mouth', GameState.storyLeader);
@@ -429,7 +431,7 @@ export class MouthScene extends Phaser.Scene {
       points += 2 * Math.min(4, this.stats.combo - 1); // a streak bonus, capped at x5
       label = t('mouth.pop.streak', { n: this.stats.combo });
       Sound.tone(500 + this.stats.combo * 80, 900 + this.stats.combo * 80, 0.12, 0.05, 'triangle');
-      this.cameras.main.shake(90, 0.002 * Math.min(4, this.stats.combo));
+      if (!Settings.reduceMotion) this.cameras.main.shake(90, 0.002 * Math.min(4, this.stats.combo));
     }
     if (f.mixedUntil > this.clock) {
       points += 5;
@@ -534,7 +536,7 @@ export class MouthScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.tongue);
     this.tongue.setTexture('m_tongue_ouch');
     this.tongue.setDisplaySize(130, 130 * (this.tongue.height / this.tongue.width));
-    this.cameras.main.shake(160, 0.006);
+    if (!Settings.reduceMotion) this.cameras.main.shake(160, 0.006);
     Sound.tone(880, 220, 0.35, 0.09, 'sawtooth');
     Sound.tone(440, 300, 0.25, 0.05, 'triangle', 0.12);
     this.stats.score = Math.max(0, this.stats.score - 5);
@@ -843,7 +845,7 @@ export class MouthScene extends Phaser.Scene {
         b.destroy();
         Sound.tone(260, 60, 0.6, 0.12, 'sine');
         Sound.noise(0.3, 220, 1.5, 0.12, 0.1);
-        this.cameras.main.shake(260, 0.004);
+        if (!Settings.reduceMotion) this.cameras.main.shake(260, 0.004);
         const pop = this.add.text(throat.x, throat.y - 60, t('mouth.pop.gloop'), {
           fontFamily: I18n.display, fontSize: '60px', fontStyle: 'bold', color: '#fff4af', stroke: '#66315f', strokeThickness: 10, resolution: 2,
         }).setOrigin(0.5).setDepth(2800);

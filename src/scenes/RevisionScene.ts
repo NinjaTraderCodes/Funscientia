@@ -5,6 +5,8 @@ import { asset } from '../assetUrl';
 import { Sound } from '../audio/Sound';
 import { DialogueBox } from '../ui/DialogueBox';
 import { DialogueRunner } from '../dialogue/DialogueRunner';
+import { drawCertificate, downloadCertificate } from '../ui/Certificate';
+import { COMING } from '../state/discoveries';
 
 /**
  * The Kingdom Memory Challenge (Dounia's "Enzyme Match" cards, Memory_Game_*): two memory boards of
@@ -63,6 +65,8 @@ export class RevisionScene extends Chapter3Base {
   private checked = false;
   private box!: DialogueBox;
   private talking = false;
+  /** the finale's certificate, as drawn (for the download) */
+  private certificate?: HTMLCanvasElement;
   private feedback: { key: Key; vars?: Record<string, string | number>; explanation?: Key } = { key: 'c3.quiz.hint' };
   constructor() { super('Revision', 'revision/hall.webp'); }
   init(data: { replay?: boolean } = {}): void {
@@ -157,12 +161,30 @@ export class RevisionScene extends Chapter3Base {
     this.feedbackReaction(t(this.feedback.key, this.feedback.vars) + (this.checked ? ' ' + t(q.explanation) : ''));
     this.footer.innerHTML = this.primary(t(this.checked ? 'c3.continue' : 'c3.quiz.check'), this.checked ? 'next' : 'check');
   }
+  /** The finale: the certificate (to download), the kingdoms still to come, who made the game. */
   private renderEnding(keyboard: boolean): void {
-    const stars = this.boardsPlayed === 2 ? 1 + STARS.filter((s) => this.totalMoves <= s).length : 3;
-    this.replaceMain('<section class="mh-results-card c3-ending"><div class="c3-trio">' + ['nesma', 'fox', 'walid'].map((who) => img('portraits/' + who + '_cheering.webp')).join('') +
-      '</div><div class="c3-stars">' + [0, 1, 2].map((i) => '<img class="' + (i < stars ? 'won' : '') + '" src="' + asset('mouth/ui_star.webp') + '" alt="" />').join('') +
-      '</div><h2>' + t('c3.end.title') + '</h2><p>' + t('c3.end.text') + '</p><div class="c3-ending-actions">' + this.primary(t('c3.end.replayQuiz'), 'replayQuiz') + this.primary(t('c3.end.replayMission'), 'replayMission') +
+    this.replaceMain('<section class="mh-results-card c3-ending fin"><div class="fin-head"><div class="c3-trio">' + ['nesma', 'fox', 'walid'].map((who) => img('portraits/' + who + '_cheering.webp')).join('') +
+      '</div><h2>' + t('c3.end.title') + '</h2><p>' + t('c3.end.text') + '</p></div>' +
+      '<div class="fin-cert"><img class="fin-cert-img" alt="' + t('cert.title') + '" /><button type="button" class="avatar-continue" data-action="download">' + t('fin.download') + '</button></div>' +
+      '<div class="fin-more"><section class="fin-next"><h3>' + t('fin.coming') + '</h3><div>' + COMING.map((k) => '<figure>' + img(k.art) + '<figcaption>' + t(k.title) + '</figcaption></figure>').join('') + '</div></section>' +
+      '<section class="fin-credits"><h3>' + t('fin.credits') + '</h3><ul><li>' + t('fin.dounia') + '</li><li>' + t('fin.hicham') + '</li><li>' + t('fin.djihane') + '</li></ul><p>' + t('fin.thirduni') + '</p></section></div>' +
+      '<div class="c3-ending-actions">' + this.primary(t('c3.end.replayQuiz'), 'replayQuiz') + this.primary(t('c3.end.replayMission'), 'replayMission') +
       '<button type="button" class="c3-secondary" data-action="road">' + t('c3.end.road') + '</button></div></section>', keyboard);
+    // the certificate is drawn in the current language (again if it changes)
+    void drawCertificate().then((c) => {
+      const shown = this.main.querySelector<HTMLImageElement>('.fin-cert-img');
+      if (!shown || !this.sys.isActive()) return;
+      this.certificate = c;
+      shown.src = c.toDataURL('image/png');
+    });
+  }
+  /** The Guardians say goodbye, then the finale. */
+  private async finale(): Promise<void> {
+    this.talking = true; this.main.inert = true; this.footer.inert = true;
+    const runner = await DialogueRunner.load('revision', GameState.storyLeader);
+    await runner.run('finale', this.box);
+    if (!this.sys.isActive()) return;
+    this.talking = false; this.main.inert = this.paused; this.footer.inert = this.paused;
   }
   protected action(button: HTMLElement, keyboard: boolean): void {
     if (this.talking) return;
@@ -191,10 +213,15 @@ export class RevisionScene extends Chapter3Base {
       if (this.step < 2) { this.totalMoves += this.moves; this.boardsPlayed++; }
       this.step++;
       GameState.checkpointChapter3({ quiz: this.step });
-      if (this.step === 5) { GameState.discover('kingdom_complete'); GameState.place = 'complete'; Sound.chime(); }
+      if (this.step === 5) {
+        GameState.discover('kingdom_complete'); GameState.place = 'complete'; Sound.chime();
+        if (this.boardsPlayed === 2) GameState.recordResult('revision', 1 + STARS.filter((s) => this.totalMoves <= s).length, this.totalMoves, true);
+      }
       this.prepareStep(); this.redraw(keyboard);
       if (keyboard) this.main.querySelector<HTMLButtonElement>('button')?.focus();
+      if (this.step === 5) void this.finale();
     } else if (this.step >= 5) {
+      if (action === 'download' && this.certificate) downloadCertificate(this.certificate);
       if (action === 'replayQuiz') this.scene.restart({ replay: true });
       if (action === 'replayMission') this.scene.start('SmallIntestine', { replay: true });
       if (action === 'road') this.scene.start('World', { place: 'intestine-road' });

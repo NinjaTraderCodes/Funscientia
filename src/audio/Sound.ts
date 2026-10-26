@@ -1,4 +1,5 @@
 import { asset } from '../assetUrl';
+import { Settings } from '../state/Settings';
 
 const MUTE_KEY = 'funscientia.muted';
 
@@ -13,6 +14,9 @@ class SoundSystem {
   private master!: GainNode;
   private musicGain!: GainNode;
   private sfxGain!: GainNode;
+  /** the player's levels (Settings), after the game's own fades */
+  private musicLevel!: GainNode;
+  private sfxLevel!: GainNode;
   private noise1s!: AudioBuffer;
   private musicStarted = false;
   private lastStep = 0;
@@ -35,12 +39,22 @@ class SoundSystem {
     this.master = this.ctx.createGain();
     this.master.gain.value = this.muted ? 0 : 1;
     this.master.connect(this.ctx.destination);
+    this.musicLevel = this.ctx.createGain();
+    this.musicLevel.connect(this.master);
+    this.sfxLevel = this.ctx.createGain();
+    this.sfxLevel.connect(this.master);
     this.musicGain = this.ctx.createGain();
     this.musicGain.gain.value = 0;
-    this.musicGain.connect(this.master);
+    this.musicGain.connect(this.musicLevel);
     this.sfxGain = this.ctx.createGain();
     this.sfxGain.gain.value = 0.9;
-    this.sfxGain.connect(this.master);
+    this.sfxGain.connect(this.sfxLevel);
+    const levels = () => {
+      this.musicLevel.gain.value = Settings.music;
+      this.sfxLevel.gain.value = Settings.sfx;
+    };
+    levels();
+    Settings.onChange(levels);
     // one second of white noise, reused by every footstep
     this.noise1s = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
     const d = this.noise1s.getChannelData(0);

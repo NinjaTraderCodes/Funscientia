@@ -107,11 +107,13 @@ export class OverlookScene extends Phaser.Scene {
     }
     this.game.events.once(GAME_EVENTS.introCut, (secondsLeft: number) => this.closeIn(secondsLeft));
     this.game.events.on(GAME_EVENTS.editProfile, this.onEditProfile, this);
+    this.game.events.on(GAME_EVENTS.bookOpen, this.onBook, this);
     this.game.events.once(GAME_EVENTS.introDone, () => this.startOpening());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off(GAME_EVENTS.introCut);
       this.game.events.off(GAME_EVENTS.introDone);
       this.game.events.off(GAME_EVENTS.editProfile, this.onEditProfile, this);
+      this.game.events.off(GAME_EVENTS.bookOpen, this.onBook, this);
     });
     this.game.events.emit(GAME_EVENTS.overlookReady);
   }
@@ -131,6 +133,15 @@ export class OverlookScene extends Phaser.Scene {
       for (const c of this.party.members) c.update(dt);
     }
     this.applyView(false, dt);
+  }
+
+  /** The Discovery Book is open: nobody walks until it closes. */
+  private async onBook(closed: Promise<void>): Promise<void> {
+    if (this.phase !== 'play') return;
+    this.phase = 'choose';
+    for (const m of this.party.members) m.stop();
+    await closed;
+    if (this.phase === 'choose' && this.sys.isActive()) this.phase = 'play';
   }
 
   /** The profile badge: change name or avatar on the ledge; a new avatar takes the lead on the spot. */

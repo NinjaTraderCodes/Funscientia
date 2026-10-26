@@ -1,15 +1,56 @@
 # Funscientia — Kingdoms of Discovery
 
-A story-driven science adventure for children (8–12) set in the *Douniaverse*. Players explore the human body as a
-magical kingdom, solve hands-on challenges and learn science through play. Built for the **Thirduni** team project
-(Cohort 1, 2026).
+**A story-driven web game where pupils explore the human body as a magical kingdom, and learn digestion by doing it:
+chewing, cutting molecules with enzyme "scissors", and sending nutrients into the villi.**
 
-**▶ Play the latest version: https://ninjatradercodes.github.io/Funscientia/** (best in landscape; phone, tablet or PC)
+Made for Algerian middle-school Natural Sciences (4AM, ages 13–15), in **English and Arabic**. Built by the
+Funscientia team for the **Thirduni** team project (Cohort 1, 2026).
 
-> **Status: early prototype.** Playable today: intro video → overlook → choose a hero → the Road to the Mouth Gate
-> (dialogue, a discovery, a prediction question). The first mini-game (the Mouth) is next.
+**▶ Play: https://ninjatradercodes.github.io/Funscientia/** (phone, tablet or computer; best in landscape)
 
-## Play it locally
+| For the jury | |
+|---|---|
+| Jump to any part of the game | **https://ninjatradercodes.github.io/Funscientia/?review** (a "Jump to" menu; the ☰ tab on the left brings it back) |
+| Start at a chapter with a code | On the start page: **Continue with my code**, then one of these (you get your own new code, the jury code never changes) |
+
+| Starting point | Code |
+|---|---|
+| Chapter 1 – the Mouth mission | `257F-T76R` |
+| Chapter 2 – down the Esophagus | `7368-PVHZ` |
+| Chapter 2 – the Stomach mission | `HBFK-XQC2` |
+| Chapter 3 – the road to the Small Intestine | `Y779-VJJH` |
+| Chapter 3 – the Small Intestine mission | `WMDZ-HHJU` |
+| Chapter 3 – the Kingdom Memory Challenge | `RHPV-A2ZJ` |
+
+## What it is
+
+Digestion is usually taught with a diagram and a list of enzyme names, which pupils memorise and forget. In
+Funscientia they *are* the digestive system's helpers: every enzyme is a tool they use, every rule (bile before
+lipase, pepsin only on proteins, fibre is never absorbed) is something they discover by trying.
+
+Each part follows the same learning loop: **predict → try → explain**. A Guardian asks a question before a mission;
+the mission lets the pupil test it; the Guardian then explains what happened, starting from the pupil's own answer.
+Wrong moves teach instead of punishing.
+
+**The journey (the Kingdom of Digestion):**
+
+1. **The Road to the Mouth Gate**: the trio (Walid, Nesma and their fennec) meet the Tooth Guardian.
+2. **The Mouth mission**: chew with the teeth, mix with the tongue, moisten with saliva, then cut starch with
+   salivary amylase into maltose.
+3. **Down the Esophagus**: peristalsis waves and mucus; the Stomach Guardian's question about pepsin.
+4. **The Stomach mission**: churn, keep the acid right, cut proteins with pepsin into polypeptides, release chyme.
+5. **The Road to the Small Intestine**: a road through the villi to the Helpers' Junction (bile and pancreatic ducts),
+   where the Small Intestine Guardian asks which helper acts first on fats.
+6. **The Small Intestine mission**: take helpers from three openings (bile, the pancreas, the intestine wall) to finish
+   fats, proteins and sugars, then absorb the nutrients into the blood or the lymph.
+7. **The Kingdom Memory Challenge**: two memory boards (molecules; helpers and their names) and three questions.
+8. **The finale**: a certificate with the pupil's name, stars and discoveries, to download or print.
+
+Along the way the pupil collects **discovery notes** in Nesma's **Discovery Book** (📖 under the profile badge),
+which also shows the **Journey**: what is done, each mission's best stars, and the kingdoms still to come. Progress is
+saved on the device and online with a **save code** (no accounts, no email), so a pupil can continue on another device.
+
+## Run it locally
 
 Requirements: **Node.js 20+** (developed on Node 24).
 
@@ -21,124 +62,84 @@ npm run dev        # http://localhost:5173 (also on your LAN, to test on a phone
 ```bash
 npm run build      # type-check + production build into dist/
 npm run preview    # serve the production build
-```
-
-```bash
+npm run ink        # recompile the dialogues (content/dialogue/*.ink) after editing them
 npm run deploy     # build and publish to GitHub Pages (gh-pages branch)
-npm run ink        # recompile content/dialogue/*.ink after editing dialogue
-npm run demo       # record a gameplay video (needs `npm run build && npm run preview -- --port 4173`)
 ```
 
-Controls: tap/click the ground or use the arrow keys / WASD. **G** toggles debug overlays (walkable area, hotspots).
+No configuration is needed: the online saves use the team's Supabase project through its **publishable** key
+(`src/config.ts`), which is public by design. If the saves are unreachable, the game still plays and saves on the device.
 
-## Tech stack
+Controls: tap or click the ground, or use the arrow keys / WASD; in the missions, tap, click or swipe. **Esc** or **P**
+pauses (the pause card shows the round's instructions again, and the music / sound / reduce-motion settings).
+
+## Who built which part
+
+| Member | Role | Built |
+|---|---|---|
+| **Dounia** | Project lead, science teacher, game design | The vision and story, the characters and the world (the Douniaverse), the science content and its accuracy, the designs of every mission and of the memory cards, and the review of each part in class terms |
+| **Hicham** | Game development | The whole game: engine, world and characters, the three missions and the Memory Challenge, the Discovery Book, English/Arabic, the art and animation pipeline that turns Dounia's designs into game assets, the integration of the online saves, testing and hosting |
+| **Djihane** | Backend development | The online saves on Supabase (PostgreSQL): the table, the three API functions (create, save, load by code), row-level security and grants, the 14-check test page (`backend/`) |
+
+Art: original characters and world by Dounia. Game-ready sprites, backgrounds, layers and walk cycles are produced
+from her designs with AI tools (ChatGPT image generation via the Codex CLI, Wan 2.2 video for the walks) and the local
+pipeline in `tools/pipeline/`.
+
+## How it is built
 
 | Area | Choice | Why |
 |---|---|---|
 | Game engine | [Phaser 4](https://phaser.io) (WebGL, Canvas fallback) | Mature 2D engine: scenes, sprites, tweens, input, cameras |
 | Language / build | TypeScript (strict) + [Vite](https://vite.dev) | Fast dev server, static output that runs on any web host |
-| Dialogue | [ink](https://github.com/inkle/ink) via `inkjs` | Writers edit plain-text scripts (EN / AR / FR) without touching code |
-| Level layout | [Tiled](https://www.mapeditor.org) map files (`.tmj`) | Walkable areas, hotspots and spawn points are drawn visually |
-| UI overlays | Plain HTML/CSS on top of the canvas | Sharp text, accessibility, right-to-left Arabic for free |
-| Save data | `localStorage` (no backend yet) | Chosen hero, discoveries, predictions |
-| Asset pipeline | Python 3.13 + OpenCV/Pillow, rembg, Real-ESRGAN, LaMa, Depth Anything | Turns AI-generated art and video into game-ready sprites |
-| AI art | ChatGPT images (via Codex CLI) for stills; Wan 2.2 (Hugging Face) for walk animations | See *Asset pipeline* |
-
-There is **no server**: the game is a static site (HTML + JS + images). A backend becomes useful later for
-teacher dashboards, class progress or accounts — see *Ideas for a backend*.
-
-## Hosting
-
-The game is a static site hosted free on **GitHub Pages** from the `gh-pages` branch. `npm run deploy` builds and
-publishes it. A GitHub Actions workflow (`.github/workflows/deploy.yml`) does the same automatically on every push
-to `main` once Actions is enabled for the account.
-
-## Project structure
+| Dialogue | [ink](https://github.com/inkle/ink) via `inkjs` | Writers edit plain-text scripts in English and Arabic without touching code |
+| Level layout | [Tiled](https://www.mapeditor.org) map files (`.tmj`) | Walkable areas, stars (hotspots), Guardians and spawn points are drawn visually |
+| Interface | HTML/CSS over the canvas | Sharp text, accessibility, right-to-left Arabic |
+| Saves | `localStorage` + [Supabase](https://supabase.com) (code-based online saves) | No accounts: a short code continues the game anywhere |
+| Hosting | GitHub Pages (static site) | Free, fast, nothing to run |
+| Asset pipeline | Python + OpenCV/Pillow, rembg, Real-ESRGAN, LaMa, Depth Anything | Turns AI-generated art and video into game-ready sprites and parallax layers |
 
 ```
-src/                     game code (TypeScript)
-  main.ts                entry: Phaser config, HUD hints, scene list
-  intro/IntroPlayer.ts   intro video, skip, hand-over to the game at the video's last frame
-  scenes/
-    BootScene.ts         loads manifests + textures
-    OverlookScene.ts     first place: matches the video's last frame, camera pull-back, hero choice
-    WorldScene.ts        generic walkable place driven by a Tiled map + an ink dialogue
-    ChapterScene.ts      storybook title cards between places
-  world/
-    Character.ts         a character on the ground plane: perspective scaling, 8 directions, walk cycles
-                         locked to ground speed (no foot sliding)
-    Party.ts             leader + followers formation
-    Walkable.ts          walkable polygon, clamping
-    Waypoint.ts          glowing markers/hotspots (pre-baked textures for phone performance)
-  dialogue/DialogueRunner.ts   plays ink knots, collects #speaker/#mood/#action/#discovery tags
-  ui/                    DialogueBox, HeroSelect, Toast (HTML overlays)
-  state/GameState.ts     persistent progress (localStorage)
-  data/types.ts          shapes of the JSON manifests
-
-content/                 things designers/teachers edit
-  dialogue/*.ink         conversations (compiled to public/assets/dialogue/*.json)
-  maps/*.tmj             Tiled maps (built to public/assets/world/*.place.json)
-  prompts/*.txt          prompts used to generate walk-animation clips
-
-public/assets/           game-ready assets, served as-is
-  characters/            sprite atlases (webp + json) + characters.json animation manifest
-  world/                 place backgrounds and layouts
-  dialogue/ portraits/ intro/
-
-tools/
-  build_ink.mjs          compile .ink → .json
-  pipeline/              Python asset pipeline (see below)
-
-docs/                    project brief, Dounia's character art, mini-game prototype, roadmap
+src/
+  main.ts                start page, intro, save codes, the review menu (?review), the Discovery Book button
+  scenes/                Overlook, World (every road), Mouth, Stomach, SmallIntestine (IntestineScene.ts),
+                         Revision (the Memory Challenge and the finale), Chapter (title cards)
+  world/                 characters with real walk cycles, the trio's formation, walkable areas, stars, peristalsis
+  ui/                    dialogue box, mission HUDs, Discovery Book, certificate, save-code panel, review menu
+  state/                 GameState (progress), OnlineSave (Supabase), discoveries (the book's pages), Settings
+  i18n/                  English and Arabic phrasebooks
+content/
+  dialogue/*.ink         every conversation (English; Arabic in dialogue/ar/)
+  maps/*.tmj             the roads, drawn in Tiled
+  prompts/               the prompts used to generate art
+backend/                 Djihane's Supabase SQL, test page and evidence
+tools/                   dialogue compiler, map builder, asset pipeline (tools/pipeline/), deploy
+public/assets/           game-ready assets, served as they are
 ```
 
-## Asset pipeline (how art gets into the game)
+High-resolution art masters (`art/`), AI models and heavy tools (`.tools/`) and source videos (`docs/videos/`) stay
+out of the repository: they are large and regenerable. The repository has everything needed to **run and change the
+game**.
 
-The game never loads raw art. Scripts in `tools/pipeline/` turn source art into `public/assets/`:
+## Security and data
 
-| Script | Does |
-|---|---|
-| `make_clip.py` | Generates a short walking clip (Wan 2.2 on Hugging Face) from a start image + prompt |
-| `extract_walk.py` | Cuts characters out of a clip, splits the trio, finds a seamless walk loop |
-| `make_plate.py`, `split_layers.py` | Clean background plate from the intro's last frame (inpainting), near/far depth layers |
-| `pack_assets.py` | Upscales, colour-matches and packs sprite atlases + the animation manifest |
-| `build_maps.py` | Tiled map → shipped background + place JSON |
+- **No secrets are committed.** The only key in the code is Supabase's publishable key, meant for browsers. The
+  database allows nothing but the three save functions (row-level security on, direct table access revoked); see
+  `backend/README.md`.
+- A save holds only what the game needs: the chosen avatar, an optional first name, the language, discoveries,
+  predictions and progress. No email, no account, no location.
+- Automated tests of the game intercept every save request, so test runs never write to the team's database.
 
-Heavy tools (AI models, Blender, upscaler) live in a local, git-ignored `.tools/` folder, and the high-resolution
-masters in `art/` are also kept out of git (they are large and regenerable). The repo contains everything needed
-to **run and modify the game**; regenerating art requires the local toolchain.
+## What next
 
-## How a place is built (example: the Road)
+- **The next kingdoms** (already announced in the game as *coming soon*): Breathing, the Body's Defenders
+  (immunity) and the Nerves, built on the same engine and the same predict → try → explain loop.
+- **A teacher view**: a class code that groups pupils' saves, so a teacher sees the class's progress and which
+  predictions changed after each mission.
+- **Offline play** for classrooms with weak internet (an installable web app).
+- **French**, the third language of Algerian schools (the dialogue system already supports more languages).
 
-1. Background image → `art/world/road/road_master.png`
-2. In Tiled, draw the walkable polygon, spawn point and hotspots → `content/maps/road.tmj`
-3. Write the conversations → `content/dialogue/road.ink` (hotspots name the ink knot they trigger)
-4. `python tools/pipeline/build_maps.py` and `node tools/build_ink.mjs`
-5. `WorldScene` plays it; no new code needed per place.
-
-## Ideas for a backend (later)
-
-- Teacher dashboard: class codes, which discoveries each student unlocked, prediction answers before/after
-- Accounts / cloud saves across devices
-- Content service for dialogues and mini-game data in several languages
-- Analytics for the classroom playtests
-
-## Roadmap
-
-- [World improvements backlog](docs/ROADMAP-world.md)
-- Next: finish all walk animations (side walks; the fox's natural trot), then the **Mouth** mini-game
-  (based on Dounia's prototype in `docs/games-codes/`)
-
-## Team
-
-- **Hicham** — game development
-- **Dounia** — project lead, vision, story and characters, science content
-- **Djihane** — backend development
-- *(4th member)*
-
-Art: original characters and world by Dounia; game sprites are produced from her designs with AI tools.
+## Credits
 
 Sound: the background birds and waterfall are "Birds and Waterfall" by rmultimediaeu on
 [Pixabay](https://pixabay.com/) (Pixabay Content License), cleaned of its low thumps by
-`tools/pipeline/make_ambience.py`. Footsteps and chimes are synthesised in code; the intro's
-soundtrack and the kids' "wow" come from the intro clips.
+`tools/pipeline/make_ambience.py`. Footsteps, chimes and tones are synthesised in code; the intro's soundtrack and the
+kids' "wow" come from the intro clips.

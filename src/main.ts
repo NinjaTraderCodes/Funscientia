@@ -9,6 +9,7 @@ import { GameState } from './state/GameState';
 import { OnlineSave } from './state/OnlineSave';
 import { askCode } from './ui/CodePanel';
 import { ReviewMenu, type ReviewStop } from './ui/ReviewMenu';
+import { openBook } from './ui/DiscoveryBook';
 import { toast } from './ui/Toast';
 import { I18n, applyPage, t, type Key } from './i18n/i18n';
 import { Sound } from './audio/Sound';
@@ -212,6 +213,39 @@ continueBtn.addEventListener('click', async (e) => {
 game.events.on(GAME_EVENTS.resumed, enterGame);
 game.events.on(GAME_EVENTS.profileChanged, showProfile);
 
+// the mini-games and the Memory Game start from their first round when they are chosen again
+const FRESH = new Set(['mouth', 'stomach', 'small-intestine', 'revision']);
+/** Go straight to a part of the journey (its chapter card, then the place), from anywhere. */
+const goTo = async (at: string) => {
+  const to = RESUME[at];
+  if (!to) return;
+  await intro.bypass(); // from the hero page: no intro (nothing to do once in the game)
+  if (!GameState.hero) GameState.hero = 'walid';
+  GameState.place = at;
+  // whatever is running gives way to the chapter card, then the place
+  const running = game.scene.getScenes(true).filter((s) => s.sys.settings.key !== 'Boot');
+  const from = running[0] ?? game.scene.getScene('Overlook');
+  for (const s of running.slice(1)) s.scene.stop();
+  from.scene.start('Chapter', {
+    title: t(to.title), subtitle: t(to.subtitle), artwork: to.artwork,
+    next: { scene: to.scene, data: FRESH.has(at) ? { replay: true } : to.data },
+  });
+  enterGame();
+};
+
+// ---- the Discovery Book: the button under the profile badge (the scene behind waits while it is open) ----
+const bookBtn = document.getElementById('book-btn') as HTMLButtonElement;
+let bookOpen = false;
+bookBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+bookBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (bookOpen) return;
+  bookOpen = true;
+  Sound.chime();
+  const closed = openBook((at) => void goTo(at)).then(() => { bookOpen = false; });
+  game.events.emit(GAME_EVENTS.bookOpen, closed);
+});
+
 // ---- the team's review menu (?review in the address): jump straight to any road or mini-game ----
 if (new URLSearchParams(location.search).has('review')) {
   const stops: ReviewStop[] = [
@@ -225,26 +259,10 @@ if (new URLSearchParams(location.search).has('review')) {
     { group: 'chapter.3', label: 'chapter.smallIntestineMission', at: 'small-intestine' },
     { group: 'chapter.3', label: 'chapter.revision', at: 'revision' },
   ];
-  // the mini-games and the Memory Game start from their first round
-  const FRESH = new Set(['mouth', 'stomach', 'small-intestine', 'revision']);
   let started = false;
-  const jump = async (at: string) => {
-    const to = RESUME[at];
-    if (!started) {
-      started = true;
-      await intro.bypass(); // from the hero page: no intro
-    }
-    if (!GameState.hero) GameState.hero = 'walid';
-    GameState.place = at;
-    // whatever is running gives way to the chapter card, then the place
-    const running = game.scene.getScenes(true).filter((s) => s.sys.settings.key !== 'Boot');
-    const from = running[0] ?? game.scene.getScene('Overlook');
-    for (const s of running.slice(1)) s.scene.stop();
-    from.scene.start('Chapter', {
-      title: t(to.title), subtitle: t(to.subtitle), artwork: to.artwork,
-      next: { scene: to.scene, data: FRESH.has(at) ? { replay: true } : to.data },
-    });
-    enterGame();
+  const jump = (at: string) => {
+    started = true;
+    return goTo(at);
   };
   // "from the beginning": the hero page as a pupil sees it (once in the game: reload, the menu comes back)
   const menu = new ReviewMenu(stops, (at) => void jump(at), () => started && location.reload());

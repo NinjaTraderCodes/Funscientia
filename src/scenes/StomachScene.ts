@@ -279,6 +279,7 @@ export class StomachScene extends Phaser.Scene {
     this.waves = false;
     this.ring.setAlpha(0);
     const stars = 1 + (this.stats.score >= STARS[0] ? 1 : 0) + (this.stats.score >= STARS[1] ? 1 : 0);
+    GameState.recordResult('stomach', stars, this.stats.score);
     if (stars === 3) Sound.tone(523, 1046, 0.5, 0.08, 'triangle');
     await this.hud.results({ stars, ...this.stats });
     const runner = await DialogueRunner.load('stomach', GameState.storyLeader);

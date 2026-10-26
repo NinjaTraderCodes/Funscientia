@@ -169,7 +169,11 @@ export class WorldScene extends Phaser.Scene {
     }
     this.party = new Party(leader, GameState.followerNames.map((n) => this.chars[n]), this.walkable);
     this.game.events.on(GAME_EVENTS.editProfile, this.onEditProfile, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.game.events.off(GAME_EVENTS.editProfile, this.onEditProfile, this));
+    this.game.events.on(GAME_EVENTS.bookOpen, this.onBook, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.game.events.off(GAME_EVENTS.editProfile, this.onEditProfile, this);
+      this.game.events.off(GAME_EVENTS.bookOpen, this.onBook, this);
+    });
 
     for (const n of P.npcs) {
       const img = this.add.image(n.x, n.y, `npc_${n.who}`).setOrigin(0.5, 1).setDepth(n.y);
@@ -264,6 +268,15 @@ export class WorldScene extends Phaser.Scene {
       if (inside && !s.inside && (!s.done || s.def.knot === 'gate' || s.def.to)) void this.trigger(s);
       s.inside = inside;
     }
+  }
+
+  /** The Discovery Book is open: nobody walks until it closes. */
+  private async onBook(closed: Promise<void>): Promise<void> {
+    if (this.phase !== 'play') return;
+    this.phase = 'talk';
+    for (const m of this.party.members) m.stop();
+    await closed;
+    if (this.phase === 'talk' && this.sys.isActive()) this.phase = 'play';
   }
 
   /** The profile badge: change name or avatar while walking about; a new avatar takes the lead on the spot. */

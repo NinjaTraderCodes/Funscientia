@@ -675,3 +675,98 @@ html.lang-ar .mh-banner-card, html.lang-ar .mh-results-card, html.lang-ar .mh-re
 }
 .review-tab[hidden] { display: none; }
 @media (max-width: 620px) { .review-groups { grid-template-columns: 1fr; } }
+
+/* ---- Nesma's Discovery Book (the button sits under the profile badge, and shows with it) ---- */
+.book-btn { right: auto; left: max(12px, env(safe-area-inset-left)); top: calc(max(10px, env(safe-area-inset-top)) + 56px); font-size: 21px; }
+#profile-btn[hidden] ~ #book-btn, body.book-open #profile-btn, body.book-open #book-btn { display: none; }
+.book { position: absolute; inset: 0; z-index: 24; display: grid; place-items: center; padding: max(62px, calc(env(safe-area-inset-top) + 58px)) 12px 12px; background: rgba(11, 21, 51, 0.62); backdrop-filter: blur(4px); pointer-events: auto; animation: fade-in 220ms ease-out; }
+.book-card {
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr); width: min(96vw, 1000px); height: min(100%, 680px);
+  color: #2b2314; background: linear-gradient(170deg, #fffaf0, #f6e8c8); border: 4px solid var(--gold); border-radius: 26px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55), inset 0 0 0 3px #fff6dd; overflow: hidden;
+}
+.book-card header { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 56px 8px 16px; color: var(--cream); background: linear-gradient(160deg, #1d4c92, #10306a); border-bottom: 3px solid var(--gold); }
+.book-card header h2 { margin: 0; font-family: Georgia, serif; font-size: clamp(20px, 4vh, 30px); color: var(--gold-2); text-shadow: 0 2px 0 #6b440c; }
+.book-card header p { margin: 0; font-size: clamp(12px, 2vh, 15px); opacity: 0.85; }
+.book-keeper { width: clamp(40px, 8vh, 58px); height: clamp(40px, 8vh, 58px); border-radius: 50%; border: 2px solid var(--gold); background: #fff3d6; }
+.book-close { position: absolute; top: 50%; inset-inline-end: 12px; transform: translateY(-50%); width: 40px; height: 40px; font-size: 28px; line-height: 1; color: var(--cream); background: none; border: 0; cursor: pointer; }
+html.lang-ar .book-card header { padding: 10px 16px 8px 56px; }
+.book-tabs { display: flex; gap: 6px; padding: 8px 12px 0; overflow-x: auto; border-bottom: 2px solid #e3c27a; }
+.book-tabs button {
+  flex: 0 0 auto; display: flex; align-items: baseline; gap: 6px; padding: 7px 14px 8px; font: inherit; font-weight: 700; font-size: clamp(13px, 2.2vh, 16px);
+  color: #6a4d1d; background: #f3dfb2; border: 2px solid #e3c27a; border-bottom: 0; border-radius: 14px 14px 0 0; cursor: pointer;
+}
+.book-tabs button small { font-size: 0.8em; color: #9a7a3e; }
+.book-tabs button[aria-selected="true"] { color: #fff6dd; background: linear-gradient(180deg, #1f4f97, #10306a); border-color: var(--gold); }
+.book-tabs button[aria-selected="true"] small { color: var(--gold-2); }
+.book-page { overflow-y: auto; padding: clamp(10px, 2.4vh, 20px) clamp(10px, 2.4vw, 22px); touch-action: pan-y; }
+.book-page h3 { margin: 0 0 8px; font-family: Georgia, serif; font-size: clamp(16px, 2.8vh, 21px); color: #1b3864; }
+html.lang-ar .book-card h2, html.lang-ar .book-page h3 { font-family: 'Baloo Bhaijaan 2', Tahoma, sans-serif; }
+
+/* the notes of a page: found ones in colour, missing ones as a shadow with a hint */
+.book-notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.book-note { position: relative; display: grid; grid-template-rows: clamp(70px, 15vh, 120px) auto; gap: 8px; padding: 10px; background: #fffdf7; border: 2px solid #e8cd8d; border-radius: 18px; box-shadow: 0 3px 0 #d9b468; }
+.book-note img { width: 100%; height: 100%; object-fit: contain; }
+.book-note img[src*="chapters/"], .book-note img[src*="world/esophagus"] { object-fit: cover; border-radius: 12px; }
+.book-note p { margin: 0; font-size: clamp(13px, 2.1vh, 15px); line-height: 1.4; }
+.book-note.missing { background: #f4ead6; border-style: dashed; box-shadow: none; }
+.book-note.missing img { filter: brightness(0) opacity(0.16); }
+.book-note.missing b { position: absolute; top: 10px; left: 0; right: 0; height: clamp(70px, 15vh, 120px); display: grid; place-items: center; font-size: clamp(34px, 8vh, 56px); color: #b8955a; font-family: Georgia, serif; }
+.book-note.missing p { color: #7d6540; font-style: italic; }
+
+/* the Journey: the route with its stars, the notes found, the kingdom's star and the kingdoms to come */
+.book-journey { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(12px, 3vw, 28px); }
+.book-route { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.book-stop { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 14px; }
+.book-stop:not(:last-child)::after { content: ''; position: absolute; inset-inline-start: 24px; top: 40px; height: calc(100% - 28px); border-inline-start: 3px dotted #d1ac5c; }
+.book-dot { position: relative; z-index: 1; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-size: 16px; color: #fff; background: #c9b791; border: 2px solid #fff6dd; }
+.book-stop.done .book-dot { background: radial-gradient(circle at 35% 30%, #ffe68a, #d89216); }
+.book-stop.here { background: #fff3cf; box-shadow: inset 0 0 0 2px #eec463; }
+.book-stop.here .book-dot { background: #1f4f97; animation: book-here 1.4s ease-in-out infinite; }
+.book-stop.locked { opacity: 0.6; }
+@keyframes book-here { 50% { box-shadow: 0 0 0 7px #eec46355; } }
+.book-stop-name { display: grid; font-weight: 700; font-size: clamp(14px, 2.3vh, 17px); color: #1b3864; }
+.book-stop-name small { font-weight: 400; font-size: 0.8em; color: #8a6c36; }
+.book-stars { display: flex; gap: 1px; }
+.book-stars img { width: clamp(18px, 3.6vh, 26px); filter: grayscale(1) opacity(0.35); }
+.book-stars img.won { filter: none; }
+.book-replay { padding: 5px 12px; font: inherit; font-size: 13px; font-weight: 700; color: #fff6dd; background: linear-gradient(180deg, #1f4f97, #10306a); border: 2px solid var(--gold); border-radius: 999px; cursor: pointer; }
+.book-side { display: grid; align-content: start; gap: 12px; }
+.book-total { display: grid; gap: 4px; padding: 10px 12px; background: #fffdf7; border: 2px solid #e8cd8d; border-radius: 16px; }
+.book-total b { font-size: clamp(22px, 4.4vh, 32px); color: #1b3864; }
+.book-total span { font-size: 14px; color: #6a4d1d; }
+.book-bar { display: block; height: 10px; border-radius: 10px; background: #ead9b4; overflow: hidden; }
+.book-bar > i { display: block; height: 100%; border-radius: 10px; background: linear-gradient(90deg, #f0b93a, #ffe17a); }
+.book-crown { display: flex; align-items: center; gap: 10px; padding: 8px 12px; font-weight: 700; font-size: 14px; color: #7d6540; background: #f4ead6; border: 2px dashed #d9bd7a; border-radius: 16px; }
+.book-crown img { width: 46px; filter: grayscale(1) opacity(0.4); }
+.book-crown.won { color: #1b3864; background: #fff3cf; border-style: solid; border-color: var(--gold); }
+.book-crown.won img { filter: drop-shadow(0 0 8px #ffd34f); }
+.book-coming { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.book-coming figure { margin: 0; display: grid; justify-items: center; gap: 4px; text-align: center; }
+.book-coming img { width: min(100%, 92px); aspect-ratio: 1; object-fit: contain; filter: grayscale(0.55) opacity(0.8); }
+.book-coming figcaption { display: grid; font-size: 12px; font-weight: 700; color: #1b3864; line-height: 1.25; }
+.book-coming small { color: #9a7a3e; font-weight: 400; }
+@media (max-width: 720px), (max-height: 480px) {
+  .book-journey { grid-template-columns: 1fr; }
+  .book-card { height: 100%; border-radius: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .book, .book-stop.here .book-dot { animation: none; } }
+
+/* ---- The pause card: the round's instructions again, and the settings ---- */
+.mh-pause-card { width: min(92vw, 560px); max-height: 92vh; overflow-y: auto; text-align: start; }
+.mh-pause-card > h2, .mh-pause-card > p { text-align: center; justify-self: center; }
+.mh-pause-card h3 { margin: 0 0 6px; font-size: 15px; letter-spacing: 0.03em; color: #8a5a12; }
+.mh-help { display: grid; grid-template-columns: 74px minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 4px 12px; width: 100%; padding: 10px 12px; background: #fffdf7; border: 2px solid #e8cd8d; border-radius: 14px; color: #2b2314; }
+.mh-help h3 { grid-column: 1 / -1; }
+.mh-help img { width: 74px; }
+.mh-help b { display: block; color: #1b3864; font-size: 16px; }
+.mh-help p { margin: 2px 0 0; font-size: 14px; line-height: 1.4; }
+.mh-settings { display: grid; gap: 8px; width: 100%; padding: 10px 12px; background: #fffdf7; border: 2px solid #e8cd8d; border-radius: 14px; color: #2b2314; }
+.mh-settings label { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); align-items: center; gap: 10px; font-size: 15px; }
+.mh-settings input[type=range] { width: 100%; accent-color: #1f4f97; }
+.mh-settings .mh-check { grid-template-columns: auto minmax(0, 1fr); cursor: pointer; }
+.mh-settings input[type=checkbox] { width: 22px; height: 22px; accent-color: #1f4f97; }
+.mh-pause-card .mh-resume { justify-self: center; }
+
+/* reduce motion: decorative animations stop (the game itself keeps moving) */
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }

@@ -1,6 +1,8 @@
 import { I18n, t, type Key } from '../i18n/i18n';
 import { asset } from '../assetUrl';
 import { GameState, type Avatar } from '../state/GameState';
+import { Settings } from '../state/Settings';
+import { Sound } from '../audio/Sound';
 
 /** Who can speak in a mini-game's quick reactions: the trio, the guardians, the enzymes. */
 export type Who = Avatar | 'tooth' | 'stomach' | 'intestine' | 'pepsin' | 'amylase' | 'lipase' | 'bile';
@@ -28,6 +30,8 @@ export class MiniGameHud {
   protected readonly el: Record<string, HTMLElement> = {};
   private reactUntil = 0;
   private reactTimer = 0;
+  /** the round being played (its banner): shown again on the pause card */
+  private round?: { card: number; title: string; text: string };
   private readonly offLang: () => void;
 
   constructor(
@@ -116,6 +120,7 @@ export class MiniGameHud {
 
   /** A round's card: big, with what to do, then a 3-2-1 countdown. Resolves on "go". */
   async banner(card: number, title: string, text: string, countdown = true): Promise<void> {
+    this.round = { card, title, text }; // the pause card shows it again
     const b = this.el.banner;
     b.querySelector('img')!.src = asset(this.cards[card].img);
     b.querySelector('h2')!.textContent = title;
@@ -178,10 +183,24 @@ export class MiniGameHud {
   pauseCard(onResume: () => void): void {
     const card = document.createElement('div');
     card.className = 'mh-results mh-paused';
-    card.innerHTML = `<div class="mh-results-card"><h2>${t('mouth.paused')}</h2><p>${t('mouth.pausedText')}</p><button type="button" class="avatar-continue">${t('mouth.resume')}</button></div>`;
+    const pct = (v: number) => Math.round(v * 100);
+    card.innerHTML = `<div class="mh-results-card mh-pause-card"><h2>${t('mouth.paused')}</h2><p>${t('mouth.pausedText')}</p>
+      ${this.round ? `<section class="mh-help"><h3>${t('help.title')}</h3><img src="${asset(this.cards[this.round.card].img)}" alt="" /><div><b>${this.round.title}</b><p>${this.round.text}</p></div></section>` : ''}
+      <section class="mh-settings"><h3>${t('set.title')}</h3>
+        <label><span>${t('set.music')}</span><input type="range" min="0" max="100" step="5" data-set="music" value="${pct(Settings.music)}" /></label>
+        <label><span>${t('set.sfx')}</span><input type="range" min="0" max="100" step="5" data-set="sfx" value="${pct(Settings.sfx)}" /></label>
+        <label class="mh-check"><input type="checkbox" data-set="reduceMotion"${Settings.reduceMotion ? ' checked' : ''} /><span>${t('set.motion')}</span></label>
+      </section>
+      <button type="button" class="avatar-continue mh-resume">${t('mouth.resume')}</button></div>`;
     this.root.appendChild(card);
     card.addEventListener('pointerdown', (e) => e.stopPropagation());
-    card.querySelector('button')!.addEventListener('click', () => {
+    card.addEventListener('keydown', (e) => e.stopPropagation()); // arrows move the sliders, not the game
+    card.querySelectorAll<HTMLInputElement>('input[type=range]').forEach((r) => r.addEventListener('input', () => {
+      Settings.set({ [r.dataset.set!]: Number(r.value) / 100 });
+      if (r.dataset.set === 'sfx') Sound.tone(600, 760, 0.07, 0.04);
+    }));
+    card.querySelector<HTMLInputElement>('[data-set=reduceMotion]')!.addEventListener('change', (e) => Settings.set({ reduceMotion: (e.target as HTMLInputElement).checked }));
+    card.querySelector('.mh-resume')!.addEventListener('click', () => {
       card.remove();
       onResume();
     });
