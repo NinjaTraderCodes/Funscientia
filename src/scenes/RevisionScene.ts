@@ -21,9 +21,10 @@ type QuizKind = 'starch' | 'glucose' | 'fat' | 'aminoAcid' | 'polypeptide' | 'ma
 interface MemoryCard { id: number; kind: CardKind; face: 'picture' | 'name' }
 interface Question { prompt: Key; explanation: Key; choices: { id: string; kind?: QuizKind; label?: Key }[]; correct: string[] }
 
+// (Dounia: the first board holds the molecules, the second only the helpers and their names)
 const BOARDS: readonly { title: Key; kinds: readonly CardKind[] }[] = [
-  { title: 'c3.board.proteins', kinds: ['protein', 'polypeptide', 'peptide', 'starch', 'maltose', 'glucose'] },
-  { title: 'c3.board.fats', kinds: ['fat', 'fatPieces', 'bile', 'lipase', 'amylase', 'pepsin'] },
+  { title: 'c3.board.molecules', kinds: ['protein', 'polypeptide', 'peptide', 'starch', 'maltose', 'glucose', 'fat', 'fatPieces'] },
+  { title: 'c3.board.helpers', kinds: ['amylase', 'pepsin', 'lipase', 'bile'] },
 ];
 const choices = (kinds: QuizKind[]) => kinds.map((kind) => ({ id: kind, kind }));
 const QUESTIONS: readonly Question[] = [
@@ -114,7 +115,7 @@ export class RevisionScene extends Chapter3Base {
     const complete = this.matched.size === this.cards.length;
     let grid = this.main.querySelector<HTMLElement>('.mg-grid');
     if (!grid || grid.dataset.board !== String(this.step)) {
-      this.replaceMain('<section class="mg-board"><h2 class="mg-title"><span></span></h2><div class="mg-grid" data-board="' + this.step + '">' + this.cards.map((card, i) =>
+      this.replaceMain('<section class="mg-board"><h2 class="mg-title"><span></span></h2><div class="mg-grid" data-board="' + this.step + '" data-n="' + this.cards.length + '">' + this.cards.map((card, i) =>
         '<button type="button" class="mg-card" data-action="flip" data-card="' + card.id + '" data-focus="card-' + card.id + '" style="--i:' + i + '"><span class="mg-inner">' +
         '<span class="mg-face mg-back">' + img('revision/card_back.webp') + '</span>' +
         '<span class="mg-face mg-front">' + (card.face === 'picture' ? img('revision/card_' + card.kind + '.webp') : img('revision/card_name.webp') + '<b class="mg-word"></b>') + '</span>' +
@@ -186,7 +187,7 @@ export class RevisionScene extends Chapter3Base {
       }
       this.redraw(keyboard); return;
     }
-    if (action === 'next' && !this.locked && (this.step < 2 ? this.matched.size === 12 : this.step < 5 && this.checked)) {
+    if (action === 'next' && !this.locked && (this.step < 2 ? this.matched.size === this.cards.length : this.step < 5 && this.checked)) {
       if (this.step < 2) { this.totalMoves += this.moves; this.boardsPlayed++; }
       this.step++;
       GameState.checkpointChapter3({ quiz: this.step });

@@ -35,7 +35,7 @@ PICTURES = {
     "protein": "06", "polypeptide": "07", "peptide": "08", "aminoAcid": "09",
     "starch": "10", "maltose": "11", "glucose": "12",
     "fatVitamins": "13", "waterVitamins": "14", "minerals": "15", "water": "16",
-    "fatPieces": "17", "fat": "18", "bile": "19", "emulsifiedFat": "20",
+    "fatPieces": "17", "fat": "18", "bile": "19b", "emulsifiedFat": "20",  # 19b: her bile resized to match the scissors
 }
 
 
