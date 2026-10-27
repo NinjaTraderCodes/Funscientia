@@ -48,6 +48,17 @@ OPENING = 5.90
 OWN_SOUND = {"part-02_v1.mp4"}
 SR = 48000
 SOUND_FADE = 0.12  # seconds of crossfade where a shot's own sound comes in and out
+# one sound for the whole intro: every shot brought its own ambience, which jumped at each cut. Now the
+# shots' sounds are levelled towards each other (with ramps across the cuts), the cuts are de-clicked,
+# and the game's own nature ambience runs under everything, at the level the game plays it, so the
+# intro flows into the game without a seam
+AMBIENCE = ROOT / "public" / "assets" / "audio" / "ambience.m4a"
+AMBIENCE_GAIN = 0.32   # Sound.music()'s level in the game
+AMBIENCE_IN = 2.5      # its fade-in at the start, seconds
+LEVEL_STRENGTH = 0.6   # how far each shot moves towards the common level (0 = not at all, 1 = fully)
+LEVEL_MAX_DB = 8.0     # ... but never more than this
+LEVEL_RAMP = 0.6       # seconds over which the level changes across a cut
+DECLICK = 0.03         # seconds of fade either side of a cut
 # part-09 is 3:2: crop it to 16:9 nearer the top, where the faces are
 CROP_TOP_SHARE = {"part-09.mp4": 0.2}
 
@@ -87,7 +98,58 @@ def soundtrack() -> np.ndarray:
             track[a:a + len(own)] = slot * (1 - w) + own * w
             print(f"  {name}: its own sound at {at:.2f}-{at + dur:.2f}s")
         at += dur
-    return track.astype(np.float32)
+    track = level_and_declick(track)
+    return (track + ambience_bed(len(track))).astype(np.float32)
+
+
+def cut_times() -> list[float]:
+    times, at = [], OPENING
+    for _, _, dur in SHOTS:
+        times.append(at)
+        at += dur
+    return times + [CUT_AT]
+
+
+def level_and_declick(track: np.ndarray) -> np.ndarray:
+    """Bring each shot's sound part of the way towards a common level, with ramps across the cuts (the
+    overlook's music, from CUT_AT, keeps its own level), and fade a few ms either side of every cut."""
+    bounds = [0.0] + cut_times()  # shot i runs bounds[i]..bounds[i+1]; the music after CUT_AT
+    rms = []
+    for a, b in zip(bounds[:-1], bounds[1:]):
+        seg = track[int(a * SR):int(b * SR)]
+        rms.append(np.sqrt((seg ** 2).mean()) + 1e-9)
+    target = np.exp(np.mean(np.log(rms)))
+    gains = [float(np.clip((target / r) ** LEVEL_STRENGTH, 10 ** (-LEVEL_MAX_DB / 20), 10 ** (LEVEL_MAX_DB / 20))) for r in rms] + [1.0]
+    # a gain envelope: constant within a shot, a smooth ramp centred on each cut
+    t = np.arange(len(track)) / SR
+    env = np.full(len(track), gains[0])
+    for i, c in enumerate(bounds[1:]):
+        k = np.clip((t - (c - LEVEL_RAMP / 2)) / LEVEL_RAMP, 0, 1)
+        k = k * k * (3 - 2 * k)
+        env = env + (gains[i + 1] - gains[i]) * k
+    for i, (g, r) in enumerate(zip(gains, rms)):
+        print(f"  shot {i:2d}: {20 * np.log10(r):6.1f} dB -> {20 * np.log10(r * g):6.1f} dB")
+    out = track * env[:, None]
+    f = int(DECLICK * SR)
+    for c in bounds[1:]:
+        i = int(c * SR)
+        out[i - f:i] *= np.linspace(1, 0.35, f)[:, None]
+        out[i:i + f] *= np.linspace(0.35, 1, f)[:, None]
+    return out
+
+
+def ambience_bed(n: int) -> np.ndarray:
+    """The game's nature ambience under the whole intro (looped with a crossfade if it is too short)."""
+    one = pcm(AMBIENCE)
+    x = int(3.0 * SR)
+    bed = one.copy()
+    while len(bed) < n:
+        w = np.linspace(0, 1, x)[:, None]
+        bed = np.concatenate([bed[:-x], bed[-x:] * (1 - w) + one[:x] * w, one[x:]])
+    bed = bed[:n] * AMBIENCE_GAIN
+    fade = int(AMBIENCE_IN * SR)
+    bed[:fade] *= np.linspace(0, 1, fade)[:, None]
+    return bed
 
 
 def main() -> None:

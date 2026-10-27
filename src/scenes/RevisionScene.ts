@@ -5,7 +5,7 @@ import { asset } from '../assetUrl';
 import { Sound } from '../audio/Sound';
 import { DialogueBox } from '../ui/DialogueBox';
 import { DialogueRunner } from '../dialogue/DialogueRunner';
-import { drawCertificate, downloadCertificate } from '../ui/Certificate';
+import { drawCertificate, downloadCertificate, viewCertificate } from '../ui/Certificate';
 import { COMING } from '../state/discoveries';
 
 /**
@@ -69,8 +69,11 @@ export class RevisionScene extends Chapter3Base {
   private certificate?: HTMLCanvasElement;
   private feedback: { key: Key; vars?: Record<string, string | number>; explanation?: Key } = { key: 'c3.quiz.hint' };
   constructor() { super('Revision', 'revision/hall.webp'); }
-  init(data: { replay?: boolean } = {}): void {
+  /** arriving at the finale straight away (the team's review menu): the Guardians' farewell plays first */
+  private finaleFirst = false;
+  init(data: { replay?: boolean; finale?: boolean } = {}): void {
     if (data.replay) GameState.checkpointChapter3({ quiz: 0 });
+    this.finaleFirst = !!data.finale;
     this.totalMoves = 0;
     this.boardsPlayed = 0;
   }
@@ -84,6 +87,7 @@ export class RevisionScene extends Chapter3Base {
     this.box = new DialogueBox(GameState.storyLeader);
     this.events.once('shutdown', () => this.box.destroy());
     if (this.step === 0) void this.intro();
+    if (this.step >= 5 && this.finaleFirst) void this.finale();
   }
   private async intro(): Promise<void> {
     this.talking = true; this.main.inert = true; this.footer.inert = true;
@@ -165,7 +169,8 @@ export class RevisionScene extends Chapter3Base {
   private renderEnding(keyboard: boolean): void {
     this.replaceMain('<section class="mh-results-card c3-ending fin"><div class="fin-head"><div class="c3-trio">' + ['nesma', 'fox', 'walid'].map((who) => img('portraits/' + who + '_cheering.webp')).join('') +
       '</div><h2>' + t('c3.end.title') + '</h2><p>' + t('c3.end.text') + '</p></div>' +
-      '<div class="fin-cert"><img class="fin-cert-img" alt="' + t('cert.title') + '" /><button type="button" class="avatar-continue" data-action="download">' + t('fin.download') + '</button></div>' +
+      '<div class="fin-cert"><button type="button" class="fin-cert-open" data-action="viewCert" aria-label="' + t('fin.view') + '"><img class="fin-cert-img" alt="' + t('cert.title') + '" /><span>' + t('fin.view') + '</span></button>' +
+      '<button type="button" class="avatar-continue" data-action="download">' + t('fin.download') + '</button></div>' +
       '<div class="fin-more"><section class="fin-next"><h3>' + t('fin.coming') + '</h3><div>' + COMING.map((k) => '<figure>' + img(k.art) + '<figcaption>' + t(k.title) + '</figcaption></figure>').join('') + '</div></section>' +
       '<section class="fin-credits"><h3>' + t('fin.credits') + '</h3><ul><li>' + t('fin.dounia') + '</li><li>' + t('fin.hicham') + '</li><li>' + t('fin.djihane') + '</li></ul><p>' + t('fin.thirduni') + '</p></section></div>' +
       '<div class="c3-ending-actions">' + this.primary(t('c3.end.replayQuiz'), 'replayQuiz') + this.primary(t('c3.end.replayMission'), 'replayMission') +
@@ -222,6 +227,7 @@ export class RevisionScene extends Chapter3Base {
       if (this.step === 5) void this.finale();
     } else if (this.step >= 5) {
       if (action === 'download' && this.certificate) downloadCertificate(this.certificate);
+      if (action === 'viewCert') void viewCertificate(this.certificate);
       if (action === 'replayQuiz') this.scene.restart({ replay: true });
       if (action === 'replayMission') this.scene.start('SmallIntestine', { replay: true });
       if (action === 'road') this.scene.start('World', { place: 'intestine-road' });

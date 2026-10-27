@@ -8,6 +8,8 @@ export const GAME_EVENTS = {
   /** The intro video reaches its last shot: the game shows the overlook from here (payload: seconds of soundtrack left). */
   introCut: 'intro:cut',
   introDone: 'intro:done',
+  /** Skip pressed: frame the end of the intro's last shot right away (the pull-back comes next). */
+  introSkip: 'intro:skip',
   openingDone: 'opening:done',
   /** The profile badge was tapped: the scene opens the avatar editor if it is a good moment. */
   editProfile: 'profile:edit',

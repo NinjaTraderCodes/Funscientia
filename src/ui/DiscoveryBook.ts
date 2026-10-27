@@ -2,6 +2,7 @@ import { asset } from '../assetUrl';
 import { I18n, t } from '../i18n/i18n';
 import { GameState, PLACE_ORDER } from '../state/GameState';
 import { BOOK, BOOK_NOTES, COMING, JOURNEY, discoveryText } from '../state/discoveries';
+import { viewCertificate } from './Certificate';
 
 /**
  * Nesma's Discovery Book: the Journey (where the child has got to, each mission's best stars, the
@@ -41,7 +42,8 @@ export function openBook(onReplay: (at: string) => void): Promise<void> {
         <section class="book-side">
           <div class="book-total"><b>${found} / ${BOOK_NOTES.length}</b><span>${t('book.notesFound')}</span>
             <i class="book-bar"><i style="width:${Math.round((100 * found) / BOOK_NOTES.length)}%"></i></i></div>
-          <div class="book-crown${crown ? ' won' : ''}">${img('mouth/ui_star.webp')}<span>${t(crown ? 'book.crown' : 'book.crownSoon')}</span></div>
+          <div class="book-crown${crown ? ' won' : ''}">${img('mouth/ui_star.webp')}<span>${t(crown ? 'book.crown' : 'book.crownSoon')}</span>
+            ${crown ? `<button type="button" class="book-replay" data-act="cert">${t('book.certificate')}</button>` : ''}</div>
           <h3>${t('book.coming')}</h3>
           <div class="book-coming">${COMING.map((k) => `<figure>${img(k.art)}<figcaption>${t(k.title)}<small>${t('book.soon')}</small></figcaption></figure>`).join('')}</div>
         </section>
@@ -57,11 +59,14 @@ export function openBook(onReplay: (at: string) => void): Promise<void> {
 
     const draw = () => {
       el.dir = I18n.rtl ? 'rtl' : 'ltr';
+      // the book is kept by the other kid (the friend at the child's side): Nesma when the child plays Walid
+      // or the fennec, Walid when the child plays Nesma
+      const keeper = GameState.storyLeader === 'nesma' ? 'walid' : 'nesma';
       const tabs = [{ id: 'journey', label: t('book.journey'), count: '' }, ...BOOK.map((p) => ({
         id: p.id, label: t(p.title), count: `${p.notes.filter((n) => has(n.id)).length}/${p.notes.length}`,
       }))];
       el.innerHTML = `<div class="book-card" role="dialog" aria-modal="true" aria-label="${t('book.title')}">
-        <header>${img('portraits/nesma_happy.webp', 'book-keeper')}<div><h2>${t('book.title')}</h2><p>${t('book.keptBy', { name: GameState.nameOf('nesma') })}</p></div>
+        <header>${img(`portraits/${keeper}_happy.webp`, 'book-keeper')}<div><h2>${t('book.title')}</h2><p>${t(keeper === 'nesma' ? 'book.keptBy' : 'book.keptByM', { name: GameState.nameOf(keeper) })}</p></div>
           <button type="button" class="book-close" data-act="close" aria-label="${t('review.close')}">×</button></header>
         <nav class="book-tabs" role="tablist">${tabs.map((b) => `<button type="button" role="tab" data-page="${b.id}" aria-selected="${b.id === page}">${b.label}${b.count ? `<small>${b.count}</small>` : ''}</button>`).join('')}</nav>
         <div class="book-page" role="tabpanel">${page === 'journey' ? journey() : notes(page)}</div>
@@ -84,6 +89,7 @@ export function openBook(onReplay: (at: string) => void): Promise<void> {
       e.stopPropagation();
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
       if (e.target === el || b?.dataset.act === 'close') return close();
+      if (b?.dataset.act === 'cert') { void viewCertificate(); return; }
       if (b?.dataset.page) { page = b.dataset.page; draw(); el.querySelector<HTMLButtonElement>(`[data-page="${page}"]`)?.focus(); }
       if (b?.dataset.at) { const at = b.dataset.at; close(); onReplay(at); }
     });

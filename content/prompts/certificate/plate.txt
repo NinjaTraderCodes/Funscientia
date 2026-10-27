@@ -1,0 +1,13 @@
+Use case: precise-object-edit. The attached image is the EDIT TARGET: a certificate design for our children's educational game.
+
+Remove ONLY the writing and the stars, so the game can write them itself in English or Arabic:
+- remove the title "Certificate of Discovery" and the line "This certificate is awarded to";
+- remove the name "Dounia" from the navy ribbon: keep the navy ribbon with its gold border and its little gold stars at both ends, now EMPTY;
+- remove the two lines "for exploring the whole Kingdom of Digestion, from the mouth to the small intestine.";
+- in the four rows, remove the words ("Mouth Mission", "Stomach Mission", "Small Intestine Mission", "The Kingdom Memory Challenge") and ALL the gold stars; KEEP the four small round icons on the left of the rows (lips, stomach, intestine, crown) and the thin lines between the rows;
+- remove "Discovery notes found: 19 / 19" and the date "26 October 2026" (keep the small gold flourishes around that place);
+- in the round medal with the blue ribbons (bottom right), remove the little blue mascot inside the medal: keep the gold rim, the laurel and the ribbons, and leave the inside of the medal a plain, smooth navy-blue disc.
+
+Fill every removed area naturally with the same aged parchment texture and soft lighting. Keep EVERYTHING else exactly as it is: the logo at the top (with its own letters), the compass, the parchment scroll and its edges, the big blue mascot on the left, the books, the castle and the waterfalls, the plants, the flowers, the colours, the camera and the composition. Do not add any new text, letters, numbers, stars or objects.
+
+Landscape image, 1536 x 1024 pixels.

@@ -4,18 +4,22 @@ import { GameState } from '../state/GameState';
 import { BOOK_NOTES } from '../state/discoveries';
 
 /**
- * The explorer's certificate at the end of the Kingdom of Digestion: the child's name and avatar,
- * each mission's best stars, the notes found, the three Guardians as seals. Drawn on a canvas, so
- * the same picture is shown and downloaded (in the current language).
+ * The explorer's certificate at the end of the Kingdom of Digestion, on Dounia's design (its words painted
+ * out: certificate/plate.webp): the child's name, each mission's best stars, the notes found, the date, and
+ * the child's avatar in the medal. Drawn on a canvas in the current language, so the picture shown, the
+ * large view and the download are the same.
  */
-const W = 1600;
-const H = 1130;
+const PW = 1536; // the plate's layout, in pixels of its master (drawn larger)
+const PH = 1024;
+const OUT_W = 2048;
+const S = OUT_W / PW;
 const MISSIONS: readonly { game: string; title: Key }[] = [
   { game: 'mouth', title: 'chapter.mouthMission' },
   { game: 'stomach', title: 'chapter.stomachMission' },
   { game: 'small-intestine', title: 'chapter.smallIntestineMission' },
   { game: 'revision', title: 'chapter.revision' },
 ];
+const ROW_Y = [605, 665, 725, 785]; // the rows (their icons are part of the picture)
 const AVATAR_ART = { walid: 'avatars/boy.webp', nesma: 'avatars/girl.webp', fox: 'avatars/fox.webp' } as const;
 
 const load = (path: string) => new Promise<HTMLImageElement | null>((resolve) => {
@@ -27,109 +31,69 @@ const load = (path: string) => new Promise<HTMLImageElement | null>((resolve) =>
 
 export async function drawCertificate(): Promise<HTMLCanvasElement> {
   const hero = GameState.hero ?? 'walid';
-  const [logo, avatar, star, ...seals] = await Promise.all([
-    load('hero/logo.webp'), load(AVATAR_ART[hero]), load('mouth/ui_star.webp'),
-    load('portraits/tooth_happy.webp'), load('portraits/stomach_happy.webp'), load('portraits/intestine_happy.webp'),
-  ]);
-  const display = I18n.rtl ? "'Baloo Bhaijaan 2', Tahoma, sans-serif" : 'Georgia, serif';
-  const body = I18n.rtl ? "'Baloo Bhaijaan 2', Tahoma, sans-serif" : "'Trebuchet MS', 'Segoe UI', sans-serif";
+  const [plate, avatar, star] = await Promise.all([load('certificate/plate.webp'), load(AVATAR_ART[hero]), load('mouth/ui_star.webp')]);
+  const ar = I18n.rtl;
+  const serif = ar ? "'Baloo Bhaijaan 2', Tahoma, sans-serif" : 'Georgia, serif';
   await document.fonts?.ready;
 
   const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
+  c.width = OUT_W;
+  c.height = Math.round(PH * S);
   const g = c.getContext('2d')!;
-  g.direction = I18n.rtl ? 'rtl' : 'ltr';
-  g.textAlign = 'center';
+  g.scale(S, S);
+  if (plate) g.drawImage(plate, 0, 0, PW, PH);
+  g.direction = ar ? 'rtl' : 'ltr';
   g.textBaseline = 'middle';
-
-  // parchment, a navy band and a double gold frame
-  const paper = g.createLinearGradient(0, 0, W, H);
-  paper.addColorStop(0, '#fffaf0');
-  paper.addColorStop(1, '#f3e2bd');
-  g.fillStyle = paper;
-  g.fillRect(0, 0, W, H);
-  const frame = (inset: number, width: number, color: string) => {
-    g.strokeStyle = color;
-    g.lineWidth = width;
-    g.beginPath();
-    g.roundRect(inset, inset, W - 2 * inset, H - 2 * inset, 46 - inset / 3);
-    g.stroke();
-  };
-  frame(22, 16, '#d9a63a');
-  frame(46, 4, '#1f4f97');
-  frame(58, 2, '#e8c46a');
-  for (const [x, y] of [[90, 90], [W - 90, 90], [90, H - 90], [W - 90, H - 90]]) {
-    g.fillStyle = '#e0ae45';
-    g.font = `40px ${display}`;
-    g.fillText('★', x, y);
-  }
-
-  if (logo) {
-    const lw = 360;
-    g.drawImage(logo, W / 2 - lw / 2, 82, lw, (lw * logo.height) / logo.width);
-  }
-  const title = (text: string, y: number, size: number, color: string, font = display, weight = 'bold') => {
-    g.font = `${weight} ${size}px ${font}`;
+  const text = (s: string, x: number, y: number, size: number, color: string, opts: { weight?: string; style?: string; align?: CanvasTextAlign; max?: number; shadow?: string } = {}) => {
+    g.font = `${opts.style ?? ''} ${opts.weight ?? 'bold'} ${size}px ${serif}`;
+    g.textAlign = opts.align ?? 'center';
     g.fillStyle = color;
-    g.fillText(text, W / 2, y, W - 360);
-  };
-  title(t('cert.title'), 300, 76, '#1b3864');
-  title(t('cert.certifies'), 380, 34, '#6a4d1d', body, 'normal');
-  // the name, in gold, on a navy ribbon
-  g.fillStyle = '#163d74';
-  g.beginPath();
-  g.roundRect(W / 2 - 430, 420, 860, 120, 60);
-  g.fill();
-  g.strokeStyle = '#eec463';
-  g.lineWidth = 5;
-  g.stroke();
-  title(GameState.nameOf(hero), 482, 74, '#ffe08a');
-  title(t(hero === 'nesma' ? 'cert.exploredF' : 'cert.explored'), 600, 34, '#2b2314', body, 'normal');
-
-  // the avatar, the missions' stars, the three Guardians as seals (mirrored in Arabic: it reads from the right)
-  const X = (x: number) => (I18n.rtl ? W - x : x);
-  const ring = (x: number, y: number, r: number, im: HTMLImageElement | null) => {
-    g.beginPath();
-    g.arc(x, y, r, 0, Math.PI * 2);
-    g.fillStyle = '#fff3d6';
-    g.fill();
-    if (im) {
-      g.save();
-      g.clip();
-      g.drawImage(im, x - r, y - r, 2 * r, 2 * r);
-      g.restore();
+    if (opts.shadow) {
+      g.shadowColor = opts.shadow;
+      g.shadowOffsetY = 2;
+      g.shadowBlur = 0;
     }
-    g.strokeStyle = '#d9a63a';
-    g.lineWidth = r > 100 ? 8 : 7;
-    g.beginPath();
-    g.arc(x, y, r, 0, Math.PI * 2);
-    g.stroke();
+    g.fillText(s, x, y, opts.max);
+    g.shadowColor = 'transparent';
   };
-  ring(X(250), 760, 120, avatar);
+
+  text(t('cert.title'), 775, 300, ar ? 76 : 70, '#173a6e', { max: 820, shadow: '#e8c46a' });
+  text(t('cert.certifies'), 775, 368, 28, '#4a3412', { weight: 'normal', max: 470 });
+  // the name, in gold on the navy ribbon
+  text(GameState.nameOf(hero), 775, 460, ar ? 66 : 62, '#ffd977', { max: 500, shadow: '#6b440c' });
+  // the sentence on two lines, as on Dounia's design (it would run into the mascot's star as one)
+  const said = t(hero === 'nesma' ? 'cert.exploredF' : 'cert.explored');
+  const comma = Math.max(said.indexOf(', '), said.indexOf('، '));
+  const lines = comma > 0 ? [said.slice(0, comma + 1), said.slice(comma + 2)] : [said];
+  lines.forEach((line, i) => text(line, 775, lines.length > 1 ? 531 + i * 29 : 546, 24, '#4a3412', { weight: 'normal', style: ar ? '' : 'italic', max: 640 }));
+
+  // each mission's best stars (the icons are on the left; Arabic reads the row from the right)
   MISSIONS.forEach((m, i) => {
-    const y = 680 + i * 58;
+    const y = ROW_Y[i];
     const best = GameState.result(m.game)?.stars ?? 0;
-    g.font = `bold 30px ${body}`;
-    g.fillStyle = '#1b3864';
-    g.textAlign = I18n.rtl ? 'left' : 'right';
-    g.fillText(t(m.title), X(850), y, 430);
-    g.textAlign = 'center';
+    const name = t(m.title);
+    text(name, ar ? 1045 : 590, y, name.length > 22 ? 22 : 26, '#2b2314', { weight: ar ? 'bold' : 'normal', align: ar ? 'right' : 'left', max: 295 });
     for (let k = 0; k < 3 && star; k++) {
-      g.globalAlpha = k < best ? 1 : 0.22;
-      g.drawImage(star, X(890 + k * 56 + 24) - 24, y - 24, 48, 48);
+      const x = ar ? 600 + k * 44 : 1012 - (2 - k) * 44;
+      g.globalAlpha = k < best ? 1 : 0.25;
+      g.drawImage(star, x - 18, y - 18, 36, 36);
     }
     g.globalAlpha = 1;
   });
   const found = BOOK_NOTES.filter((id) => GameState.discoveries.includes(id)).length;
-  title(t('cert.notes', { n: found, total: BOOK_NOTES.length }), 940, 32, '#6a4d1d', body, 'bold');
-  seals.forEach((im, i) => ring(X(1210 + i * 120), 760 + (i === 1 ? -40 : 30), 62, im));
-  g.font = `bold 24px ${body}`;
-  g.fillStyle = '#6a4d1d';
-  g.fillText(t('cert.guardians'), X(1330), 880);
-
+  text(t('cert.notes', { n: found, total: BOOK_NOTES.length }), 775, 893, 27, '#2b2314', { max: 380 });
   const date = new Date().toLocaleDateString(I18n.lang === 'ar' ? 'ar-DZ' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  title(date, 1010, 26, '#8a6c36', body, 'normal');
+  text(date, 775, 940, 21, '#6a4d1d', { weight: 'normal' });
+
+  // the child's avatar in the medal
+  if (avatar) {
+    g.save();
+    g.beginPath();
+    g.arc(1240, 765, 62, 0, Math.PI * 2);
+    g.clip();
+    g.drawImage(avatar, 1240 - 62, 765 - 62, 124, 124);
+    g.restore();
+  }
   return c;
 }
 
@@ -145,4 +109,37 @@ export function downloadCertificate(c: HTMLCanvasElement): void {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }, 'image/png');
+}
+
+/** The certificate in a large window, with Download and Close. Resolves when it is closed. */
+export async function viewCertificate(drawn?: HTMLCanvasElement): Promise<void> {
+  const c = drawn ?? (await drawCertificate());
+  return new Promise((resolve) => {
+    const el = document.createElement('div');
+    el.className = 'cert-view';
+    el.dir = I18n.rtl ? 'rtl' : 'ltr';
+    el.innerHTML = `<div class="cert-view-card" role="dialog" aria-modal="true" aria-label="${t('cert.title')}">
+      <img src="${c.toDataURL('image/png')}" alt="${t('cert.title')}" />
+      <div class="cert-view-actions"><button type="button" class="avatar-continue" data-act="download">${t('fin.download')}</button>
+      <button type="button" class="c3-secondary" data-act="close">${t('review.close')}</button></div></div>`;
+    document.getElementById('app')!.appendChild(el);
+    const close = () => {
+      window.removeEventListener('keydown', onKey, true);
+      el.remove();
+      resolve();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.code === 'Escape') close();
+    };
+    el.addEventListener('pointerdown', (e) => e.stopPropagation());
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const act = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
+      if (act === 'download') downloadCertificate(c);
+      else if (act === 'close' || e.target === el) close();
+    });
+    window.addEventListener('keydown', onKey, true);
+    el.querySelector<HTMLButtonElement>('[data-act=download]')?.focus();
+  });
 }

@@ -10,6 +10,7 @@ import { OnlineSave } from './state/OnlineSave';
 import { askCode } from './ui/CodePanel';
 import { ReviewMenu, type ReviewStop } from './ui/ReviewMenu';
 import { openBook } from './ui/DiscoveryBook';
+import { BOOK_NOTES } from './state/discoveries';
 import { toast } from './ui/Toast';
 import { I18n, applyPage, t, type Key } from './i18n/i18n';
 import { Sound } from './audio/Sound';
@@ -53,6 +54,7 @@ const intro = new IntroPlayer(
   gameReady,
   (secondsLeft) => game.events.emit(GAME_EVENTS.introCut, secondsLeft),
   () => game.events.emit(GAME_EVENTS.introDone),
+  () => game.events.emit(GAME_EVENTS.introSkip),
 );
 
 // The hero page shows first, with its looping video; the intro starts downloading
@@ -222,19 +224,31 @@ const goTo = async (at: string) => {
   await intro.bypass(); // from the hero page: no intro (nothing to do once in the game)
   if (!GameState.hero) GameState.hero = 'walid';
   GameState.place = at;
+  // the finale: the Memory Challenge counts as done (the certificate shows the real stars and notes so far)
+  if (at === 'complete') GameState.checkpointChapter3({ quiz: 5 });
   // whatever is running gives way to the chapter card, then the place
   const running = game.scene.getScenes(true).filter((s) => s.sys.settings.key !== 'Boot');
   const from = running[0] ?? game.scene.getScene('Overlook');
   for (const s of running.slice(1)) s.scene.stop();
   from.scene.start('Chapter', {
     title: t(to.title), subtitle: t(to.subtitle), artwork: to.artwork,
-    next: { scene: to.scene, data: FRESH.has(at) ? { replay: true } : to.data },
+    next: { scene: to.scene, data: FRESH.has(at) ? { replay: true } : at === 'complete' ? { finale: true } : to.data },
   });
   enterGame();
 };
 
 // ---- the Discovery Book: the button under the profile badge (the scene behind waits while it is open) ----
 const bookBtn = document.getElementById('book-btn') as HTMLButtonElement;
+bookBtn.querySelector('img')!.src = asset('ui/book.webp');
+// the badge: how many notes are in the book so far
+const bookCount = bookBtn.querySelector<HTMLElement>('.book-count')!;
+const showBookCount = () => {
+  const n = BOOK_NOTES.filter((id) => GameState.discoveries.includes(id)).length;
+  bookCount.hidden = n === 0;
+  bookCount.textContent = String(n);
+};
+showBookCount();
+GameState.onChange(showBookCount);
 let bookOpen = false;
 bookBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 bookBtn.addEventListener('click', (e) => {
@@ -258,6 +272,7 @@ if (new URLSearchParams(location.search).has('review')) {
     { group: 'chapter.3', label: 'review.junction', at: 'intestine-gate' },
     { group: 'chapter.3', label: 'chapter.smallIntestineMission', at: 'small-intestine' },
     { group: 'chapter.3', label: 'chapter.revision', at: 'revision' },
+    { group: 'chapter.3', label: 'review.finale', at: 'complete' },
   ];
   let started = false;
   const jump = (at: string) => {

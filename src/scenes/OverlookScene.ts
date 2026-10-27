@@ -106,11 +106,13 @@ export class OverlookScene extends Phaser.Scene {
       return;
     }
     this.game.events.once(GAME_EVENTS.introCut, (secondsLeft: number) => this.closeIn(secondsLeft));
+    this.game.events.once(GAME_EVENTS.introSkip, () => this.closedInNow());
     this.game.events.on(GAME_EVENTS.editProfile, this.onEditProfile, this);
     this.game.events.on(GAME_EVENTS.bookOpen, this.onBook, this);
     this.game.events.once(GAME_EVENTS.introDone, () => this.startOpening());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off(GAME_EVENTS.introCut);
+      this.game.events.off(GAME_EVENTS.introSkip);
       this.game.events.off(GAME_EVENTS.introDone);
       this.game.events.off(GAME_EVENTS.editProfile, this.onEditProfile, this);
       this.game.events.off(GAME_EVENTS.bookOpen, this.onBook, this);
@@ -186,6 +188,14 @@ export class OverlookScene extends Phaser.Scene {
     if (this.phase !== 'waiting') return;
     this.phase = 'zooming';
     this.zoomFromTo(this.world.overviewRect, 1, this.world.endFrameRect, this.world.endFrameParty.scale, Math.max(0.5, seconds) * 1000, 'Sine.easeInOut');
+  }
+
+  /** Skip: straight to where the close-in ends (on the trio); the pull-back follows as after the music. */
+  private closedInNow(): void {
+    if (this.phase !== 'waiting' && this.phase !== 'zooming') return;
+    this.zoomTween?.stop();
+    this.phase = 'zooming';
+    this.setView(this.world.endFrameRect, this.world.endFrameParty.scale);
   }
 
   private zoomTween?: Phaser.Tweens.Tween;

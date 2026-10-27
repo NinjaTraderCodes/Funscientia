@@ -71,6 +71,8 @@ export class IntroPlayer {
     private readonly gameReady: Promise<void>,
     private readonly onCut: (secondsLeft: number) => void,
     private readonly onHandover: () => void,
+    /** Skip pressed: the game frames the end of the intro's last shot (its zoom-in done) before the handover. */
+    private readonly onSkipToEnd: () => void = () => undefined,
   ) {
     this.url = asset(wantsFullHD() ? 'intro/intro_1080.mp4' : 'intro/intro_720.mp4');
     this.video.addEventListener('timeupdate', () => {
@@ -213,13 +215,15 @@ export class IntroPlayer {
     });
   }
 
-  /** Skip to the intro's last shot (the overlook closing in); pressed again there, skip that too. */
-  private skip(): void {
-    if (!this.cut && Number.isFinite(this.video.duration) && this.video.currentTime < INTRO_CUT_AT) {
-      this.video.currentTime = INTRO_CUT_AT;
-      void this.cutToGame();
-      return;
-    }
+  /**
+   * Skip the rest of the intro: the game is shown as the last shot ends (closed in on the trio), so the
+   * next thing is the pull-back to the whole ledge.
+   */
+  private async skip(): Promise<void> {
+    if (this.finished) return;
+    this.skipBtn.hidden = true;
+    await this.gameReady;
+    this.onSkipToEnd();
     void this.finish(true);
   }
 
@@ -242,7 +246,7 @@ export class IntroPlayer {
 
     await this.gameReady;
     this.onHandover();
-    void Sound.music(); // the soundtrack carries on from the video into the game
+    void Sound.music(undefined, 0.6); // the intro ends on this same nature ambience: it carries on into the game
     this.video.classList.add('fade-out');
     window.setTimeout(() => {
       this.video.pause();
