@@ -26,13 +26,14 @@ export class ReviewMenu {
     this.tab.addEventListener('click', (e) => { e.stopPropagation(); this.open(); });
     this.el.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (e.target === this.el) return this.close(); // a tap outside the panel
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
       if (!b || b.disabled) return;
       if (b.dataset.at) { this.close(); this.showTab(); this.onPick(b.dataset.at); }
       else if (b.dataset.act === 'start') { this.close(); this.onBeginning(); }
       else if (b.dataset.act === 'close') this.close();
     });
-    window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && !this.el.hidden && !this.tab.hidden) { e.stopPropagation(); this.close(); } }, true);
+    window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && !this.el.hidden) { e.stopPropagation(); this.close(); } }, true);
     I18n.onChange(() => this.draw());
     this.draw();
   }
@@ -53,8 +54,10 @@ export class ReviewMenu {
     this.el.hidden = false;
   }
 
+  /** Closed (×, Escape or a tap outside): the tab on the left edge brings it back. */
   close(): void {
     this.el.hidden = true;
+    this.showTab();
   }
 
   private draw(): void {
@@ -62,7 +65,7 @@ export class ReviewMenu {
     this.el.dir = I18n.rtl ? 'rtl' : 'ltr';
     this.tab.setAttribute('aria-label', t('review.open'));
     this.el.innerHTML = `<div class="review-card" role="dialog" aria-label="${t('review.title')}">
-      ${this.tab.hidden ? '' : `<button type="button" class="review-close" data-act="close" aria-label="${t('review.close')}">×</button>`}
+      <button type="button" class="review-close" data-act="close" aria-label="${t('review.close')}">×</button>
       <h2>${t('review.title')}</h2>
       <p>${t(this.ready ? 'review.note' : 'review.loading')}</p>
       <div class="review-groups">${groups.map((g) => `<section><h3>${t(g)}</h3>${this.stops.filter((s) => s.group === g)
