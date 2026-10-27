@@ -10,7 +10,8 @@ Code-based online saves for Funscientia: the game creates a save and shows the p
 | `schema.sql` | Creates the `public.saves` table with `code`, `data`, `created_at`, `updated_at`, and `save_count`, including the save-code format check. |
 | `functions.sql` | Creates the three API functions: `create_save(p_data jsonb)`, `save_progress(p_code text, p_data jsonb)`, and `load_progress(p_code text)`. |
 | `security.sql` | Enables RLS on `public.saves`, removes direct table and function access from the API roles, and grants execute on only the three functions to `anon`. |
-| `stats.sql` | Optional read-only statistics queries for the SQL Editor. Not exposed through the API. |
+| `stats.sql` | Optional read-only statistics queries 1–8 for the SQL Editor, including round 2 results and progress. Queries 5–8 exclude jury templates. Not exposed through the API. |
+| `sample_saves.sql` | Test saves for your own Supabase project only, copied unchanged from `round2/sample_saves.sql`. Never run on the team project. |
 | `test.html` | Local browser test page with manual RPC buttons and a "Run all checks" suite of 14 checks. It loads the Supabase JS client from a CDN and keeps the URL and key in browser `localStorage`. |
 | `screenshots/checks.png` | Evidence that the 14 checks passed (14/14). |
 | `screenshots/table-editor.png` | Supabase Table Editor showing `public.saves` and test rows. |
@@ -53,6 +54,20 @@ Some checks deliberately attempt forbidden operations, so red 400/401 console me
 
 The "Try it by hand" section is optional. It can call `create_save`, `save_progress`, and `load_progress` individually.
 
+## Statistics (round 2)
+
+5. Stars per mission: how many players finished each mission, their average stars, and how many earned 1, 2 or 3 stars.
+6. Furthest place reached: how many players reached each place, using the current place for older saves without a furthest place.
+7. Predictions: how many players answered each question, how many answered correctly, and the percentage correct.
+8. Average mistakes among players who finished the Small Intestine mission and average memory moves among players who finished the Memory Challenge.
+
+## Keep-alive
+
+Service: cron-job.org (free), job "Funscientia keep-alive".
+It calls the team project's `load_progress` function via POST once a day at 06:00, using jury code `257F-T76R`.
+It only reads a jury save as a template; it never creates or changes a save. Failure emails go to: djihanebendjeddou@gmail.com.
+It runs until at least 30 November 2026, then the team decides whether to keep it.
+
 ## Security in short
 
 RLS is enabled on `public.saves`. No direct table policies are configured, so the table is not directly readable or writable through the API. Direct table privileges are revoked from `anon` and `authenticated`.
@@ -73,7 +88,8 @@ Limits: a save code acts like a bearer token. Anyone who knows a code can load o
 
 ## Changes from the guide
 
-- The SQL files (`schema.sql`, `functions.sql`, `security.sql`, and `stats.sql`) and `test.html` are unchanged from the supplied kit. Their SHA-256 hashes match the copies in `docs/backend-guide/Funscientia_Online_Saves_Kit.zip`.
+- The SQL files (`schema.sql`, `functions.sql`, and `security.sql`) and `test.html` are unchanged from the supplied kit. Their SHA-256 hashes match the copies in `docs/backend-guide/Funscientia_Online_Saves_Kit.zip`.
+- Round 2: `stats.sql` keeps queries 1–4 unchanged and appends the full contents of `round2/stats_round2.sql` as queries 5–8. `sample_saves.sql` is an unchanged copy of `round2/sample_saves.sql`.
 - The README has been completed from the template in my own words; its section headings follow the original template.
 - The guide asks for `screenshots/security-advisor.png`; the available evidence is split into `security-advisor-errors.png`, `security-advisor-info.png`, and `security-advisor-warnings.png`. Confirmation is still needed on whether this split is acceptable or whether a combined screenshot is required.
 - The screenshots show a Supabase project named `Funscientia Development`, while the guide's example uses `funscientia-saves-test`. Confirmation is still needed that this is the intended test project.
