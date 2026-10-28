@@ -592,6 +592,23 @@ input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-sele
 .avatar-code small { flex-basis: 100%; font-weight: 600; color: #6b5a3c; }
 html.lang-ar .code-card, html.lang-ar .avatar-code { direction: rtl; }
 
+/* the privacy note: a small link in the start page's corner, and its card */
+.hero-privacy {
+  position: absolute; right: max(14px, env(safe-area-inset-right)); bottom: max(1.6vh, env(safe-area-inset-bottom));
+  padding: 4px 12px; font: 600 clamp(12px, 1.9vh, 14px) 'Trebuchet MS', 'Segoe UI', sans-serif; color: #fff6dd;
+  background: rgba(11, 21, 51, 0.5); border: 1px solid rgba(243, 195, 90, 0.6); border-radius: 999px; cursor: pointer;
+  backdrop-filter: blur(3px); animation: start-in 700ms 900ms ease-out both;
+}
+.hero-privacy:hover { background: rgba(11, 21, 51, 0.75); }
+html.lang-ar .hero-privacy { right: auto; left: max(14px, env(safe-area-inset-left)); font-family: 'Baloo Bhaijaan 2', Tahoma, sans-serif; }
+.privacy-card { width: min(92vw, 560px); max-height: 90vh; overflow-y: auto; justify-items: stretch; text-align: start; }
+.privacy-card h2 { text-align: center; }
+.privacy-intro { margin: 0; text-align: center; font-size: clamp(14px, 2.3vh, 16px); }
+.privacy-card dl { margin: 0; display: grid; gap: 2px; }
+.privacy-card dt { margin-top: 8px; font-weight: 800; color: #1a2f86; font-size: clamp(14px, 2.3vh, 16px); }
+.privacy-card dd { margin: 0; font-size: clamp(13px, 2.1vh, 15px); line-height: 1.45; }
+.privacy-card .privacy-close { justify-self: center; margin-top: 6px; }
+
 /* ---- The Stomach mini-game: the shared interface, plus the acidity gauge and the acid flask ---- */
 /* the pylorus is on the left: the step cards go to the right, and the reactions sit bottom left */
 .stomach-hud .mh-cards { left: auto; right: max(10px, env(safe-area-inset-right)); top: 54%; }

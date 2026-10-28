@@ -10,6 +10,7 @@ import { OnlineSave } from './state/OnlineSave';
 import { askCode } from './ui/CodePanel';
 import { ReviewMenu, type ReviewStop } from './ui/ReviewMenu';
 import { openBook } from './ui/DiscoveryBook';
+import { showPrivacy } from './ui/PrivacyNote';
 import { BOOK_NOTES } from './state/discoveries';
 import { toast } from './ui/Toast';
 import { I18n, applyPage, t, type Key } from './i18n/i18n';
@@ -192,6 +193,13 @@ const RESUME: Record<string, { title: Key; subtitle: Key; artwork: ChapterArtwor
   revision: { title: 'chapter.3', subtitle: 'chapter.revision', artwork: 'revision', scene: 'Revision' },
   complete: { title: 'chapter.3', subtitle: 'c3.end.title', artwork: 'revision', scene: 'Revision' },
 };
+// the privacy note: what the game saves, and what it never saves
+const privacyBtn = document.getElementById('privacy-btn') as HTMLButtonElement;
+privacyBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+privacyBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  void showPrivacy();
+});
 const continueBtn = document.getElementById('continue-btn') as HTMLButtonElement;
 continueBtn.addEventListener('click', async (e) => {
   e.stopPropagation();
