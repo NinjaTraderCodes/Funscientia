@@ -12,12 +12,17 @@ Code-based online saves for Funscientia: the game creates a save and shows the p
 | `security.sql` | Enables RLS on `public.saves`, removes direct table and function access from the API roles, and grants execute on only the three functions to `anon`. |
 | `stats.sql` | Optional read-only statistics queries 1–8 for the SQL Editor, including round 2 results and progress. Queries 5–8 exclude jury templates. Not exposed through the API. |
 | `sample_saves.sql` | Test saves for your own Supabase project only, copied unchanged from `round2/sample_saves.sql`. Never run on the team project. |
+| `cleanup.sql` | Deletes saves nobody has used for 12 months, never the jury's starting points (templates): a preview, the delete, and an optional monthly `pg_cron` schedule (commented out). Run by hand in the SQL Editor; not scheduled on the team project. |
+| `PRIVACY.md` | The plain-language privacy note for pupils, parents and teachers: what is saved, what is never saved, where, who can see it, and for how long. |
 | `test.html` | Local browser test page with manual RPC buttons and a "Run all checks" suite of 14 checks. It loads the Supabase JS client from a CDN and keeps the URL and key in browser `localStorage`. |
 | `screenshots/checks.png` | Evidence that the 14 checks passed (14/14). |
 | `screenshots/table-editor.png` | Supabase Table Editor showing `public.saves` and test rows. |
 | `screenshots/security-advisor-errors.png` | Security Advisor Errors tab: no errors detected. |
 | `screenshots/security-advisor-info.png` | Security Advisor Info finding: `RLS Enabled No Policy` on `public.saves`. |
 | `screenshots/security-advisor-warnings.png` | Security Advisor Warnings: three `Public Can Execute SECURITY DEFINER` findings. |
+| `screenshots/keepalive-job.png`, `keepalive-advanced.png` | The cron-job.org keep-alive job: address and daily schedule; method, headers (key hidden) and body. |
+| `screenshots/keepalive-200ok.png`, `keepalive-history.png` | Its test run (200 OK) and its schedule. |
+| `screenshots/stats-5.png` … `stats-8.png` | Round 2 statistics queries 5–8 on the sample saves. |
 
 There is no single `screenshots/security-advisor.png`; the advisor evidence is split across the three files listed above.
 
@@ -65,8 +70,16 @@ The "Try it by hand" section is optional. It can call `create_save`, `save_progr
 
 Service: cron-job.org (free), job "Funscientia keep-alive".
 It calls the team project's `load_progress` function via POST once a day at 06:00, using jury code `257F-T76R`.
-It only reads a jury save as a template; it never creates or changes a save. Failure emails go to: djihanebendjeddou@gmail.com.
+It only reads a jury save as a template; it never creates or changes a save. Failure emails go to the owner of the cron-job.org account (Djihane).
 It runs until at least 30 November 2026, then the team decides whether to keep it.
+
+## Clean-up
+
+`cleanup.sql` deletes the saves whose `updated_at` is more than 12 months old, and never a jury starting point (`data.template = true`). Step 1 previews the rows, step 2 deletes them, and step 3 (commented out) would run step 2 at 03:00 on the 1st of every month with `pg_cron`.
+
+Tested on a local PostgreSQL (PGlite) with `schema.sql` and `sample_saves.sql`: the preview lists only `TEST-8888` (untouched for 14 months); after the delete, 7 rows remain, including both jury rows (`JURY-2345`, and `JURY-3456`, which is also 14 months old).
+
+It is **not** run or scheduled on the team project: the first saves there date from October 2026, so nothing can be due before October 2027. The team decides then.
 
 ## Security in short
 
@@ -91,16 +104,18 @@ Limits: a save code acts like a bearer token. Anyone who knows a code can load o
 - The SQL files (`schema.sql`, `functions.sql`, and `security.sql`) and `test.html` are unchanged from the supplied kit. Their SHA-256 hashes match the copies in `docs/backend-guide/Funscientia_Online_Saves_Kit.zip`.
 - Round 2: `stats.sql` keeps queries 1–4 unchanged and appends the full contents of `round2/stats_round2.sql` as queries 5–8. `sample_saves.sql` is an unchanged copy of `round2/sample_saves.sql`.
 - The README has been completed from the template in my own words; its section headings follow the original template.
-- The guide asks for `screenshots/security-advisor.png`; the available evidence is split into `security-advisor-errors.png`, `security-advisor-info.png`, and `security-advisor-warnings.png`. Confirmation is still needed on whether this split is acceptable or whether a combined screenshot is required.
-- The screenshots show a Supabase project named `Funscientia Development`, while the guide's example uses `funscientia-saves-test`. Confirmation is still needed that this is the intended test project.
+- The guide asks for `screenshots/security-advisor.png`; the evidence is split into `security-advisor-errors.png`, `security-advisor-info.png`, and `security-advisor-warnings.png`. The team confirmed the split is fine.
+- The screenshots show a Supabase project named `Funscientia Development`, while the guide's example uses `funscientia-saves-test`. The team confirmed it is the intended test project.
+- Round 2: `cleanup.sql` (unchanged from `round2/cleanup.sql`) and `PRIVACY.md` (from `round2/PRIVACY_template.md`) were completed by the team (Hicham), with the clean-up test described above.
+- In the statistics screenshots, queries 6 and 7 count one more player than the guide's expected results: the test project still holds one save left by `test.html` (place `stomach`, saliva = sugar, pepsin = protein). Rerun on the sample saves alone, the results match the guide exactly.
 - No other implementation changes were identified. If any SQL or test change is made later, record it here and rerun all 14 checks.
 
 ## Questions / ideas
 
-- Confirm whether the current Supabase project shown in the screenshots, `Funscientia Development`, is the intended test project or whether it should be renamed or recreated as `funscientia-saves-test`; this affects traceability but not the SQL itself.
+- (Answered: `Funscientia Development` is the intended test project.)
 - Confirm whether the three separate Security Advisor screenshots satisfy the guide's single `security-advisor.png` requirement, or whether they should be combined.
-- Decide whether to keep `stats.sql` in the final delivery; it is optional and not required for the API.
+- (Answered: `stats.sql` stays; round 2 added queries 5–8.)
 - Consider rate limiting or another abuse control for `create_save` and save-code guessing. The current design has no rate limiting.
 - Consider optimistic concurrency for `save_progress` so two devices saving the same code do not silently overwrite each other.
-- Consider a cleanup policy for old saves and a small dashboard for the statistics queries.
+- A clean-up rule now exists (`cleanup.sql`); a small dashboard for the statistics queries could come later.
 - SQL is currently applied manually in the Supabase SQL Editor; there is no automated migration or deployment tracking.
