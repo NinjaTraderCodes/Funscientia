@@ -740,14 +740,16 @@ html.lang-ar .book-card h2, html.lang-ar .book-page h3 { font-family: 'Baloo Bha
 
 /* the notes of a page: found ones in colour, missing ones as a shadow with a hint */
 .book-notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
-.book-note { position: relative; display: grid; grid-template-rows: clamp(70px, 15vh, 120px) auto; gap: 8px; padding: 10px; background: #fffdf7; border: 2px solid #e8cd8d; border-radius: 18px; box-shadow: 0 3px 0 #d9b468; }
-.book-note img { width: 100%; height: 100%; object-fit: contain; }
+.book-note { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: #fffdf7; border: 2px solid #e8cd8d; border-radius: 18px; box-shadow: 0 3px 0 #d9b468; }
+/* the picture has its own fixed height (a % of a grid row is not resolved by iPad Safari: the picture overflowed onto the text) */
+.book-note img { display: block; width: 100%; height: clamp(70px, 15vh, 120px); flex: none; object-fit: contain; }
 .book-note img[src*="chapters/"], .book-note img[src*="world/esophagus"] { object-fit: cover; border-radius: 12px; }
-.book-note p { margin: 0; font-size: clamp(13px, 2.1vh, 15px); line-height: 1.4; }
+/* the note's text on a soft, transparent blue card (Dounia's idea) */
+.book-note p { margin: 0; padding: 8px 10px; font-size: clamp(13px, 2.1vh, 15px); line-height: 1.4; color: #14234d; background: rgba(43, 92, 170, 0.1); border: 1px solid rgba(43, 92, 170, 0.22); border-radius: 12px; }
 .book-note.missing { background: #f4ead6; border-style: dashed; box-shadow: none; }
 .book-note.missing img { filter: brightness(0) opacity(0.16); }
 .book-note.missing b { position: absolute; top: 10px; left: 0; right: 0; height: clamp(70px, 15vh, 120px); display: grid; place-items: center; font-size: clamp(34px, 8vh, 56px); color: #b8955a; font-family: Georgia, serif; }
-.book-note.missing p { color: #7d6540; font-style: italic; }
+.book-note.missing p { color: #6b5430; font-style: italic; background: rgba(184, 149, 90, 0.12); border-color: rgba(184, 149, 90, 0.3); }
 
 /* the Journey: the route with its stars, the notes found, the kingdom's star and the kingdoms to come */
 .book-journey { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(12px, 3vw, 28px); }
