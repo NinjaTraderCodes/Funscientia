@@ -1,0 +1,155 @@
+{
+ "name": "intestine-gate",
+ "image": "world/intestine-gate_far",
+ "layers": [
+  {
+   "image": "world/intestine-gate_far",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/intestine-gate_mid",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/intestine-gate_near",
+   "parallax": 1.22,
+   "front": true
+  }
+ ],
+ "width": 1536,
+ "height": 1024,
+ "title": "The Helpers' Junction",
+ "dialogue": "intestine-gate",
+ "horizonY": 190.0,
+ "pathWidthAtBottom": 850.0,
+ "bodyPerPathWidth": 0.3,
+ "foreshortenAtBottom": 0.42,
+ "goal": "gate",
+ "next": "SmallIntestine",
+ "nextChapter": "chapter.3",
+ "nextTitle": "chapter.smallIntestineMission",
+ "walkable": [
+  [
+   400,
+   1022
+  ],
+  [
+   470,
+   880
+  ],
+  [
+   540,
+   760
+  ],
+  [
+   610,
+   660
+  ],
+  [
+   690,
+   590
+  ],
+  [
+   705,
+   530
+  ],
+  [
+   665,
+   482
+  ],
+  [
+   620,
+   455
+  ],
+  [
+   660,
+   420
+  ],
+  [
+   740,
+   398
+  ],
+  [
+   820,
+   382
+  ],
+  [
+   1010,
+   382
+  ],
+  [
+   1100,
+   400
+  ],
+  [
+   1170,
+   425
+  ],
+  [
+   1195,
+   450
+  ],
+  [
+   1130,
+   480
+  ],
+  [
+   1090,
+   530
+  ],
+  [
+   1085,
+   600
+  ],
+  [
+   1105,
+   700
+  ],
+  [
+   1150,
+   820
+  ],
+  [
+   1215,
+   940
+  ],
+  [
+   1250,
+   1022
+  ]
+ ],
+ "spawn": {
+  "name": "spawn",
+  "x": 850,
+  "y": 950
+ },
+ "hotspots": [
+  {
+   "name": "helpers",
+   "x": 760,
+   "y": 570,
+   "knot": "helpers",
+   "label": "@label.intestineHelpers",
+   "radius": 60.0
+  },
+  {
+   "name": "gate",
+   "x": 905,
+   "y": 478,
+   "knot": "gate",
+   "label": "@label.intestineGate",
+   "radius": 55.0
+  }
+ ],
+ "npcs": [
+  {
+   "name": "guardian",
+   "x": 1015,
+   "y": 472,
+   "who": "intestine"
+  }
+ ],
+ "props": []
+}
