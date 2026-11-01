@@ -194,6 +194,8 @@ const RESUME: Record<string, { title: Key; subtitle: Key; artwork: ChapterArtwor
   complete: { title: 'chapter.3', subtitle: 'c3.end.title', artwork: 'revision', scene: 'Revision' },
 };
 // the privacy note: what the game saves, and what it never saves
+// the demo video (YouTube, in a new tab): the click must not also start the game
+document.getElementById('demo-link')!.addEventListener('pointerdown', (e) => e.stopPropagation());
 const privacyBtn = document.getElementById('privacy-btn') as HTMLButtonElement;
 privacyBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 privacyBtn.addEventListener('click', (e) => {

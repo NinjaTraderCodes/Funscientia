@@ -317,6 +317,7 @@ export const en = {
   'set.sfx': 'Sounds',
   'set.motion': 'Reduce motion (fewer animations and shakes)',
   // the privacy note (start page)
+  'demo.link': 'Watch the demo',
   'privacy.link': 'Privacy',
   'privacy.title': 'Your privacy',
   'privacy.intro': 'Funscientia saves your game so you can continue it later, on this device or on another one.',

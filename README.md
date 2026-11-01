@@ -8,6 +8,8 @@ Funscientia team for the **Thirduni** team project (Cohort 1, 2026).
 
 **▶ Play: https://ninjatradercodes.github.io/Funscientia/** (phone, tablet or computer; best in landscape)
 
+**🎬 Demo video: https://youtu.be/o8lzhWhBVIQ** (Dounia explains the game while playing it)
+
 | For the jury | |
 |---|---|
 | Jump to any part of the game | **https://ninjatradercodes.github.io/Funscientia/?review** (a "Jump to" menu; the ☰ tab on the left brings it back) |
