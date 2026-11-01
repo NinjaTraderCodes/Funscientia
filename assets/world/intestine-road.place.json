@@ -1,0 +1,138 @@
+{
+ "name": "intestine-road",
+ "image": "world/intestine-road_far",
+ "layers": [
+  {
+   "image": "world/intestine-road_far",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/intestine-road_mid",
+   "parallax": 1.0,
+   "front": false
+  },
+  {
+   "image": "world/intestine-road_near",
+   "parallax": 1.22,
+   "front": true
+  }
+ ],
+ "width": 1536,
+ "height": 1024,
+ "title": "The Road to the Small Intestine",
+ "dialogue": "intestine-road",
+ "horizonY": 226.0,
+ "pathWidthAtBottom": 790.0,
+ "bodyPerPathWidth": 0.36,
+ "foreshortenAtBottom": 0.42,
+ "goal": "exit",
+ "walkable": [
+  [
+   520,
+   1022
+  ],
+  [
+   575,
+   900
+  ],
+  [
+   655,
+   800
+  ],
+  [
+   700,
+   700
+  ],
+  [
+   668,
+   622
+  ],
+  [
+   600,
+   556
+  ],
+  [
+   520,
+   498
+  ],
+  [
+   468,
+   452
+  ],
+  [
+   480,
+   420
+  ],
+  [
+   560,
+   405
+  ],
+  [
+   630,
+   420
+  ],
+  [
+   730,
+   462
+  ],
+  [
+   885,
+   528
+  ],
+  [
+   990,
+   584
+  ],
+  [
+   1085,
+   652
+  ],
+  [
+   1160,
+   760
+  ],
+  [
+   1235,
+   880
+  ],
+  [
+   1290,
+   1022
+  ]
+ ],
+ "spawn": {
+  "name": "spawn",
+  "x": 905,
+  "y": 965
+ },
+ "hotspots": [
+  {
+   "name": "chyme",
+   "x": 795,
+   "y": 725,
+   "knot": "chyme",
+   "label": "@label.chymeTrail",
+   "radius": 70.0
+  },
+  {
+   "name": "starch",
+   "x": 795,
+   "y": 575,
+   "knot": "starch",
+   "label": "@label.remainingStarch",
+   "radius": 55.0
+  },
+  {
+   "name": "exit",
+   "x": 565,
+   "y": 450,
+   "knot": "exit",
+   "label": "@label.intestinePassage",
+   "radius": 50.0,
+   "to": "intestine-gate"
+  }
+ ],
+ "npcs": [],
+ "props": []
+}
